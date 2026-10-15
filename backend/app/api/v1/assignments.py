@@ -8,11 +8,11 @@ from sqlalchemy.orm import Session
 from app.api.deps import get_db
 from app.models import (
     Assignment, ServiceRequest, Employee, ServiceResult,
-    ServiceRequiredSkill, EmployeeSkill, AIPrediction
+    ServiceRequiredSkill, EmployeeSkill, AIPrediction, Rating
 )
 from app.schemas.assignment import (
     ManualAssignmentCreate, AssignmentConfirmRequest,
-    ServiceResultRecordRequest, AssignmentOut, ServiceResultOut
+    ServiceResultRecordRequest, AssignmentOut, ServiceResultOut, RatingCreate
 )
 
 router = APIRouter(prefix="/assignments", tags=["Assignments & Execution"])
@@ -232,3 +232,41 @@ def record_service_result(
     db.commit()
     db.refresh(sr_res)
     return sr_res
+
+
+@router.post("/{assignment_id}/rate", status_code=status.HTTP_201_CREATED, summary="Đánh giá chất lượng dịch vụ (Rating)")
+def rate_assignment(
+    assignment_id: int,
+    rate_in: RatingCreate,
+    db: Session = Depends(get_db)
+):
+    assign = db.get(Assignment, assignment_id)
+    if not assign:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Không tìm thấy phân công")
+    
+    # Kiểm tra đã đánh giá chưa (UNIQUE(assignment_id))
+    existing_rating = db.execute(
+        select(Rating).where(Rating.assignment_id == assignment_id)
+    ).scalar_one_or_none()
+
+    if existing_rating:
+        existing_rating.score = rate_in.score
+        existing_rating.comment = rate_in.comment
+        r_obj = existing_rating
+    else:
+        r_obj = Rating(
+            assignment_id=assignment_id,
+            score=rate_in.score,
+            comment=rate_in.comment
+        )
+        db.add(r_obj)
+    
+    db.commit()
+    db.refresh(r_obj)
+    return {
+        "rating_id": r_obj.rating_id,
+        "assignment_id": r_obj.assignment_id,
+        "score": r_obj.score,
+        "comment": r_obj.comment
+    }
+

@@ -1,0 +1,5 @@
+﻿feasible_rate,assigned_count,unassigned_count,avg_travel_time,total_travel_distance,workload_std_dev,avg_dss_score,strategy,runtime_ms
+40.0,2,3,10.0,5.6,44.4,0.8626,1. First Feasible,62.48
+40.0,2,3,8.0,4.0,30.45,0.8733,2. Nearest Feasible,47.62
+40.0,2,3,8.0,4.0,30.45,0.8733,3. Weighted DSS (Greedy),43.86
+40.0,2,3,6.56,3.28,22.84,0.9432,4. OR-Tools CP-SAT (Global),20.55

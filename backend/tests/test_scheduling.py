@@ -95,38 +95,62 @@ def test_realtime_feasibility_check_api():
     assert "H3" in inf_data["rejection_reason"]
 
 
+from sqlalchemy import func
+from app.models import RecommendationLog
+
+
 def test_ortools_global_schedule_optimization(db_session):
     """Kiểm thử giải bài toán tối ưu hóa phân công toàn cục bằng OR-Tools CP-SAT"""
     # Ngày mai (đã seed 5 request pending)
     target_date = (datetime.now(timezone.utc) + timedelta(days=1)).date()
 
-    payload = {
-        "target_date": target_date.isoformat(),
-        "created_by_user_id": 1
-    }
-    res = client.post("/api/v1/schedule/optimize", json=payload)
-    assert res.status_code == 200, res.text
-    opt_data = res.json()
+    # Dọn dẹp phân công cũ trên target_date để đảm bảo tính cô lập (tuân thủ thứ tự FK)
+    db_session.query(Assignment).filter(func.date(Assignment.scheduled_start) == target_date).delete()
+    v_ids = [v.schedule_version_id for v in db_session.query(ScheduleVersion).filter(ScheduleVersion.schedule_date == target_date).all()]
+    if v_ids:
+        db_session.query(RecommendationLog).filter(RecommendationLog.schedule_version_id.in_(v_ids)).delete(synchronize_session=False)
+    db_session.query(ScheduleVersion).filter(ScheduleVersion.schedule_date == target_date).delete(synchronize_session=False)
+    db_session.query(ServiceRequest).filter(func.date(ServiceRequest.preferred_start) == target_date).update({"status": "pending"})
+    db_session.commit()
 
-    assert opt_data["status"] == "success"
-    assert opt_data["schedule_version_id"] is not None
-    assert opt_data["assigned_count"] > 0
-    version_id = opt_data["schedule_version_id"]
+    version_id = None
+    try:
+        payload = {
+            "target_date": target_date.isoformat(),
+            "created_by_user_id": 1
+        }
+        res = client.post("/api/v1/schedule/optimize", json=payload)
+        assert res.status_code == 200, res.text
+        opt_data = res.json()
 
-    # Kiểm tra các phân công được tạo trong phiên bản lịch
-    ver_assigns = client.get(f"/api/v1/schedule/versions/{version_id}/assignments")
-    assert ver_assigns.status_code == 200
-    assign_list = ver_assigns.json()
-    assert len(assign_list) == opt_data["assigned_count"]
+        assert opt_data["status"] == "success"
+        assert opt_data["schedule_version_id"] is not None
+        assert opt_data["assigned_count"] > 0
+        version_id = opt_data["schedule_version_id"]
 
-    for a in assign_list:
-        assert a["assignment_status"] == "proposed"
-        assert a["recommendation_score"] is not None
-        assert a["explanation"] is not None
+        # Kiểm tra các phân công được tạo trong phiên bản lịch
+        ver_assigns = client.get(f"/api/v1/schedule/versions/{version_id}/assignments")
+        assert ver_assigns.status_code == 200
+        assign_list = ver_assigns.json()
+        assert len(assign_list) == opt_data["assigned_count"]
 
-    # Kiểm tra Điều phối viên phê duyệt toàn bộ phiên bản lịch (Human-in-the-Loop)
-    confirm_res = client.post(f"/api/v1/schedule/versions/{version_id}/confirm?confirmed_by=1")
-    assert confirm_res.status_code == 200
-    c_data = confirm_res.json()
-    assert c_data["status"] == "success"
-    assert c_data["confirmed_count"] == opt_data["assigned_count"]
+        for a in assign_list:
+            assert a["assignment_status"] == "proposed"
+            assert a["recommendation_score"] is not None
+            assert a["explanation"] is not None
+
+        # Kiểm tra Điều phối viên phê duyệt toàn bộ phiên bản lịch (Human-in-the-Loop)
+        confirm_res = client.post(f"/api/v1/schedule/versions/{version_id}/confirm?confirmed_by=1")
+        assert confirm_res.status_code == 200
+        c_data = confirm_res.json()
+        assert c_data["status"] == "success"
+        assert c_data["confirmed_count"] == opt_data["assigned_count"]
+
+    finally:
+        # Dọn dẹp sau khi kiểm thử để không làm ô nhiễm CSDL
+        db_session.query(Assignment).filter(func.date(Assignment.scheduled_start) == target_date).delete()
+        if version_id:
+            db_session.query(RecommendationLog).filter(RecommendationLog.schedule_version_id == version_id).delete()
+            db_session.query(ScheduleVersion).filter(ScheduleVersion.schedule_version_id == version_id).delete()
+        db_session.query(ServiceRequest).filter(func.date(ServiceRequest.preferred_start) == target_date).update({"status": "pending"})
+        db_session.commit()
