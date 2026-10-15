@@ -1,0 +1,71 @@
+# ==============================================================================
+# BẢO MẬT & THÔNG TIN NHẠY CẢM (CRITICAL: KHÔNG BAO GIỜ COMMIT LÊN GITHUB)
+# ==============================================================================
+.env
+*.env
+backend/.env
+!*.env.example
+!.env.example
+
+# ==============================================================================
+# MÔI TRƯỜNG ẢO & PYTHON (VIRTUAL ENVIRONMENT & RUNTIME)
+# ==============================================================================
+venv/
+.venv/
+env/
+ENV/
+backend/venv/
+__pycache__/
+*/__pycache__/
+*.py[cod]
+*$py.class
+*.so
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# ==============================================================================
+# KIỂM THỬ & LOG (TESTING, COVERAGE & LOGS)
+# ==============================================================================
+.pytest_cache/
+*/.pytest_cache/
+.coverage
+htmlcov/
+*.log
+
+# ==============================================================================
+# TỆP TIN NHỊ PHÂN LỚN & BỘ CÀI ĐẶT (GIỚI HẠN GITHUB 100MB)
+# ==============================================================================
+installers/
+*.exe
+*.msi
+*.iso
+*.dmg
+*.zip
+*.tar.gz
+
+# ==============================================================================
+# CÔNG CỤ PHÁT TRIỂN & HỆ ĐIỀU HÀNH (IDE & OS FILES)
+# ==============================================================================
+.vscode/
+.idea/
+*.swp
+*.swo
+Thumbs.db
+Desktop.ini
+.DS_Store
+database.py/
+~$*
+*.tmp

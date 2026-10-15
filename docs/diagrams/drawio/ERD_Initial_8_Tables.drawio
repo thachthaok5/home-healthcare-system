@@ -1,0 +1,46 @@
+<mxfile host="app.diagrams.net" modified="2026-10-05T14:15:00.000Z" agent="ChatGPT" version="24.7.17" type="device">
+  <diagram id="initial-erd" name="Initial ERD - Proposal">
+    <mxGraphModel dx="1600" dy="1000" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1600" pageHeight="1100" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+
+        <mxCell id="customers" value="CUSTOMERS&#xa;──────────────&#xa;PK customer_id : BIGINT&#xa;full_name : VARCHAR(150)&#xa;phone : VARCHAR(30)&#xa;date_of_birth : DATE&#xa;address : TEXT&#xa;lat : NUMERIC(9,6)&#xa;lon : NUMERIC(9,6)" style="shape=table;startSize=28;container=1;collapsible=0;childLayout=tableLayout;fixedRows=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1;align=left;spacingLeft=6;" vertex="1" parent="1">
+          <mxGeometry x="60" y="80" width="250" height="230" as="geometry"/>
+        </mxCell>
+        <mxCell id="services" value="SERVICES&#xa;──────────────&#xa;PK service_id : BIGINT&#xa;service_name : VARCHAR(150)&#xa;default_duration : INTEGER&#xa;base_price : NUMERIC(12,2)&#xa;active : BOOLEAN" style="shape=table;startSize=28;container=1;collapsible=0;childLayout=tableLayout;fixedRows=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1;align=left;spacingLeft=6;" vertex="1" parent="1">
+          <mxGeometry x="390" y="80" width="250" height="170" as="geometry"/>
+        </mxCell>
+        <mxCell id="requests" value="SERVICE_REQUESTS&#xa;──────────────&#xa;PK request_id : BIGINT&#xa;FK customer_id : BIGINT&#xa;FK service_id : BIGINT&#xa;preferred_start : TIMESTAMPTZ&#xa;preferred_end : TIMESTAMPTZ&#xa;duration : INTEGER&#xa;priority : SMALLINT&#xa;address : TEXT&#xa;lat : NUMERIC(9,6)&#xa;lon : NUMERIC(9,6)&#xa;status : VARCHAR(40)" style="shape=table;startSize=28;container=1;collapsible=0;childLayout=tableLayout;fixedRows=1;fillColor=#fff2cc;strokeColor=#d6b656;fontStyle=1;align=left;spacingLeft=6;" vertex="1" parent="1">
+          <mxGeometry x="350" y="350" width="300" height="290" as="geometry"/>
+        </mxCell>
+        <mxCell id="employees" value="EMPLOYEES&#xa;──────────────&#xa;PK employee_id : BIGINT&#xa;full_name : VARCHAR(150)&#xa;employee_type : VARCHAR(50)&#xa;phone : VARCHAR(30)&#xa;base_lat : NUMERIC(9,6)&#xa;base_lon : NUMERIC(9,6)&#xa;max_daily_minutes : INTEGER&#xa;status : VARCHAR(30)" style="shape=table;startSize=28;container=1;collapsible=0;childLayout=tableLayout;fixedRows=1;fillColor=#d5e8d4;strokeColor=#82b366;fontStyle=1;align=left;spacingLeft=6;" vertex="1" parent="1">
+          <mxGeometry x="720" y="80" width="270" height="230" as="geometry"/>
+        </mxCell>
+        <mxCell id="skills" value="SKILLS&#xa;──────────────&#xa;PK skill_id : BIGINT&#xa;skill_name : VARCHAR(100)&#xa;description : TEXT" style="shape=table;startSize=28;container=1;collapsible=0;childLayout=tableLayout;fixedRows=1;fillColor=#d5e8d4;strokeColor=#82b366;fontStyle=1;align=left;spacingLeft=6;" vertex="1" parent="1">
+          <mxGeometry x="1050" y="80" width="250" height="150" as="geometry"/>
+        </mxCell>
+        <mxCell id="emp_skills" value="EMPLOYEE_SKILLS&#xa;──────────────&#xa;PK, FK employee_id : BIGINT&#xa;PK, FK skill_id : BIGINT&#xa;level : SMALLINT&#xa;valid_from : DATE&#xa;valid_to : DATE" style="shape=table;startSize=28;container=1;collapsible=0;childLayout=tableLayout;fixedRows=1;fillColor=#e2f0d9;strokeColor=#82b366;fontStyle=1;align=left;spacingLeft=6;" vertex="1" parent="1">
+          <mxGeometry x="900" y="350" width="290" height="180" as="geometry"/>
+        </mxCell>
+        <mxCell id="availability" value="EMPLOYEE_AVAILABILITY&#xa;──────────────&#xa;PK availability_id : BIGINT&#xa;FK employee_id : BIGINT&#xa;date : DATE&#xa;start_time : TIME&#xa;end_time : TIME&#xa;availability_type : VARCHAR(30)" style="shape=table;startSize=28;container=1;collapsible=0;childLayout=tableLayout;fixedRows=1;fillColor=#e2f0d9;strokeColor=#82b366;fontStyle=1;align=left;spacingLeft=6;" vertex="1" parent="1">
+          <mxGeometry x="700" y="700" width="300" height="200" as="geometry"/>
+        </mxCell>
+        <mxCell id="assignments" value="ASSIGNMENTS&#xa;──────────────&#xa;PK assignment_id : BIGINT&#xa;FK request_id : BIGINT&#xa;FK employee_id : BIGINT&#xa;scheduled_start : TIMESTAMPTZ&#xa;scheduled_end : TIMESTAMPTZ&#xa;assignment_status : VARCHAR(40)&#xa;recommendation_score : NUMERIC(6,4)&#xa;explanation : TEXT" style="shape=table;startSize=28;container=1;collapsible=0;childLayout=tableLayout;fixedRows=1;fillColor=#f8cecc;strokeColor=#b85450;fontStyle=1;align=left;spacingLeft=6;" vertex="1" parent="1">
+          <mxGeometry x="330" y="730" width="320" height="250" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="e1" value="1 : N" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=ERmany;startArrow=ERone;" edge="1" parent="1" source="customers" target="requests"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e2" value="1 : N" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=ERmany;startArrow=ERone;" edge="1" parent="1" source="services" target="requests"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e3" value="1 : N" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=ERmany;startArrow=ERone;" edge="1" parent="1" source="requests" target="assignments"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e4" value="1 : N" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=ERmany;startArrow=ERone;" edge="1" parent="1" source="employees" target="assignments"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e5" value="1 : N" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=ERmany;startArrow=ERone;" edge="1" parent="1" source="employees" target="availability"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e6" value="1 : N" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=ERmany;startArrow=ERone;" edge="1" parent="1" source="employees" target="emp_skills"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e7" value="1 : N" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=ERmany;startArrow=ERone;" edge="1" parent="1" source="skills" target="emp_skills"><mxGeometry relative="1" as="geometry"/></mxCell>
+
+        <mxCell id="title" value="INITIAL ERD — HOME HEALTHCARE SERVICE MANAGEMENT SYSTEM" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=20;fontStyle=1;" vertex="1" parent="1"><mxGeometry x="260" y="20" width="850" height="30" as="geometry"/></mxCell>
+        <mxCell id="note" value="Proposal ERD bản đầu — 8 bảng cốt lõi | PostgreSQL | PK/FK và quan hệ nghiệp vụ chính" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=12;" vertex="1" parent="1"><mxGeometry x="300" y="1010" width="800" height="30" as="geometry"/></mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
