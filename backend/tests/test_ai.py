@@ -60,7 +60,8 @@ def test_ai_model_artifact_load_and_inference():
         "priority": 2,
         "preferred_start_hour": 9,
         "day_of_week": 2,
-        "district_code": "LOC_THO"
+        "district_code": "LOC_THO",
+        "service_code": "SRV_1"
     }])
     pred = model.predict(sample_df)
     assert len(pred) == 1
@@ -72,7 +73,7 @@ def test_ai_model_version_registry_in_db(db_session):
     model_v = db_session.execute(
         select(AIModelVersion)
         .where(AIModelVersion.task == "duration_prediction")
-        .where(AIModelVersion.active == True)
+        .where(AIModelVersion.is_active == True)
     ).scalars().first()
 
     assert model_v is not None, "Phải có ít nhất 1 mô hình active cho duration_prediction"

@@ -19,7 +19,15 @@ class AIModelVersion(Base):
     metrics_json: Mapped[Optional[Dict[str, Any]]] = mapped_column(JSONB, nullable=True)  # MAE, RMSE, R2
     artifact_path: Mapped[Optional[str]] = mapped_column(Text, nullable=True)  # Đường dẫn tới file model .joblib
     trained_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
-    active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)  # True = model đang phục vụ production/inference
+    is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)  # True = model đang phục vụ production/inference
+
+    @property
+    def active(self) -> bool:
+        return self.is_active
+
+    @active.setter
+    def active(self, val: bool):
+        self.is_active = val
 
     # Relationships
     predictions: Mapped[List["AIPrediction"]] = relationship("AIPrediction", back_populates="model")

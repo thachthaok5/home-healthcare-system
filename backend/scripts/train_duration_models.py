@@ -57,8 +57,43 @@ def train_and_evaluate_models():
     df = pd.read_csv(csv_path)
     print(f"-> Da load {len(df)} mau tu {csv_path}")
 
-    # 2. Phân chia Features (X) và Target (y)
-    # KHÔNG RÒ RỈ DỮ LIỆU: chỉ dùng các đặc trưng đã biết trước khi thực hiện ca
+    # 2. Tiền xử lý Outliers theo IQR trên từng nhóm service_id (theo chuẩn Data Plan v2)
+    initial_count = len(df)
+    clean_dfs = []
+    for s_id, group in df.groupby("service_id"):
+        q25 = group["actual_duration"].quantile(0.25)
+        q75 = group["actual_duration"].quantile(0.75)
+        iqr = q75 - q25
+        lower_bound = max(15.0, q25 - 1.5 * iqr)
+        upper_bound = min(240.0, q75 + 1.5 * iqr)
+        filtered = group[(group["actual_duration"] >= lower_bound) & (group["actual_duration"] <= upper_bound)]
+        clean_dfs.append(filtered)
+    df = pd.concat(clean_dfs, ignore_index=True)
+    outliers_removed = initial_count - len(df)
+    print(f"-> Loc Outlier theo IQR cho tung service_id: Da loai bo {outliers_removed} mau ngoai lai. Con lai {len(df)} mau.")
+
+    # 3. Phân chia theo trục thời gian (CHRONOLOGICAL SPLIT 70% / 15% / 15%)
+    if "scheduled_date" in df.columns:
+        df["scheduled_date"] = pd.to_datetime(df["scheduled_date"])
+        df = df.sort_values(by="scheduled_date").reset_index(drop=True)
+    
+    n_total = len(df)
+    n_train = int(n_total * 0.70)
+    n_val = int(n_total * 0.15)
+    
+    train_df = df.iloc[:n_train].copy()
+    val_df = df.iloc[n_train:n_train + n_val].copy()
+    test_df = df.iloc[n_train + n_val:].copy()
+    
+    print(f"-> CHRONOLOGICAL SPLIT (70% Train - 15% Val - 15% Test):")
+    if "scheduled_date" in df.columns:
+        print(f"   Train: {len(train_df)} mau ({train_df['scheduled_date'].min().strftime('%Y-%m-%d')} den {train_df['scheduled_date'].max().strftime('%Y-%m-%d')})")
+        print(f"   Val:   {len(val_df)} mau ({val_df['scheduled_date'].min().strftime('%Y-%m-%d')} den {val_df['scheduled_date'].max().strftime('%Y-%m-%d')})")
+        print(f"   Test:  {len(test_df)} mau ({test_df['scheduled_date'].min().strftime('%Y-%m-%d')} den {test_df['scheduled_date'].max().strftime('%Y-%m-%d')})")
+    else:
+        print(f"   Train: {len(train_df)} mau | Val: {len(val_df)} mau | Test: {len(test_df)} mau")
+
+    # 4. Phân chia Features (X) và Target (y)
     num_features = [
         "default_duration",
         "base_price",
@@ -68,20 +103,19 @@ def train_and_evaluate_models():
         "preferred_start_hour",
         "day_of_week"
     ]
-    cat_features = ["district_code"]
+    cat_features = ["district_code", "service_code"]
 
-    X = df[num_features + cat_features]
-    y = df["actual_duration"]
+    for d in [train_df, val_df, test_df]:
+        d["service_code"] = "SRV_" + d["service_id"].astype(str)
 
-    # Phân chia Train (70%), Validation (15%), Test (15%) với random_state cố định
-    X_temp, X_test, y_temp, y_test = train_test_split(X, y, test_size=0.15, random_state=42)
-    X_train, X_val, y_train, y_val = train_test_split(X_temp, y_temp, test_size=0.1765, random_state=42)  # 0.85 * 0.1765 ≈ 0.15
+    X_train = train_df[num_features + cat_features]
+    y_train = train_df["actual_duration"]
+    X_val = val_df[num_features + cat_features]
+    y_val = val_df["actual_duration"]
+    X_test = test_df[num_features + cat_features]
+    y_test = test_df["actual_duration"]
 
-    print(f"-> Tap huan luyen (Train): {len(X_train)} mau")
-    print(f"-> Tap tham dinh (Val):    {len(X_val)} mau")
-    print(f"-> Tap kiem thu (Test):    {len(X_test)} mau")
-
-    # 3. Xây dựng Preprocessor (chuẩn hóa dữ liệu)
+    # 5. Xây dựng Preprocessor (chuẩn hóa dữ liệu)
     preprocessor = ColumnTransformer(
         transformers=[
             ("num", StandardScaler(), num_features),
@@ -89,7 +123,7 @@ def train_and_evaluate_models():
         ]
     )
 
-    # 4. Định nghĩa các mô hình thử nghiệm
+    # 6. Định nghĩa các mô hình thử nghiệm
     models = {
         "Baseline_DefaultDuration": None,  # Quy chuẩn cố định của hệ thống
         "Baseline_ServiceMean": None,       # Trung bình theo nhóm dịch vụ
@@ -164,40 +198,58 @@ def train_and_evaluate_models():
         db.execute(
             update(AIModelVersion)
             .where(AIModelVersion.task == "duration_prediction")
-            .values(active=False)
+            .values(is_active=False)
         )
         
-        # Thêm phiên bản mới v1.1.0
-        new_version = AIModelVersion(
-            task="duration_prediction",
-            algorithm=best_result["model_name"],
-            version="v1.1.0",
-            feature_schema_json={
-                "num_features": num_features,
-                "cat_features": cat_features,
-                "target": "actual_duration",
-                "target_definition": "actual_end - actual_start (phút)",
-                "hyperparameters": {
-                    "random_state": 42,
-                    "train_samples": len(X_train),
-                    "val_samples": len(X_val),
-                    "test_samples": len(X_test)
-                }
-            },
-            metrics_json={
-                "mae": best_result["mae"],
-                "rmse": best_result["rmse"],
-                "r2": best_result["r2"],
-                "all_models_comparison": [
-                    {"name": r["model_name"], "mae": r["mae"], "rmse": r["rmse"], "r2": r["r2"]}
-                    for r in results
-                ]
-            },
-            artifact_path=str(model_path.relative_to(BASE_DIR)).replace("\\", "/"),
-            trained_at=datetime.now(timezone.utc),
-            active=True
-        )
-        db.add(new_version)
+        # Kiểm tra nếu phiên bản v1.1.0 đã tồn tại thì cập nhật (Upsert)
+        existing_version = db.execute(
+            select(AIModelVersion).where(AIModelVersion.version == "v1.1.0")
+        ).scalars().first()
+
+        feature_schema = {
+            "num_features": num_features,
+            "cat_features": cat_features,
+            "target": "actual_duration",
+            "target_definition": "actual_end - actual_start (phút)",
+            "hyperparameters": {
+                "random_state": 42,
+                "train_samples": len(X_train),
+                "val_samples": len(X_val),
+                "test_samples": len(X_test),
+                "split_strategy": "chronological_70_15_15"
+            }
+        }
+        metrics = {
+            "mae": best_result["mae"],
+            "rmse": best_result["rmse"],
+            "r2": best_result["r2"],
+            "all_models_comparison": [
+                {"name": r["model_name"], "mae": r["mae"], "rmse": r["rmse"], "r2": r["r2"]}
+                for r in results
+            ]
+        }
+        artifact_rel_path = str(model_path.relative_to(BASE_DIR)).replace("\\", "/")
+
+        if existing_version:
+            existing_version.algorithm = best_result["model_name"]
+            existing_version.feature_schema_json = feature_schema
+            existing_version.metrics_json = metrics
+            existing_version.artifact_path = artifact_rel_path
+            existing_version.trained_at = datetime.now(timezone.utc)
+            existing_version.is_active = True
+            new_version = existing_version
+        else:
+            new_version = AIModelVersion(
+                task="duration_prediction",
+                algorithm=best_result["model_name"],
+                version="v1.1.0",
+                feature_schema_json=feature_schema,
+                metrics_json=metrics,
+                artifact_path=artifact_rel_path,
+                trained_at=datetime.now(timezone.utc),
+                is_active=True
+            )
+            db.add(new_version)
         db.commit()
         db.refresh(new_version)
         print(f"-> Da dang ky thanh cong AI Model Version ID: {new_version.model_id} (Version: {new_version.version}) trong CSDL PostgreSQL.")

@@ -16,8 +16,24 @@ class ServiceRequest(Base):
     preferred_start: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     preferred_end: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     address: Mapped[str] = mapped_column(Text, nullable=False)
-    lat: Mapped[Optional[Decimal]] = mapped_column(Numeric(9, 6), nullable=True)
-    lon: Mapped[Optional[Decimal]] = mapped_column(Numeric(9, 6), nullable=True)
+    latitude: Mapped[Optional[Decimal]] = mapped_column(Numeric(10, 8), nullable=True)
+    longitude: Mapped[Optional[Decimal]] = mapped_column(Numeric(11, 8), nullable=True)
+
+    @property
+    def lat(self) -> Optional[Decimal]:
+        return self.latitude
+
+    @lat.setter
+    def lat(self, val: Optional[Decimal]):
+        self.latitude = val
+
+    @property
+    def lon(self) -> Optional[Decimal]:
+        return self.longitude
+
+    @lon.setter
+    def lon(self, val: Optional[Decimal]):
+        self.longitude = val
     district_code: Mapped[Optional[str]] = mapped_column(String(30), nullable=True, index=True)
     complexity_level: Mapped[int] = mapped_column(SmallInteger, nullable=False, default=1)  # Mức độ phức tạp (1-3)
     has_special_equip: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)

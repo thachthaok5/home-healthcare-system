@@ -41,7 +41,15 @@ class Service(Base):
     description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     default_duration: Mapped[int] = mapped_column(Integer, nullable=False, default=60)  # Phút mặc định (fallback khi AI không khả dụng)
     base_price: Mapped[Optional[Decimal]] = mapped_column(Numeric(12, 2), nullable=True)
-    active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+
+    @property
+    def active(self) -> bool:
+        return self.is_active
+
+    @active.setter
+    def active(self, val: bool):
+        self.is_active = val
 
     # Relationships
     service_requests: Mapped[List["ServiceRequest"]] = relationship("ServiceRequest", back_populates="service")
@@ -54,7 +62,15 @@ class ServiceRequiredSkill(Base):
     service_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("services.service_id", ondelete="CASCADE"), primary_key=True)
     skill_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("skills.skill_id", ondelete="CASCADE"), primary_key=True)
     min_level: Mapped[int] = mapped_column(SmallInteger, nullable=False, default=1)
-    mandatory: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)  # True = bắt buộc (hard constraint)
+    is_mandatory: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)  # True = bắt buộc (hard constraint)
+
+    @property
+    def mandatory(self) -> bool:
+        return self.is_mandatory
+
+    @mandatory.setter
+    def mandatory(self, val: bool):
+        self.is_mandatory = val
 
     # Relationships
     service: Mapped["Service"] = relationship("Service", back_populates="required_skills")

@@ -33,9 +33,34 @@ if sys.platform.startswith("win"):
 
 from sqlalchemy import select, func
 from app.db.session import SessionLocal
-from app.models import ServiceRequest, Employee, Service
+from app.models import ServiceRequest, Employee, Service, ScheduleVersion, RecommendationLog, Assignment
 from app.ai.scheduling import SchedulingEngine
 from app.ai.evaluation import SchedulingExperimentRunner
+
+
+def cleanup_and_prepare_batch(db, target_date):
+    """
+    Dọn dẹp phân công cũ và chuẩn bị tập ca bệnh thử nghiệm sạch sẽ cho mỗi lượt chạy.
+    """
+    db.query(Assignment).filter(func.date(Assignment.scheduled_start) == target_date).delete()
+    v_ids = [v.schedule_version_id for v in db.query(ScheduleVersion).filter(ScheduleVersion.schedule_date == target_date).all()]
+    if v_ids:
+        db.query(RecommendationLog).filter(RecommendationLog.schedule_version_id.in_(v_ids)).delete(synchronize_session=False)
+    db.query(ScheduleVersion).filter(ScheduleVersion.schedule_date == target_date).delete(synchronize_session=False)
+
+    vn_tz = timezone(timedelta(hours=7))
+    reqs = db.query(ServiceRequest).filter(ServiceRequest.request_id >= 21).all()
+    if not reqs:
+        reqs = db.query(ServiceRequest).order_by(ServiceRequest.request_id.desc()).limit(10).all()
+    
+    hours = [8, 9, 10, 13, 14]
+    for idx, r in enumerate(reqs):
+        h = hours[idx % len(hours)]
+        r.preferred_start = datetime(target_date.year, target_date.month, target_date.day, h, 0, tzinfo=vn_tz)
+        r.preferred_end = r.preferred_start + timedelta(hours=2)
+        r.status = "pending"
+    db.commit()
+    return db.query(ServiceRequest).filter(func.date(ServiceRequest.preferred_start) == target_date).all()
 
 
 def run_all_experiments():
@@ -44,19 +69,11 @@ def run_all_experiments():
         # Lấy danh sách nhân viên y tế đang hoạt động
         employees = db.execute(select(Employee).where(Employee.status == "active")).scalars().all()
         
-        # Lấy danh sách các yêu cầu trong ngày mai (đã seed sẵn các ca pending)
+        # Ngày thực nghiệm (ngày mai)
         target_date = (datetime.now(timezone.utc) + timedelta(days=1)).date()
-        requests = db.execute(
-            select(ServiceRequest).where(
-                func.date(ServiceRequest.preferred_start) == target_date
-            )
-        ).scalars().all()
-
-        if not requests:
-            # Nếu chưa có, lấy 10 request bất kỳ để kiểm thử benchmark
-            requests = db.execute(select(ServiceRequest).limit(10)).scalars().all()
-
+        requests = cleanup_and_prepare_batch(db, target_date)
         total_reqs = len(requests)
+
         print("="*80)
         print(f"THỰC NGHIỆM ĐÁNH GIÁ GIẢI THUẬT LẬP LỊCH & ĐIỀU PHỐI (N = {total_reqs} YÊU CẦU)")
         print("="*80)
@@ -94,20 +111,15 @@ def run_all_experiments():
         results_benchmark.append(metrics_wdss)
 
         # 4. OR-Tools CP-SAT Global Optimizer
+        cleanup_and_prepare_batch(db, target_date)
         t0 = time.time()
-        ortools_res = SchedulingEngine.optimize_schedule(db, target_date=target_date, created_by_user_id=1)
+        ortools_res = SchedulingEngine.optimize_schedule(db, target_date=target_date, created_by_user_id=1, use_ai_duration=True)
         t_ortools = (time.time() - t0) * 1000
         
-        # Đánh giá phương án từ OR-Tools
-        assigns_ortools = SchedulingExperimentRunner.run_weighted_dss(db, requests, employees, use_ai_duration=True)
-        metrics_ortools = SchedulingExperimentRunner.evaluate_schedule_solution(db, assigns_ortools, total_reqs, employees)
+        # Đánh giá trực tiếp phương án nghiệm thực tế từ solver OR-Tools
+        metrics_ortools = SchedulingExperimentRunner.evaluate_ortools_solution(db, ortools_res, total_reqs, employees)
         metrics_ortools["strategy"] = "4. OR-Tools CP-SAT (Global)"
         metrics_ortools["runtime_ms"] = round(t_ortools, 2)
-        # OR-Tools tối ưu hơn về cự ly và cân bằng tải
-        metrics_ortools["total_travel_distance"] = round(metrics_ortools["total_travel_distance"] * 0.82, 2)
-        metrics_ortools["avg_travel_time"] = round(metrics_ortools["avg_travel_time"] * 0.82, 2)
-        metrics_ortools["workload_std_dev"] = round(metrics_ortools["workload_std_dev"] * 0.75, 2)
-        metrics_ortools["avg_dss_score"] = round(min(1.0, metrics_ortools["avg_dss_score"] * 1.08), 4)
         results_benchmark.append(metrics_ortools)
 
         # In bảng so sánh 4 giải thuật
@@ -122,29 +134,63 @@ def run_all_experiments():
 
         # ----------------------------------------------------------------------
         # THÍ NGHIỆM 2: ABLATION STUDY (DEFAULT DURATION VS AI PREDICTED DURATION)
+        # Thực thi 2-pass độc lập trên cùng bài toán bằng OR-Tools CP-SAT
         # ----------------------------------------------------------------------
         print("\n" + "="*80)
         print("BẢNG 2: THÍ NGHIỆM BÓC TÁCH (ABLATION STUDY): DEFAULT DURATION VS AI DURATION")
+        print("        (Chạy OR-Tools solver thật 2 lần độc lập để đo lường định lượng thực tế)")
         print("="*80)
+
+        # Lượt 1: Scenario A - Chạy với Default Duration (Không dùng AI)
+        cleanup_and_prepare_batch(db, target_date)
+        t0 = time.time()
+        res_a = SchedulingEngine.optimize_schedule(
+            db, target_date=target_date, created_by_user_id=1,
+            algorithm_name="OR-Tools CP-SAT (Ablation: Default Duration)",
+            use_ai_duration=False
+        )
+        t_a = (time.time() - t0) * 1000
+        metrics_a = SchedulingExperimentRunner.evaluate_ortools_solution(db, res_a, total_reqs, employees)
+
+        # Lượt 2: Scenario B - Chạy với AI Predicted Duration (Có AI)
+        cleanup_and_prepare_batch(db, target_date)
+        t0 = time.time()
+        res_b = SchedulingEngine.optimize_schedule(
+            db, target_date=target_date, created_by_user_id=1,
+            algorithm_name="OR-Tools CP-SAT (Ablation: AI Predicted Duration)",
+            use_ai_duration=True
+        )
+        t_b = (time.time() - t0) * 1000
+        metrics_b = SchedulingExperimentRunner.evaluate_ortools_solution(db, res_b, total_reqs, employees)
+
+        # Lấy MAE thực nghiệm từ tập kiểm thử độc lập (Test Set)
+        mae_baseline = 12.33  # MAE của Baseline_DefaultDuration trên 120 mẫu test độc lập
+        mae_ai = 4.71        # MAE của Random Forest v1.1.0 trên 120 mẫu test độc lập
 
         results_ablation = [
             {
                 "scenario": "A. Default Duration + OR-Tools (Thiếu AI)",
-                "duration_type": "services.default_duration (Cố định)",
-                "mae_duration_error": 13.48,
-                "schedule_conflict_risk": "Cao (24.0% ca bị lệch > 15p)",
-                "feasible_rate": 80.0,
-                "workload_imbalance": 42.5,
-                "overall_satisfaction": 0.76
+                "duration_input": "services.default_duration (Cố định)",
+                "mae_duration_error": mae_baseline,
+                "assigned_count": metrics_a["assigned_count"],
+                "feasible_rate": metrics_a["feasible_rate"],
+                "total_travel_distance_km": metrics_a["total_travel_distance"],
+                "avg_travel_time_min": metrics_a["avg_travel_time"],
+                "workload_std_dev": metrics_a["workload_std_dev"],
+                "avg_dss_score": metrics_a["avg_dss_score"],
+                "runtime_ms": round(t_a, 2)
             },
             {
-                "scenario": "B. AI Predicted Duration + OR-Tools (Có AI)",
-                "duration_type": "ai_predictions (HistGradientBoosting)",
-                "mae_duration_error": 4.43,
-                "schedule_conflict_risk": "Rất thấp (4.2% ca bị lệch > 15p)",
-                "feasible_rate": 100.0,
-                "workload_imbalance": 28.2,
-                "overall_satisfaction": 0.92
+                "scenario": "B. AI Predicted Duration + OR-Tools (Đề xuất)",
+                "duration_input": "ai_predictions (Random_Forest v1.1.0)",
+                "mae_duration_error": mae_ai,
+                "assigned_count": metrics_b["assigned_count"],
+                "feasible_rate": metrics_b["feasible_rate"],
+                "total_travel_distance_km": metrics_b["total_travel_distance"],
+                "avg_travel_time_min": metrics_b["avg_travel_time"],
+                "workload_std_dev": metrics_b["workload_std_dev"],
+                "avg_dss_score": metrics_b["avg_dss_score"],
+                "runtime_ms": round(t_b, 2)
             }
         ]
 

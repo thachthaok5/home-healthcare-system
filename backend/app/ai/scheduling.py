@@ -100,7 +100,7 @@ class SchedulingEngine:
         req_skills = db.execute(
             select(ServiceRequiredSkill).where(
                 ServiceRequiredSkill.service_id == request.service_id,
-                ServiceRequiredSkill.mandatory == True
+                ServiceRequiredSkill.is_mandatory == True
             )
         ).scalars().all()
 
@@ -379,7 +379,8 @@ class SchedulingEngine:
         db: Session,
         target_date: date,
         created_by_user_id: int = 1,
-        algorithm_name: str = "OR-Tools CP-SAT + DSS Multi-Criteria"
+        algorithm_name: str = "OR-Tools CP-SAT + DSS Multi-Criteria",
+        use_ai_duration: bool = True
     ) -> Dict[str, Any]:
         """
         Giải bài toán phân công tối ưu toàn cục (Global Assignment Optimization)
@@ -417,11 +418,14 @@ class SchedulingEngine:
         # 4. Lọc các cặp (Request, Employee) khả thi thỏa mãn 6 ràng buộc cứng
         feasible_pairs = []
         for req in requests:
-            # Lấy thời lượng dự đoán AI
-            pred = db.execute(
-                select(AIPrediction).where(AIPrediction.request_id == req.request_id).order_by(AIPrediction.created_at.desc())
-            ).scalars().first()
-            dur = pred.predicted_duration if pred else req.service.default_duration
+            # Lấy thời lượng dự đoán AI hoặc Default Duration theo kịch bản thực nghiệm
+            if use_ai_duration:
+                pred = db.execute(
+                    select(AIPrediction).where(AIPrediction.request_id == req.request_id).order_by(AIPrediction.created_at.desc())
+                ).scalars().first()
+                dur = pred.predicted_duration if pred else req.service.default_duration
+            else:
+                dur = req.service.default_duration
             durations[req.request_id] = dur
 
             st = req.preferred_start
@@ -572,5 +576,6 @@ class SchedulingEngine:
             "assigned_count": assigned_requests_count,
             "unassigned_count": len(requests) - assigned_requests_count,
             "assignments_count": len(created_assignments),
+            "assignments": created_assignments,
             "message": f"Đã tối ưu thành công {assigned_requests_count}/{len(requests)} yêu cầu chăm sóc cho ngày {target_date}."
         }

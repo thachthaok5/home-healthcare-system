@@ -78,6 +78,7 @@ def generate_duration_dataset(total_records: int = 800, random_seed: int = 42):
         for row in real_records:
             s_info = service_lookup.get(row.service_id, {"default_duration": 60, "base_price": 200000.0})
             pref_start = row.preferred_start or row.scheduled_start
+            rec_date = pref_start.date() if pref_start else (datetime.now(timezone.utc) - timedelta(days=30)).date()
             
             dataset_rows.append({
                 "service_id": row.service_id,
@@ -88,7 +89,8 @@ def generate_duration_dataset(total_records: int = 800, random_seed: int = 42):
                 "priority": row.priority or 2,
                 "district_code": row.district_code or "LOC_THO",
                 "preferred_start_hour": pref_start.hour if pref_start else 9,
-                "day_of_week": pref_start.weekday() if pref_start else 2,
+                "day_of_week": rec_date.weekday(),
+                "scheduled_date": rec_date.isoformat(),
                 "actual_duration": int(row.actual_duration),
                 "is_synthetic": 0
             })
@@ -102,6 +104,7 @@ def generate_duration_dataset(total_records: int = 800, random_seed: int = 42):
         print(f"-> Mo phong bo sung {needed_synthetic} ban ghi hop le theo quy luat y te Nha Trang...")
 
         service_ids = list(service_lookup.keys())
+        start_date = datetime.now(timezone.utc).date() - timedelta(days=180)
 
         for i in range(needed_synthetic):
             s_id = random.choice(service_ids)
@@ -127,8 +130,9 @@ def generate_duration_dataset(total_records: int = 800, random_seed: int = 42):
             hour_prob = [0.05, 0.18, 0.20, 0.12, 0.05, 0.05, 0.15, 0.12, 0.05, 0.03]
             pref_hour = int(np.random.choice(hour_choices, p=hour_prob))
 
-            # Ngày trong tuần (0: Thứ Hai -> 6: Chủ Nhật)
-            day_of_week = random.randint(0, 6)
+            # Ngày theo trục thời gian (từ 180 ngày trước đến nay)
+            rec_date = start_date + timedelta(days=int(i * 180 / max(1, needed_synthetic)))
+            day_of_week = rec_date.weekday()
 
             # --- MÔ HÌNH HÓA THỜI LƯỢNG THỰC TẾ (GROUND TRUTH FORMULA) ---
             # 1. Thời lượng cơ sở theo gói dịch vụ
@@ -168,6 +172,7 @@ def generate_duration_dataset(total_records: int = 800, random_seed: int = 42):
                 "district_code": dist_code,
                 "preferred_start_hour": pref_hour,
                 "day_of_week": day_of_week,
+                "scheduled_date": rec_date.isoformat(),
                 "actual_duration": actual_dur,
                 "is_synthetic": 1
             })

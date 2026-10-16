@@ -230,3 +230,40 @@ class SchedulingExperimentRunner:
                 })
 
         return assignments
+
+    @classmethod
+    def evaluate_ortools_solution(
+        cls,
+        db: Session,
+        ortools_result: Dict[str, Any],
+        total_requests: int,
+        employees: List[Employee]
+    ) -> Dict[str, Any]:
+        """
+        Đánh giá trực tiếp phương án nghiệm thực tế sinh ra từ solver OR-Tools CP-SAT.
+        """
+        version_id = ortools_result.get("schedule_version_id")
+        if version_id:
+            raw_assignments = db.execute(
+                select(Assignment).where(Assignment.schedule_version_id == version_id)
+            ).scalars().all()
+        else:
+            raw_assignments = ortools_result.get("assignments", [])
+        formatted = []
+        for a in raw_assignments:
+            req = db.execute(select(ServiceRequest).where(ServiceRequest.request_id == a.request_id)).scalar_one_or_none()
+            emp = db.execute(select(Employee).where(Employee.employee_id == a.employee_id)).scalar_one_or_none()
+            if req and emp:
+                _, breakdown, _ = SchedulingEngine.calculate_dss_score(
+                    db=db, employee=emp, request=req, start_time=a.scheduled_start, end_time=a.scheduled_end
+                )
+                dur = int((a.scheduled_end - a.scheduled_start).total_seconds() / 60)
+                formatted.append({
+                    "request_id": a.request_id,
+                    "employee_id": a.employee_id,
+                    "duration_mins": dur,
+                    "distance_km": breakdown["distance_km"],
+                    "travel_mins": int(breakdown["distance_km"] * 2.5) + 3,
+                    "dss_score": float(a.recommendation_score or 0.8)
+                })
+        return cls.evaluate_schedule_solution(db, formatted, total_requests, employees)

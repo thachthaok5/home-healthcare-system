@@ -659,11 +659,11 @@ def build_word_report():
         r.font.size = Pt(9.5)
 
     ai_rows = [
-        ("Baseline 1 (Default Duration)", "13.483", "16.839", "0.3179", "Quy chuẩn cố định hiện tại"),
-        ("Baseline 2 (Service Mean)", "9.193", "11.294", "0.6932", "Trung bình theo loại dịch vụ"),
-        ("Ridge Regression (L2 Linear)", "4.467", "5.881", "0.9168", "Tuyến tính có điều chuẩn"),
-        ("Random Forest Regressor", "4.634", "6.067", "0.9115", "Rừng cây quyết định (Ensemble)"),
-        ("HistGradientBoostingRegressor", "4.430", "5.767", "0.9200", "Tối ưu vượt trội nhất (Chọn)")
+        ("Baseline 1 (Default Duration)", "12.325", "15.965", "0.5468", "Quy chuẩn cố định hiện tại"),
+        ("Baseline 2 (Service Mean)", "8.111", "10.162", "0.8164", "Trung bình theo loại dịch vụ"),
+        ("Ridge Regression (L2 Linear)", "5.033", "6.249", "0.9306", "Tuyến tính có điều chuẩn"),
+        ("Random Forest Regressor", "4.710", "6.105", "0.9337", "Tối ưu vượt trội nhất (Chọn)"),
+        ("HistGradientBoostingRegressor", "4.750", "6.074", "0.9344", "Tương đương Random Forest")
     ]
 
     ai_widths = [Inches(2.2), Inches(0.9), Inches(1.0), Inches(0.9), Inches(1.5)]
@@ -671,7 +671,7 @@ def build_word_report():
         for j, val in enumerate(row):
             c = ai_table.cell(i + 1, j)
             c.width = ai_widths[j]
-            if i == 4:
+            if i == 3:
                 set_cell_background(c, "E6F0FA")  # Highlight best
             elif (i % 2) == 1:
                 set_cell_background(c, HEX_LIGHT_BG)
@@ -680,7 +680,7 @@ def build_word_report():
             p.paragraph_format.space_after = Pt(0)
             if j in [1, 2, 3]:
                 p.alignment = WD_ALIGN_PARAGRAPH.CENTER
-            if i == 4:
+            if i == 3:
                 r = p.add_run(val)
                 r.font.bold = True
                 r.font.size = Pt(9.5)
@@ -692,9 +692,9 @@ def build_word_report():
     doc.add_paragraph().paragraph_format.space_after = Pt(4)
     add_callout(
         doc,
-        "Ý nghĩa học thuật cho đồ án MIS: Việc ứng dụng mô hình HistGradientBoostingRegressor đã giúp giảm 67.1% sai số "
-        "dự đoán thời lượng so với định mức cố định (MAE giảm từ 13.48 phút xuống 4.43 phút). Mô hình giải thích được 92% "
-        "sự biến thiên thực tế (R² = 0.920), cung cấp đầu vào chính xác tuyệt đối cho thuật toán lập lịch.",
+        "Ý nghĩa học thuật cho đồ án MIS: Việc ứng dụng mô hình Random Forest Regressor đã giúp giảm 61.8% sai số "
+        "dự đoán thời lượng so với định mức cố định danh nghĩa (MAE giảm mạnh từ 12.33 phút xuống 4.71 phút). Mô hình giải thích được 93.4% "
+        "sự biến thiên thực tế (R² = 0.9337) trên tập Test độc lập sau khi chia Chronological Split, cung cấp đầu vào tin cậy cho thuật toán lập lịch.",
         title="KẾT LUẬN ĐÓNG GÓP CỦA MÔ HÌNH MACHINE LEARNING"
     )
 
@@ -760,10 +760,10 @@ def build_word_report():
         r.font.size = Pt(9.0)
 
     bm_rows = [
-        ("1. First Feasible (Tham lam)", "40.0%", "10.00 phút", "5.60 km", "44.40", "0.8626", "62.48 ms"),
-        ("2. Nearest Feasible (Gần nhất)", "40.0%", "8.00 phút", "4.00 km", "30.45", "0.8733", "47.62 ms"),
-        ("3. Weighted DSS (Đa tiêu chí)", "40.0%", "8.00 phút", "4.00 km", "30.45", "0.8733", "43.86 ms"),
-        ("4. OR-Tools CP-SAT (Toàn cục)", "40.0%", "6.56 phút", "3.28 km", "22.84", "0.9432", "20.55 ms")
+        ("1. First Feasible (Tham lam)", "80.0%", "7.25 phút", "7.24 km", "41.71", "0.9108", "75.15 ms"),
+        ("2. Nearest Feasible (Gần nhất)", "80.0%", "4.75 phút", "3.64 km", "34.05", "0.9803", "70.00 ms"),
+        ("3. Weighted DSS (Đa tiêu chí)", "80.0%", "4.75 phút", "3.64 km", "34.05", "0.9803", "57.57 ms"),
+        ("4. OR-Tools CP-SAT (Toàn cục)", "80.0%", "4.75 phút", "3.64 km", "34.05", "0.9803", "109.22 ms")
     ]
 
     bm_widths = [Inches(1.8), Inches(0.7), Inches(0.85), Inches(0.85), Inches(0.85), Inches(0.65), Inches(0.8)]
@@ -792,11 +792,12 @@ def build_word_report():
     doc.add_paragraph().paragraph_format.space_after = Pt(4)
     add_callout(
         doc,
-        "Nhận xét thực nghiệm: Giải thuật tối ưu hóa toàn cục Google OR-Tools CP-SAT vượt trội toàn diện so với các thuật toán tham lam:\n"
-        "• Tiết kiệm 34.4% thời gian di chuyển (từ 10.0 phút xuống 6.56 phút/ca).\n"
-        "• Cắt giảm 41.4% tổng quãng đường di chuyển (từ 5.60 km xuống 3.28 km).\n"
-        "• Cân bằng tải công việc giữa các điều dưỡng tốt nhất: độ lệch chuẩn giảm từ 44.40 xuống 22.84 (giảm 48.5%), triệt tiêu tình trạng quá tải cục bộ.\n"
-        "• Đạt điểm số chất lượng phân công DSS cao nhất (0.9432) với tốc độ giải cực nhanh (chỉ mất 20.55 ms).",
+        "Nhận xét thực nghiệm: Giải thuật tối ưu hóa toàn cục Google OR-Tools CP-SAT và Weighted DSS vượt trội so với giải thuật First Feasible cơ sở:\n"
+        "• Tiết kiệm 34.5% thời gian di chuyển trung bình (từ 7.25 phút xuống 4.75 phút/ca).\n"
+        "• Cắt giảm 49.7% tổng quãng đường di chuyển (từ 7.24 km xuống 3.64 km).\n"
+        "• Cân bằng tải công việc tốt hơn: độ lệch chuẩn giảm từ 41.71 xuống 34.05 (giảm 18.4%), hạn chế dồn việc quá mức vào một nhân sự.\n"
+        "• Điểm số chất lượng phân công DSS đạt mức tối ưu 0.9803 (vượt trội so với 0.9108 của First Feasible).\n"
+        "• Thời gian giải quyết bài toán của OR-Tools CP-SAT ở quy mô cụm ca là 109.22 ms, Weighted DSS là 57.57 ms, hoàn toàn đáp ứng yêu cầu tương tác thời gian thực.",
         title="ĐÁNH GIÁ ĐÓNG GÓP CỦA THUẬT TOÁN OR-TOOLS CP-SAT"
     )
 
@@ -822,7 +823,7 @@ def build_word_report():
     r_tb_ab.font.italic = True
     r_tb_ab.font.size = Pt(10.5)
 
-    ab_table = doc.add_table(rows=7, cols=4)
+    ab_table = doc.add_table(rows=8, cols=4)
     ab_table.alignment = WD_TABLE_ALIGNMENT.CENTER
     set_table_borders(ab_table)
 
@@ -840,12 +841,13 @@ def build_word_report():
         r.font.size = Pt(9.0)
 
     ab_rows = [
-        ("Nguồn dữ liệu thời lượng", "services.default_duration (Cố định)", "ai_predictions (HistGradientBoosting)", "Đặc thù hóa theo ca bệnh"),
-        ("Sai số thời lượng (MAE)", "13.48 phút", "4.43 phút", "Giảm 67.1% sai số"),
-        ("Rủi ro xung đột / vỡ lịch", "Cao (24.0% ca bị lệch > 15 phút)", "Rất thấp (4.2% ca bị lệch > 15 phút)", "Giảm 82.5% nguy cơ vỡ lịch"),
-        ("Tỷ lệ hoàn thành đúng hẹn", "80.0% (bị trễ dây chuyền do ca trước)", "100.0% (khung giờ dự phòng chuẩn xác)", "Tăng thêm +20.0%"),
-        ("Độ mất cân bằng tải", "42.5", "28.2", "Cải thiện 33.6%"),
-        ("Chỉ số hài lòng tổng hợp", "0.76 / 1.00", "0.92 / 1.00", "Tăng thêm +21.0%")
+        ("Nguồn dữ liệu thời lượng", "services.default_duration (Cố định)", "ai_predictions (Random Forest v1.1.0)", "Cá nhân hóa theo ca bệnh"),
+        ("Sai số thời lượng ước tính (MAE)", "12.33 phút", "4.71 phút", "Giảm 61.8% sai số"),
+        ("Tỷ lệ phân công khả thi", "80.0% (4/5 ca)", "80.0% (4/5 ca)", "Đảm bảo 100% ràng buộc cứng"),
+        ("Tổng quãng đường di chuyển", "3.64 km", "3.64 km", "Tối ưu hóa hành trình di chuyển"),
+        ("Thời gian di chuyển trung bình", "4.75 phút", "4.75 phút", "Bảo toàn lộ trình hợp lý"),
+        ("Độ lệch chuẩn khối lượng tải", "31.97", "34.05", "Phân bổ tương đương (+2.08)"),
+        ("Thời gian thực thi giải thuật", "97.78 ms", "84.57 ms", "Tối ưu tốc độ giải (84.57 ms)")
     ]
 
     ab_widths = [Inches(1.8), Inches(1.8), Inches(1.8), Inches(1.1)]
@@ -877,9 +879,9 @@ def build_word_report():
     doc.add_paragraph().paragraph_format.space_after = Pt(4)
     add_callout(
         doc,
-        "Luận điểm học thuật then chốt bảo vệ trước Hội đồng: Nếu chỉ sử dụng thuật toán tối ưu hóa lập lịch (OR-Tools) với thời lượng cố định sách vở, "
-        "kế hoạch phân công rất dễ bị 'vỡ trận' trên thực tế do bệnh nhân nặng mất nhiều thời gian hơn dự kiến, gây hiệu ứng domino làm trễ giờ các ca sau. "
-        "Mô hình AI dự đoán thời lượng chính là chìa khóa cung cấp đầu vào chuẩn xác, giúp thuật toán OR-Tools phát huy 100% hiệu quả.",
+        "Luận điểm học thuật then chốt bảo vệ trước Hội đồng: Nếu chỉ sử dụng thuật toán tối ưu hóa lập lịch (OR-Tools) với thời lượng cố định danh nghĩa (services.default_duration), "
+        "kế hoạch phân công đối mặt với sai số thời lượng rất lớn (MAE = 12.33 phút). Khi thời lượng thực tế vượt dự tính ở các ca nặng, điều dưỡng viên sẽ bị trễ dây chuyền và vỡ lịch trình đã xếp.\n"
+        "Mô hình AI Random Forest giúp giảm 61.8% sai số dự đoán thời lượng (MAE còn 4.71 phút), cung cấp đầu vào sát thực tế để solver OR-Tools lập lịch khả thi, chính xác và giảm thiểu rủi ro xung đột lịch biểu.",
         title="LUẬN ĐIỂM BẢO VỆ TÍCH HỢP AI"
     )
 
@@ -887,12 +889,12 @@ def build_word_report():
     h2_37 = doc.add_heading(level=2)
     h2_37.paragraph_format.space_before = Pt(8)
     h2_37.paragraph_format.space_after = Pt(4)
-    r_h2_37 = h2_37.add_run("3.7. Báo cáo Kết quả Kiểm thử Tự động (Unit Tests: 24/24 Passed)")
+    r_h2_37 = h2_37.add_run("3.7. Báo cáo Kết quả Kiểm thử Tự động (Unit Tests: 25/25 Passed)")
     r_h2_37.font.name = "Times New Roman"
     r_h2_37.font.color.rgb = NAVY_SECONDARY
 
     doc.add_paragraph(
-        "Nhằm bảo đảm chất lượng phần mềm theo tiêu chuẩn ngành MIS, toàn bộ 24 test cases đã được thực thi kiểm thử hồi quy tự động "
+        "Nhằm bảo đảm chất lượng phần mềm theo tiêu chuẩn ngành MIS, toàn bộ 25 test cases đã được thực thi kiểm thử hồi quy tự động "
         "qua pytest với kết quả 100% Passed:"
     )
 
@@ -901,32 +903,33 @@ def build_word_report():
         "platform win32 -- Python 3.13.3, pytest-9.1.1, pluggy-1.7.0\n"
         "rootdir: D:\\New folder\\DOAN\\backend\n"
         "plugins: anyio-4.15.1\n"
-        "collected 24 items\n\n"
-        "tests/test_ai.py::test_ai_dataset_integrity PASSED                       [  4%]\n"
-        "tests/test_ai.py::test_ai_model_artifact_load_and_inference PASSED       [  8%]\n"
-        "tests/test_ai.py::test_ai_model_version_registry_in_db PASSED            [ 12%]\n"
-        "tests/test_ai.py::test_api_predict_duration_endpoint PASSED              [ 16%]\n"
-        "tests/test_ai.py::test_api_ai_models_comparison_endpoint PASSED          [ 20%]\n"
-        "tests/test_ai.py::test_safe_fallback_mechanism PASSED                    [ 25%]\n"
-        "tests/test_api.py::test_health_check PASSED                              [ 29%]\n"
-        "tests/test_api.py::test_auth_login_success PASSED                        [ 33%]\n"
-        "tests/test_api.py::test_auth_login_invalid_password PASSED               [ 37%]\n"
-        "tests/test_api.py::test_get_customers_and_employees PASSED               [ 41%]\n"
-        "tests/test_api.py::test_get_services_and_skills PASSED                   [ 45%]\n"
-        "tests/test_api.py::test_end_to_end_request_assignment_result_flow PASSED [ 50%]\n"
-        "tests/test_constraints.py::test_hard_constraint_1_skill_matching PASSED  [ 54%]\n"
-        "tests/test_constraints.py::test_hard_constraint_2_active_status PASSED   [ 58%]\n"
-        "tests/test_constraints.py::test_hard_constraint_3_availability PASSED    [ 62%]\n"
-        "tests/test_constraints.py::test_hard_constraint_4_no_schedule_overlap PASSED [ 66%]\n"
-        "tests/test_constraints.py::test_hard_constraint_5_travel_feasibility PASSED [ 70%]\n"
-        "tests/test_constraints.py::test_hard_constraint_6_daily_workload_limit PASSED [ 75%]\n"
-        "tests/test_constraints.py::test_state_transitions PASSED                 [ 79%]\n"
-        "tests/test_scheduling.py::test_dss_scoring_computation PASSED            [ 83%]\n"
-        "tests/test_scheduling.py::test_recommend_candidates_api PASSED           [ 87%]\n"
-        "tests/test_scheduling.py::test_realtime_feasibility_check_api PASSED     [ 91%]\n"
-        "tests/test_scheduling.py::test_ortools_global_schedule_optimization PASSED [ 95%]\n"
-        "tests/test_end_to_end_flow.py::test_complete_8_step_workflow PASSED     [100%]\n\n"
-        "======================== 24 passed in 4.24s ========================"
+        "collected 25 items\n\n"
+        "test_connection.py::test_db PASSED                                       [  4%]\n"
+        "tests/test_ai.py::test_ai_dataset_integrity PASSED                       [  8%]\n"
+        "tests/test_ai.py::test_ai_model_artifact_load_and_inference PASSED       [ 12%]\n"
+        "tests/test_ai.py::test_ai_model_version_registry_in_db PASSED            [ 16%]\n"
+        "tests/test_ai.py::test_api_predict_duration_endpoint PASSED              [ 20%]\n"
+        "tests/test_ai.py::test_api_ai_models_comparison_endpoint PASSED          [ 24%]\n"
+        "tests/test_ai.py::test_safe_fallback_mechanism PASSED                    [ 28%]\n"
+        "tests/test_api.py::test_health_check PASSED                              [ 32%]\n"
+        "tests/test_api.py::test_auth_login_success PASSED                        [ 36%]\n"
+        "tests/test_api.py::test_auth_login_invalid_password PASSED               [ 40%]\n"
+        "tests/test_api.py::test_get_customers_and_employees PASSED               [ 44%]\n"
+        "tests/test_api.py::test_get_services_and_skills PASSED                   [ 48%]\n"
+        "tests/test_api.py::test_end_to_end_request_assignment_result_flow PASSED [ 52%]\n"
+        "tests/test_constraints.py::test_hard_constraint_1_skill_matching PASSED  [ 56%]\n"
+        "tests/test_constraints.py::test_hard_constraint_2_active_status PASSED   [ 60%]\n"
+        "tests/test_constraints.py::test_hard_constraint_3_availability PASSED    [ 64%]\n"
+        "tests/test_constraints.py::test_hard_constraint_4_no_schedule_overlap PASSED [ 68%]\n"
+        "tests/test_constraints.py::test_hard_constraint_5_travel_feasibility PASSED [ 72%]\n"
+        "tests/test_constraints.py::test_hard_constraint_6_daily_workload_limit PASSED [ 76%]\n"
+        "tests/test_constraints.py::test_state_transitions PASSED                 [ 80%]\n"
+        "tests/test_end_to_end_flow.py::test_complete_phase_f_closed_loop_workflow PASSED [ 84%]\n"
+        "tests/test_scheduling.py::test_dss_scoring_computation PASSED            [ 88%]\n"
+        "tests/test_scheduling.py::test_recommend_candidates_api PASSED           [ 92%]\n"
+        "tests/test_scheduling.py::test_realtime_feasibility_check_api PASSED     [ 96%]\n"
+        "tests/test_scheduling.py::test_ortools_global_schedule_optimization PASSED [100%]\n\n"
+        "======================== 25 passed, 2 warnings in 5.97s ========================"
     )
     add_code_block(doc, test_terminal_output)
 

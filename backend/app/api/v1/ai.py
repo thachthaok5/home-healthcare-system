@@ -58,7 +58,7 @@ def get_active_model(db: Session = Depends(get_db)):
     model = db.execute(
         select(AIModelVersion)
         .where(AIModelVersion.task == "duration_prediction")
-        .where(AIModelVersion.active == True)
+        .where(AIModelVersion.is_active == True)
     ).scalars().first()
     if not model:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Chưa có mô hình nào được kích hoạt")
@@ -70,7 +70,7 @@ def get_models_comparison(db: Session = Depends(get_db)):
     model = db.execute(
         select(AIModelVersion)
         .where(AIModelVersion.task == "duration_prediction")
-        .where(AIModelVersion.active == True)
+        .where(AIModelVersion.is_active == True)
     ).scalars().first()
 
     if not model or not model.metrics_json or "all_models_comparison" not in model.metrics_json:

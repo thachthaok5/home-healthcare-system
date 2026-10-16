@@ -20,7 +20,8 @@ def list_services(db: Session = Depends(get_db)):
                 skill_id=rs.skill_id,
                 skill_name=rs.skill.skill_name,
                 min_level=rs.min_level,
-                mandatory=rs.mandatory
+                is_mandatory=rs.is_mandatory,
+                mandatory=rs.is_mandatory
             )
             for rs in srv.required_skills
         ]
@@ -30,7 +31,8 @@ def list_services(db: Session = Depends(get_db)):
             description=srv.description,
             default_duration=srv.default_duration,
             base_price=srv.base_price,
-            active=srv.active,
+            is_active=srv.is_active,
+            active=srv.is_active,
             required_skills=req_skills
         ))
     return results

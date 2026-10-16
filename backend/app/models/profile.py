@@ -16,8 +16,24 @@ class Customer(Base):
     phone: Mapped[Optional[str]] = mapped_column(String(30), nullable=True)
     date_of_birth: Mapped[Optional[date]] = mapped_column(Date, nullable=True)
     address: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
-    lat: Mapped[Optional[Decimal]] = mapped_column(Numeric(9, 6), nullable=True)
-    lon: Mapped[Optional[Decimal]] = mapped_column(Numeric(9, 6), nullable=True)
+    latitude: Mapped[Optional[Decimal]] = mapped_column(Numeric(10, 8), nullable=True)
+    longitude: Mapped[Optional[Decimal]] = mapped_column(Numeric(11, 8), nullable=True)
+
+    @property
+    def lat(self) -> Optional[Decimal]:
+        return self.latitude
+
+    @lat.setter
+    def lat(self, val: Optional[Decimal]):
+        self.latitude = val
+
+    @property
+    def lon(self) -> Optional[Decimal]:
+        return self.longitude
+
+    @lon.setter
+    def lon(self, val: Optional[Decimal]):
+        self.longitude = val
     emergency_contact: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
     status: Mapped[str] = mapped_column(String(30), nullable=False, default="active")
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
@@ -36,8 +52,24 @@ class Employee(Base):
     full_name: Mapped[str] = mapped_column(String(150), nullable=False)
     employee_type: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)  # vd: nurse, caregiver, physiotherapist
     phone: Mapped[Optional[str]] = mapped_column(String(30), nullable=True)
-    base_lat: Mapped[Optional[Decimal]] = mapped_column(Numeric(9, 6), nullable=True)
-    base_lon: Mapped[Optional[Decimal]] = mapped_column(Numeric(9, 6), nullable=True)
+    base_latitude: Mapped[Optional[Decimal]] = mapped_column(Numeric(10, 8), nullable=True)
+    base_longitude: Mapped[Optional[Decimal]] = mapped_column(Numeric(11, 8), nullable=True)
+
+    @property
+    def base_lat(self) -> Optional[Decimal]:
+        return self.base_latitude
+
+    @base_lat.setter
+    def base_lat(self, val: Optional[Decimal]):
+        self.base_latitude = val
+
+    @property
+    def base_lon(self) -> Optional[Decimal]:
+        return self.base_longitude
+
+    @base_lon.setter
+    def base_lon(self, val: Optional[Decimal]):
+        self.base_longitude = val
     max_daily_minutes: Mapped[int] = mapped_column(Integer, nullable=False, default=480)  # 8 hours = 480 mins
     status: Mapped[str] = mapped_column(String(30), nullable=False, default="active")
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)

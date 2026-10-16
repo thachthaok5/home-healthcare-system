@@ -78,7 +78,7 @@ def create_manual_assignment(
     req_skills = db.execute(
         select(ServiceRequiredSkill).where(
             ServiceRequiredSkill.service_id == sr.service_id,
-            ServiceRequiredSkill.mandatory == True
+            ServiceRequiredSkill.is_mandatory == True
         )
     ).scalars().all()
 

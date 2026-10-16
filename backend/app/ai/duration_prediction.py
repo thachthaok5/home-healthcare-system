@@ -41,7 +41,7 @@ class DurationPredictor:
         active_model = db.execute(
             select(AIModelVersion)
             .where(AIModelVersion.task == "duration_prediction")
-            .where(AIModelVersion.active == True)
+            .where(AIModelVersion.is_active == True)
         ).scalars().first()
 
         if not active_model:
@@ -111,6 +111,7 @@ class DurationPredictor:
         day_of_week = preferred_start.weekday() if preferred_start else 2
         dist_code = district_code or "LOC_THO"
 
+        srv_id = service.service_id if service else 1
         input_data = pd.DataFrame([{
             "default_duration": default_dur,
             "base_price": base_prc,
@@ -119,7 +120,8 @@ class DurationPredictor:
             "priority": priority,
             "preferred_start_hour": pref_hour,
             "day_of_week": day_of_week,
-            "district_code": dist_code
+            "district_code": dist_code,
+            "service_code": f"SRV_{srv_id}"
         }])
 
         try:

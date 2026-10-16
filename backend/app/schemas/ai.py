@@ -1,6 +1,6 @@
 from datetime import datetime
 from typing import Any, Dict, List, Optional
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, model_validator
 
 
 class DurationPredictionRequest(BaseModel):
@@ -25,7 +25,7 @@ class DurationPredictionResponse(BaseModel):
 
 
 class AIModelVersionOut(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
+    model_config = ConfigDict(from_attributes=True, populate_by_name=True)
 
     model_id: int
     task: str
@@ -34,4 +34,13 @@ class AIModelVersionOut(BaseModel):
     metrics_json: Optional[Dict[str, Any]] = None
     artifact_path: Optional[str] = None
     trained_at: datetime
-    active: bool
+    is_active: bool = False
+    active: bool = False
+
+    @model_validator(mode="after")
+    def sync_active(self):
+        if self.is_active:
+            self.active = True
+        elif self.active:
+            self.is_active = True
+        return self

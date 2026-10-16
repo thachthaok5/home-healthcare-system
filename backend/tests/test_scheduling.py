@@ -110,7 +110,24 @@ def test_ortools_global_schedule_optimization(db_session):
     if v_ids:
         db_session.query(RecommendationLog).filter(RecommendationLog.schedule_version_id.in_(v_ids)).delete(synchronize_session=False)
     db_session.query(ScheduleVersion).filter(ScheduleVersion.schedule_date == target_date).delete(synchronize_session=False)
-    db_session.query(ServiceRequest).filter(func.date(ServiceRequest.preferred_start) == target_date).update({"status": "pending"})
+    
+    # Đảm bảo các request pending 21..25 đặt đúng target_date trong giờ hành chính (8h, 9h, 10h, 13h, 14h)
+    vn_tz = timezone(timedelta(hours=7))
+    pending_reqs = db_session.query(ServiceRequest).filter(ServiceRequest.request_id >= 21).all()
+    hours = [8, 9, 10, 13, 14]
+    if pending_reqs:
+        for idx, r in enumerate(pending_reqs):
+            h = hours[idx % len(hours)]
+            r.preferred_start = datetime(target_date.year, target_date.month, target_date.day, h, 0, tzinfo=vn_tz)
+            r.preferred_end = r.preferred_start + timedelta(hours=2)
+            r.status = "pending"
+    else:
+        sample_reqs = db_session.query(ServiceRequest).order_by(ServiceRequest.request_id.desc()).limit(5).all()
+        for idx, r in enumerate(sample_reqs):
+            h = hours[idx % len(hours)]
+            r.preferred_start = datetime(target_date.year, target_date.month, target_date.day, h, 0, tzinfo=vn_tz)
+            r.preferred_end = r.preferred_start + timedelta(hours=2)
+            r.status = "pending"
     db_session.commit()
 
     version_id = None
