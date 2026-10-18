@@ -3,6 +3,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from app.main import app
+from sqlalchemy.orm import Session
 from app.models import Assignment, ServiceResult, ServiceRequest, AIPrediction
 
 client = TestClient(app)
@@ -159,4 +160,83 @@ def test_end_to_end_request_assignment_result_flow(db_session):
             db_session.query(AIPrediction).filter(AIPrediction.request_id == request_id).delete()
             db_session.query(ServiceRequest).filter(ServiceRequest.request_id == request_id).delete()
         db_session.commit()
+
+
+def test_override_reasons_dropdown_api():
+    """
+    Kiểm thử API lấy danh mục lý do Override chuẩn hóa phục vụ Dropdown Frontend
+    """
+    res = client.get("/api/v1/assignments/override-reasons")
+    assert res.status_code == 200
+    data = res.json()
+    assert data["success"] is True
+    assert data["total"] == 6
+    codes = [item["code"] for item in data["data"]]
+    assert "distance" in codes
+    assert "skill" in codes
+    assert "customer_request" in codes
+    assert "time_constraint" in codes
+    assert "workload_balance" in codes
+    assert "other" in codes
+
+
+def test_human_in_the_loop_override_api(db_session: Session):
+    """
+    Kiểm thử API điều phối viên can thiệp ghi đè (Human-in-the-loop Override)
+    kèm lưu vết lý do chuẩn hóa và ghi chú nghiệp vụ.
+    """
+    now = datetime.now(timezone.utc) + timedelta(days=2)
+    req_id = None
+    assign_id = None
+    try:
+        # 1. Tạo request
+        req_res = client.post("/api/v1/service-requests", json={
+            "customer_id": 1,
+            "service_id": 1,
+            "preferred_start": now.isoformat(),
+            "preferred_end": (now + timedelta(hours=2)).isoformat(),
+            "address": "45 Pasteur, Xương Huân, Nha Trang",
+            "district_code": "XUONG_HUAN",
+            "complexity_level": 1,
+            "has_special_equip": False,
+            "priority": 2
+        })
+        assert req_res.status_code == 201
+        req_id = req_res.json()["request_id"]
+
+        # 2. Tạo assignment proposed ban đầu cho nhân viên 1
+        assign_res = client.post("/api/v1/assignments/manual", json={
+            "request_id": req_id,
+            "employee_id": 1,
+            "scheduled_start": now.isoformat(),
+            "scheduled_end": (now + timedelta(minutes=60)).isoformat(),
+            "explanation": "Đề xuất ban đầu của hệ thống"
+        })
+        assert assign_res.status_code == 201
+        assign_id = assign_res.json()["assignment_id"]
+        assert assign_res.json()["assignment_status"] == "proposed"
+
+        # 3. Điều phối viên thực hiện Override (đổi sang nhân viên 2 với lý do customer_request)
+        override_res = client.post(f"/api/v1/assignments/{assign_id}/override", json={
+            "confirmed_by": 2,
+            "new_employee_id": 2,
+            "reason_code": "customer_request",
+            "override_notes": "Bệnh nhân cao tuổi yêu cầu điều dưỡng quen thuộc chăm sóc"
+        })
+        assert override_res.status_code == 200, override_res.text
+        data = override_res.json()
+        assert data["employee_id"] == 2
+        assert data["assignment_status"] == "confirmed"
+        assert "[CUSTOMER_REQUEST]" in data["override_reason"]
+        assert "Khách hàng quen chỉ định đích danh" in data["override_reason"]
+        assert "Bệnh nhân cao tuổi yêu cầu điều dưỡng quen thuộc" in data["override_reason"]
+
+    finally:
+        if assign_id:
+            db_session.query(Assignment).filter(Assignment.assignment_id == assign_id).delete()
+        if req_id:
+            db_session.query(AIPrediction).filter(AIPrediction.request_id == req_id).delete()
+            db_session.query(ServiceRequest).filter(ServiceRequest.request_id == req_id).delete()
+        db_session.commit()
+
 

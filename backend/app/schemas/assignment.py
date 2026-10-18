@@ -1,7 +1,27 @@
 from datetime import datetime
+from enum import Enum
 from decimal import Decimal
-from typing import Optional
+from typing import Optional, List, Dict
 from pydantic import BaseModel, ConfigDict
+
+
+class OverrideReasonCode(str, Enum):
+    DISTANCE = "distance"
+    SKILL = "skill"
+    CUSTOMER_REQUEST = "customer_request"
+    TIME_CONSTRAINT = "time_constraint"
+    WORKLOAD_BALANCE = "workload_balance"
+    OTHER = "other"
+
+
+OVERRIDE_REASON_METADATA = [
+    {"code": "distance", "label": "Vị trí di chuyển thuận tiện hơn", "description": "Nhân viên ở gần điểm hẹn hơn hoặc cùng lộ trình di chuyển."},
+    {"code": "skill", "label": "Trình độ chuyên môn phù hợp hơn", "description": "Nhân viên có chứng chỉ/kỹ năng chuyên sâu phù hợp với ca bệnh đặc thù."},
+    {"code": "customer_request", "label": "Khách hàng quen chỉ định đích danh", "description": "Bệnh nhân/người nhà yêu cầu nhân viên chăm sóc quen thuộc."},
+    {"code": "time_constraint", "label": "Ràng buộc thời gian đột xuất", "description": "Nhân viên được AI gợi ý gặp sự cố cá nhân hoặc đổi ca đột xuất."},
+    {"code": "workload_balance", "label": "Cân bằng khối lượng công việc nội bộ", "description": "Điều phối viên chủ động chia tải để tránh điều dưỡng bị kiệt sức."},
+    {"code": "other", "label": "Yêu cầu đặc biệt khác", "description": "Các trường hợp nghiệp vụ đặc thù được ghi chú chi tiết."},
+]
 
 
 class ManualAssignmentCreate(BaseModel):
@@ -15,6 +35,17 @@ class ManualAssignmentCreate(BaseModel):
 class AssignmentConfirmRequest(BaseModel):
     confirmed_by: int
     override_reason: Optional[str] = None
+    reason_code: Optional[OverrideReasonCode] = None
+    override_notes: Optional[str] = None
+
+
+class AssignmentOverrideRequest(BaseModel):
+    confirmed_by: int
+    new_employee_id: Optional[int] = None
+    scheduled_start: Optional[datetime] = None
+    scheduled_end: Optional[datetime] = None
+    reason_code: OverrideReasonCode
+    override_notes: Optional[str] = None
 
 
 class ServiceResultRecordRequest(BaseModel):

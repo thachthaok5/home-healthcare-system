@@ -1,0 +1,7 @@
+﻿scenario,feasible_rate,total_travel_distance_km,workload_std_dev,avg_dss_score
+1. Co so (Baseline),85.20 ± 5.22,115.72 ± 11.09,89.54 ± 20.14,0.91 ± 0.00
+2. Uu tien ky nang,85.20 ± 5.22,116.23 ± 11.45,89.52 ± 20.10,0.91 ± 0.00
+3. Uu tien thoi gian,85.20 ± 5.22,115.28 ± 11.78,89.90 ± 20.63,0.91 ± 0.00
+4. Uu tien khoang cach,85.20 ± 5.22,113.59 ± 11.68,87.61 ± 20.36,0.89 ± 0.00
+5. Uu tien can bang tai,85.20 ± 5.22,116.23 ± 11.45,89.52 ± 20.10,0.92 ± 0.00
+6. Uu tien lien tuc,85.20 ± 5.22,115.72 ± 11.09,89.54 ± 20.14,0.82 ± 0.00

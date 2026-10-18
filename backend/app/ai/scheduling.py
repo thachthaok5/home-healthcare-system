@@ -50,9 +50,10 @@ class SchedulingEngine:
         to_lon: Optional[Decimal] = None
     ) -> Tuple[float, int]:
         """
-        Tra cứu hoặc ước tính khoảng cách (km) và số phút di chuyển trong Nha Trang.
+        Tra cứu hoặc tính toán cự ly (km) và số phút di chuyển thực tế tại Nha Trang
+        thông qua OSRM / OpenStreetMap kèm bộ nhớ đệm và cơ chế Safe Fallback Haversine.
         """
-        # 1. Tra cứu ma trận di chuyển nếu đã có sẵn
+        # 1. Tra cứu ma trận di chuyển nếu đã có sẵn trong CSDL
         tm = db.execute(
             select(TravelMatrix).where(
                 TravelMatrix.from_id == from_id,
@@ -63,18 +64,16 @@ class SchedulingEngine:
         if tm:
             return float(tm.distance_km), int(tm.travel_minutes)
 
-        # 2. Ước tính bằng công thức Haversine nếu có tọa độ GPS
-        if from_lat and from_lon and to_lat and to_lon:
-            lat1, lon1 = math.radians(float(from_lat)), math.radians(float(from_lon))
-            lat2, lon2 = math.radians(float(to_lat)), math.radians(float(to_lon))
-            dlat = lat2 - lat1
-            dlon = lon2 - lon1
-            a = math.sin(dlat / 2)**2 + math.cos(lat1) * math.cos(lat2) * math.sin(dlon / 2)**2
-            c = 2 * math.asin(math.sqrt(a))
-            dist_km = 6371.0 * c
-            # Vận tốc trung bình nội thành Nha Trang: 25 km/h + 3 phút dự phòng
-            travel_mins = int((dist_km / 25.0) * 60) + 3
-            return round(dist_km, 2), max(5, travel_mins)
+        # 2. Sử dụng RoutingEngine (OSRM kèm Cache & Fallback) nếu có tọa độ GPS
+        if from_lat is not None and from_lon is not None and to_lat is not None and to_lon is not None:
+            from app.ai.routing import RoutingEngine
+            dist_km, travel_mins, _ = RoutingEngine.get_distance_and_travel_time(
+                from_lat=from_lat,
+                from_lon=from_lon,
+                to_lat=to_lat,
+                to_lon=to_lon
+            )
+            return dist_km, travel_mins
 
         # 3. Giá trị mặc định nội thành Nha Trang
         return 3.0, 10
@@ -206,11 +205,12 @@ class SchedulingEngine:
         employee: Employee,
         request: ServiceRequest,
         start_time: datetime,
-        end_time: datetime
+        end_time: datetime,
+        weights: Optional[Dict[str, float]] = None
     ) -> Tuple[float, Dict[str, float], str]:
         """
         Tính điểm tiêu chí mềm DSS:
-        Score = 0.30*SkillFit + 0.25*TimeFit + 0.20*Distance + 0.15*Workload + 0.10*Continuity
+        Score = w_skill*SkillFit + w_time*TimeFit + w_dist*Distance + w_workload*Workload + w_continuity*Continuity
         """
         # 1. SkillFit (0.0 -> 1.0)
         req_skills = db.execute(
@@ -270,12 +270,15 @@ class SchedulingEngine:
         ).scalar() or 0
         continuity_score = 1.0 if past_successful > 0 else 0.0
 
-        # Tổng hợp điểm theo trọng số
-        w_skill = 0.30
-        w_time = 0.25
-        w_dist = 0.20
-        w_workload = 0.15
-        w_continuity = 0.10
+        # Tổng hợp điểm theo trọng số (mặc định hoặc cấu hình phân tích độ nhạy)
+        if weights is None:
+            w_skill, w_time, w_dist, w_workload, w_continuity = 0.30, 0.25, 0.20, 0.15, 0.10
+        else:
+            w_skill = float(weights.get("skill", 0.30))
+            w_time = float(weights.get("time", 0.25))
+            w_dist = float(weights.get("distance", 0.20))
+            w_workload = float(weights.get("workload", 0.15))
+            w_continuity = float(weights.get("continuity", 0.10))
 
         total_score = (
             w_skill * skill_fit +
@@ -309,7 +312,8 @@ class SchedulingEngine:
         cls,
         db: Session,
         request_id: int,
-        top_k: int = 3
+        top_k: int = 3,
+        weights: Optional[Dict[str, float]] = None
     ) -> List[Dict[str, Any]]:
         """
         Lấy danh sách Top K nhân viên phù hợp nhất cho 1 yêu cầu cụ thể,
@@ -346,7 +350,8 @@ class SchedulingEngine:
                     employee=emp,
                     request=req,
                     start_time=start_time,
-                    end_time=end_time
+                    end_time=end_time,
+                    weights=weights
                 )
                 candidates.append({
                     "employee_id": emp.employee_id,
@@ -380,7 +385,8 @@ class SchedulingEngine:
         target_date: date,
         created_by_user_id: int = 1,
         algorithm_name: str = "OR-Tools CP-SAT + DSS Multi-Criteria",
-        use_ai_duration: bool = True
+        use_ai_duration: bool = True,
+        weights: Optional[Dict[str, float]] = None
     ) -> Dict[str, Any]:
         """
         Giải bài toán phân công tối ưu toàn cục (Global Assignment Optimization)
@@ -445,7 +451,8 @@ class SchedulingEngine:
                         employee=emp,
                         request=req,
                         start_time=st,
-                        end_time=et
+                        end_time=et,
+                        weights=weights
                     )
                     var = model.new_bool_var(f"x_{req.request_id}_{emp.employee_id}")
                     x[(req.request_id, emp.employee_id)] = var
@@ -469,7 +476,7 @@ class SchedulingEngine:
             if emp_vars:
                 model.add(sum(emp_vars) <= 1)
 
-        # Constraint 2: Hai yêu cầu trùng thời gian không thể gán cho cùng 1 nhân viên
+        # Constraint 2: Hai yêu cầu trùng thời gian hoặc không đủ thời gian di chuyển không thể gán cho cùng 1 nhân viên
         for emp in employees:
             assigned_reqs = [r for (r, e) in feasible_pairs if e.employee_id == emp.employee_id]
             for i in range(len(assigned_reqs)):
@@ -478,8 +485,29 @@ class SchedulingEngine:
                     r2 = assigned_reqs[j]
                     st1, et1 = r1.preferred_start, r1.preferred_start + timedelta(minutes=durations[r1.request_id])
                     st2, et2 = r2.preferred_start, r2.preferred_start + timedelta(minutes=durations[r2.request_id])
-                    # Nếu có trùng thời gian
+
+                    # Tính thời gian di chuyển giữa 2 bệnh nhân
+                    c1 = r1.customer
+                    c2 = r2.customer
+                    _, travel_mins = cls.calculate_distance_and_travel(
+                        db=db,
+                        from_id=c1.customer_id if c1 else 0,
+                        to_id=c2.customer_id if c2 else 0,
+                        from_lat=c1.lat if c1 else None,
+                        from_lon=c1.lon if c1 else None,
+                        to_lat=c2.lat if c2 else None,
+                        to_lon=c2.lon if c2 else None
+                    )
+
+                    conflict = False
                     if (st1 < et2) and (st2 < et1):
+                        conflict = True
+                    elif et1 <= st2 and (st2 - et1).total_seconds() / 60.0 < travel_mins:
+                        conflict = True
+                    elif et2 <= st1 and (st1 - et2).total_seconds() / 60.0 < travel_mins:
+                        conflict = True
+
+                    if conflict:
                         model.add(x[(r1.request_id, emp.employee_id)] + x[(r2.request_id, emp.employee_id)] <= 1)
 
         # 6. Hàm mục tiêu: Tối đa hóa tổng điểm DSS (chuyển sang số nguyên scaled x 1000)
@@ -509,6 +537,7 @@ class SchedulingEngine:
         ).scalar() or 0
         version_code = f"V{target_date.strftime('%Y%m%d')}-{ver_count + 1}"
 
+        applied_weights = weights or {"skill": 0.30, "time": 0.25, "distance": 0.20, "workload": 0.15, "continuity": 0.10}
         new_version = ScheduleVersion(
             schedule_date=target_date,
             created_by=created_by_user_id,
@@ -516,7 +545,7 @@ class SchedulingEngine:
             parameters_json={
                 "solver_status": solver.status_name(status),
                 "objective_value": solver.objective_value,
-                "weights": {"skill": 0.30, "time": 0.25, "distance": 0.20, "workload": 0.15, "continuity": 0.10}
+                "weights": applied_weights
             }
         )
         db.add(new_version)

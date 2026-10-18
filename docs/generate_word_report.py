@@ -320,11 +320,11 @@ def build_word_report():
         ("5. README hướng dẫn cài đặt và chạy chương trình", 
          "Tài liệu README.md chuẩn quốc tế tại thư mục gốc và thư mục backend, hướng dẫn từ clone repo, venv, migration đến chạy server uvicorn.",
          "Hoàn thành 100%"),
-        ("6. Unit tests ràng buộc & chuyển đổi trạng thái", 
-         "Đã viết 24 bài kiểm thử tự động trên pytest phủ kín 6 Hard Constraints, DSS Scoring, State Machine, Auth và AI Model (100% Passed).",
+        ("6. Unit tests ràng buộc, OSRM routing & Override API", 
+         "Đã viết 31 bài kiểm thử tự động trên pytest phủ kín 6 Hard Constraints, DSS Scoring, State Machine, Auth, OSRM Routing, Override API và AI Model (100% Passed).",
          "Hoàn thành 100%"),
         ("7. Dataset ML v1, model baseline và bảng kết quả", 
-         "Tập 800 mẫu Nha Trang, No Leakage. Thử nghiệm 5 thuật toán: HistGradientBoosting đạt R²=0.920, MAE 4.43p. Đầy đủ Benchmark & Ablation Study.",
+         "Synthetic dataset gồm 800 mẫu mô phỏng bối cảnh 10 phường Nha Trang (seed 42), No Leakage. Thử nghiệm 5 thuật toán: Random Forest v1.1.0 đạt MAE 4.71p, RMSE 6.11p, R²=0.9337, giảm 61.8% sai số. Đầy đủ Stress Testing & Actual Duration Evaluation.",
          "Hoàn thành 100% (Vượt mức)")
     ]
 
@@ -379,14 +379,14 @@ def build_word_report():
         "chuẩn hóa quy ước đặt tên (snake_case: status_outcome, latitude/longitude, skill_level, is_active), tạo migration Alembic và script seed CSDL.\n"
         "• Giai đoạn B (Backend Core & Security): Chuẩn hóa schemas sang Pydantic v2 (ConfigDict), thiết lập phân quyền RBAC 3 vai trò "
         "(Admin, Coordinator, Medical Staff), bảo đảm tính cô lập dữ liệu (Test Isolation) giúp lệnh pytest có thể chạy lặp lại vô hạn lần.\n"
-        "• Giai đoạn C (Dataset Machine Learning): Viết script truy vấn CSDL để trích xuất tập dữ liệu 800 mẫu tại Nha Trang. Tuân thủ tuyệt đối "
+        "• Giai đoạn C (Dataset Machine Learning): Xây dựng Synthetic Dataset gồm 800 mẫu mô phỏng bối cảnh 10 phường tại TP. Nha Trang (cố định random seed 42 để đảm bảo khả năng tái lập thực nghiệm). Tuân thủ tuyệt đối "
         "nguyên tắc Không rò rỉ dữ liệu (No Data Leakage), chỉ dùng 8 đặc trưng đã biết trước khi lập lịch. Chia tập Train/Val/Test theo tỷ lệ 70/15/15.\n"
-        "• Giai đoạn D (Mô hình AI dự đoán thời lượng): Đã huấn luyện và thực nghiệm đối sánh 5 mô hình theo đề cương MIS. Lựa chọn HistGradientBoostingRegressor "
-        "là mô hình tối ưu (MAE 4.43 phút, R² = 0.920, giảm 67.1% sai số). Đã xuất file artifact duration_model_v1.joblib, đăng ký metadata vào bảng ai_model_versions và cài đặt cơ chế Safe Fallback.\n"
-        "• Giai đoạn E (Bộ máy Lập lịch & Ra quyết định DSS): Cài đặt động cơ kiểm tra 6 Ràng buộc cứng (Hard Constraints), thuật toán chấm điểm đa tiêu chí DSS (5 trọng số) "
+        "• Giai đoạn D (Mô hình AI dự đoán thời lượng): Đã huấn luyện và thực nghiệm đối sánh 5 mô hình theo đề cương MIS. Lựa chọn Random Forest (Version v1.1.0) "
+        "là mô hình tối ưu active trong CSDL (MAE 4.71 phút, RMSE 6.11 phút, R² = 0.9337, giảm 61.8% sai số so với default duration). Đã xuất file artifact duration_model_v1.joblib, đăng ký metadata vào bảng ai_model_versions và cài đặt cơ chế Safe Fallback.\n"
+        "• Giai đoạn E (Bộ máy Lập lịch & Ra quyết định DSS): Cài đặt động cơ kiểm tra 6 Ràng buộc cứng (Hard Constraints), tích hợp OSRM / OpenStreetMap routing, thuật toán chấm điểm đa tiêu chí DSS (5 trọng số), cơ chế Human-in-the-loop Override với 6 mã lý do chuẩn hóa "
         "và mô hình tối ưu hóa toàn cục Google OR-Tools CP-SAT.\n"
-        "• Giai đoạn F (Chuỗi nghiệp vụ khép kín & Thực nghiệm): Xây dựng test suite kiểm thử luồng 8 bước End-to-End từ Tiếp nhận → AI dự đoán → Phân công OR-Tools → Điều phối viên duyệt → Thực thi → Đánh giá. "
-        "Chạy thực nghiệm Benchmark 4 thuật toán và Thí nghiệm bóc tách Ablation Study bắt buộc."
+        "• Giai đoạn F (Chuỗi nghiệp vụ khép kín & Thực nghiệm): Xây dựng test suite 31 unit tests kiểm thử luồng End-to-End từ Tiếp nhận → AI dự đoán → Phân công OR-Tools → Điều phối viên duyệt / Override → Thực thi → Đánh giá. "
+        "Triển khai bộ Stress Testing mở rộng (10 - 150 req/ngày x 5 seeds), Kiểm chứng lịch trình bằng Actual Duration và Phân tích độ nhạy trọng số DSS."
     )
 
     # 2.2. Danh mục file / module đã thay đổi
@@ -421,8 +421,8 @@ def build_word_report():
         ("Backend Schemas & API", "backend/app/schemas/*.py\nbackend/app/api/v1/*.py", "Pydantic v2 validation; Router phân quyền JWT: Auth, Customers, Staff, Requests, Assignments."),
         ("Dữ liệu & Dataset ML", "backend/scripts/build_duration_dataset.py\nartifacts/data/duration_dataset.csv", "Truy vấn CSDL sinh 800 mẫu ca khám Nha Trang, 8 features tiền lập lịch, No Leakage."),
         ("Mô hình AI (Duration)", "backend/scripts/train_duration_models.py\nbackend/app/ai/duration_prediction.py", "Huấn luyện 5 mô hình ML, xuất artifact duration_model_v1.joblib, API suy luận kèm Safe Fallback."),
-        ("Động cơ Lập lịch & DSS", "backend/app/ai/constraints.py\nbackend/app/ai/scheduling.py", "Cài đặt 6 Hard Constraints, hàm chấm điểm đa tiêu chí DSS và solver tối ưu Google OR-Tools CP-SAT."),
-        ("Thực nghiệm & Kiểm thử", "backend/scripts/run_experiments.py\nbackend/tests/test_*.py", "Chạy benchmark 4 chiến lược, ablation study; 24 unit tests kiểm thử tự động toàn diện hệ thống.")
+        ("Động cơ Lập lịch, OSRM & DSS", "backend/app/ai/constraints.py\nbackend/app/ai/routing.py\nbackend/app/ai/scheduling.py", "Cài đặt 6 Hard Constraints, OSRM OpenStreetMap routing, hàm chấm điểm đa tiêu chí DSS và solver tối ưu Google OR-Tools CP-SAT."),
+        ("Thực nghiệm & Kiểm thử", "backend/scripts/run_stress_test.py\nbackend/tests/test_*.py", "Chạy Stress Test (10-150 reqs x 5 seeds), Actual Duration, DSS Sensitivity; 31 unit tests tự động 100% Passed.")
     ]
 
     f_widths = [Inches(1.8), Inches(2.3), Inches(2.4)]
@@ -721,180 +721,277 @@ def build_word_report():
         "tính công bằng phân bổ giờ làm (WorkloadBalance) và sự gắn bó quen thuộc với bệnh nhân cũ (Continuity)."
     )
 
-    # 3.5. Benchmark 4 giải thuật
+    # 3.5. Stress Test Benchmark
     h2_35 = doc.add_heading(level=2)
     h2_35.paragraph_format.space_before = Pt(8)
     h2_35.paragraph_format.space_after = Pt(4)
-    r_h2_35 = h2_35.add_run("3.5. Kết quả Thực nghiệm Đối sánh 4 Chiến lược Lập lịch (Scheduling Benchmark)")
+    r_h2_35 = h2_35.add_run("3.5. Kết quả Thực nghiệm Stress Test Benchmark (10 - 150 requests/ngày qua 5 Random Seeds)")
     r_h2_35.font.name = "Times New Roman"
     r_h2_35.font.color.rgb = NAVY_SECONDARY
 
     doc.add_paragraph(
-        "Thực nghiệm được thiết kế và thực thi tự động qua script `run_experiments.py`, so sánh 4 giải thuật phân công trên cùng "
-        "một tập dữ liệu ca khám tại Nha Trang theo đúng hướng dẫn tại Mục 4 của Cô:"
+        "Theo định hướng của GVHD tại Feedback Đợt 2 (Lần 3), hệ thống đã mở rộng quy mô thực nghiệm từ tải đơn lẻ lên phổ kiểm thử chịu tải (Stress Test) "
+        "với 5 mức tải: 10, 25, 50, 100 và 150 requests/ngày cho đội ngũ 10 điều dưỡng tại TP. Nha Trang. Mỗi mức tải được thực thi độc lập qua 5 random seeds "
+        "(42, 101, 202, 303, 404) để loại bỏ nhiễu ngẫu nhiên và bảo đảm tính vững chắc về mặt thống kê. Bảng 3 tổng hợp các chỉ số trung bình và độ lệch chuẩn (mean ± std) "
+        "đối sánh 3 giải thuật: Nearest Feasible (Greedy cự ly), Weighted DSS (Tham lam đa tiêu chí), và Google OR-Tools CP-SAT (Tối ưu hóa toàn cục):"
     )
 
     p_tb_bm = doc.add_paragraph()
     p_tb_bm.paragraph_format.space_before = Pt(4)
     p_tb_bm.paragraph_format.space_after = Pt(4)
-    r_tb_bm = p_tb_bm.add_run("Bảng 3: Kết quả thực nghiệm đối sánh hiệu năng 4 chiến lược lập lịch")
+    r_tb_bm = p_tb_bm.add_run("Bảng 3: Kết quả thực nghiệm Stress Test đa mức tải qua 5 random seeds (mean ± std)")
     r_tb_bm.font.bold = True
     r_tb_bm.font.italic = True
     r_tb_bm.font.size = Pt(10.5)
 
-    bm_table = doc.add_table(rows=5, cols=7)
+    bm_table = doc.add_table(rows=16, cols=9)
     bm_table.alignment = WD_TABLE_ALIGNMENT.CENTER
     set_table_borders(bm_table)
 
-    bm_headers = ["Chiến lược lập lịch", "Tỷ lệ khả thi", "TG Di chuyển TB", "Tổng quãng đường", "Độ lệch tải (Std Dev)", "Điểm DSS", "Thời gian chạy"]
+    bm_headers = ["Mức tải", "Thuật toán", "Tỷ lệ khả thi", "Số ca bỏ sót", "Tổng quãng đường", "TG Di chuyển TB", "Lệch tải (Std Dev)", "Điểm DSS", "Thời gian giải"]
     for j, h in enumerate(bm_headers):
         c = bm_table.cell(0, j)
         set_cell_background(c, HEX_PRIMARY)
-        set_cell_margins(c, top=80, bottom=80, left=60, right=60)
+        set_cell_margins(c, top=70, bottom=70, left=50, right=50)
         p = c.paragraphs[0]
         p.alignment = WD_ALIGN_PARAGRAPH.CENTER
         p.paragraph_format.space_after = Pt(0)
         r = p.add_run(h)
         r.font.bold = True
         r.font.color.rgb = RGBColor(255, 255, 255)
-        r.font.size = Pt(9.0)
+        r.font.size = Pt(8.5)
 
     bm_rows = [
-        ("1. First Feasible (Tham lam)", "80.0%", "7.25 phút", "7.24 km", "41.71", "0.9108", "75.15 ms"),
-        ("2. Nearest Feasible (Gần nhất)", "80.0%", "4.75 phút", "3.64 km", "34.05", "0.9803", "70.00 ms"),
-        ("3. Weighted DSS (Đa tiêu chí)", "80.0%", "4.75 phút", "3.64 km", "34.05", "0.9803", "57.57 ms"),
-        ("4. OR-Tools CP-SAT (Toàn cục)", "80.0%", "4.75 phút", "3.64 km", "34.05", "0.9803", "109.22 ms")
+        ("10 req", "Nearest Feasible", "98.00 ± 4.47%", "0.20 ± 0.45", "22.58 ± 8.21 km", "7.95 ± 1.90 p", "60.67 ± 20.34", "0.90 ± 0.01", "5.30 ms"),
+        ("10 req", "Weighted DSS", "98.00 ± 4.47%", "0.20 ± 0.45", "24.42 ± 9.04 km", "8.45 ± 2.08 p", "57.67 ± 12.92", "0.91 ± 0.01", "0.89 ms"),
+        ("10 req", "OR-Tools CP-SAT", "100.00 ± 0.00%", "0.00 ± 0.00", "24.57 ± 8.02 km", "8.40 ± 1.93 p", "64.63 ± 15.75", "0.92 ± 0.01", "20.09 ms"),
+        ("25 req", "Nearest Feasible", "91.20 ± 5.22%", "2.20 ± 1.30", "61.76 ± 10.76 km", "9.00 ± 1.20 p", "73.75 ± 19.75", "0.89 ± 0.01", "1.48 ms"),
+        ("25 req", "Weighted DSS", "89.60 ± 4.56%", "2.60 ± 1.14", "63.34 ± 10.36 km", "9.27 ± 1.14 p", "60.47 ± 11.06", "0.89 ± 0.00", "1.49 ms"),
+        ("25 req", "OR-Tools CP-SAT", "100.00 ± 0.00%", "0.00 ± 0.00", "68.23 ± 12.14 km", "9.06 ± 1.17 p", "104.48 ± 19.43", "0.91 ± 0.01", "37.56 ms"),
+        ("50 req", "Nearest Feasible", "70.80 ± 5.22%", "14.60 ± 2.61", "106.72 ± 9.24 km", "9.71 ± 0.32 p", "72.34 ± 17.68", "0.87 ± 0.00", "3.48 ms"),
+        ("50 req", "Weighted DSS", "70.40 ± 6.23%", "14.80 ± 3.11", "106.96 ± 10.64 km", "9.78 ± 0.49 p", "63.20 ± 19.71", "0.88 ± 0.00", "2.91 ms"),
+        ("50 req", "OR-Tools CP-SAT", "85.20 ± 5.22%", "7.40 ± 2.61", "115.72 ± 11.09 km", "8.99 ± 0.24 p", "89.54 ± 20.14", "0.91 ± 0.00", "106.92 ms"),
+        ("100 req", "Nearest Feasible", "47.00 ± 1.73%", "53.00 ± 1.73", "149.85 ± 8.26 km", "10.13 ± 0.30 p", "66.69 ± 20.03", "0.86 ± 0.00", "4.62 ms"),
+        ("100 req", "Weighted DSS", "47.60 ± 1.95%", "52.40 ± 1.95", "151.76 ± 9.14 km", "10.13 ± 0.21 p", "57.21 ± 16.36", "0.86 ± 0.00", "4.38 ms"),
+        ("100 req", "OR-Tools CP-SAT", "59.80 ± 1.30%", "40.20 ± 1.30", "154.89 ± 9.96 km", "8.73 ± 0.44 p", "66.10 ± 12.87", "0.91 ± 0.00", "397.38 ms"),
+        ("150 req", "Nearest Feasible", "35.73 ± 1.80%", "96.40 ± 2.70", "171.71 ± 7.49 km", "10.17 ± 0.22 p", "49.43 ± 16.46", "0.85 ± 0.00", "6.59 ms"),
+        ("150 req", "Weighted DSS", "35.73 ± 1.54%", "96.40 ± 2.30", "171.71 ± 8.24 km", "10.17 ± 0.26 p", "49.20 ± 10.90", "0.86 ± 0.00", "6.61 ms"),
+        ("150 req", "OR-Tools CP-SAT", "44.80 ± 1.19%", "82.80 ± 1.79", "158.79 ± 10.79 km", "8.16 ± 0.47 p", "50.14 ± 12.06", "0.91 ± 0.00", "3610.66 ms")
     ]
 
-    bm_widths = [Inches(1.8), Inches(0.7), Inches(0.85), Inches(0.85), Inches(0.85), Inches(0.65), Inches(0.8)]
+    bm_widths = [Inches(0.65), Inches(1.3), Inches(0.8), Inches(0.75), Inches(1.0), Inches(0.85), Inches(0.85), Inches(0.65), Inches(0.75)]
     for i, row in enumerate(bm_rows):
         for j, val in enumerate(row):
             c = bm_table.cell(i + 1, j)
             c.width = bm_widths[j]
-            if i == 3:
-                set_cell_background(c, "E6F0FA")  # Highlight best
+            if "OR-Tools" in row[1]:
+                set_cell_background(c, "EBF3FA")
             elif (i % 2) == 1:
                 set_cell_background(c, HEX_LIGHT_BG)
-            set_cell_margins(c, top=70, bottom=70, left=60, right=60)
+            set_cell_margins(c, top=50, bottom=50, left=45, right=45)
             p = c.paragraphs[0]
             p.paragraph_format.space_after = Pt(0)
-            if j > 0:
+            if j > 1:
                 p.alignment = WD_ALIGN_PARAGRAPH.CENTER
-            if i == 3:
+            if "OR-Tools" in row[1]:
                 r = p.add_run(val)
                 r.font.bold = True
-                r.font.size = Pt(9.0)
+                r.font.size = Pt(8.0)
                 r.font.color.rgb = NAVY_PRIMARY
             else:
                 r = p.add_run(val)
-                r.font.size = Pt(8.5)
+                r.font.size = Pt(7.8)
 
     doc.add_paragraph().paragraph_format.space_after = Pt(4)
     add_callout(
         doc,
-        "Nhận xét thực nghiệm: Giải thuật tối ưu hóa toàn cục Google OR-Tools CP-SAT và Weighted DSS vượt trội so với giải thuật First Feasible cơ sở:\n"
-        "• Tiết kiệm 34.5% thời gian di chuyển trung bình (từ 7.25 phút xuống 4.75 phút/ca).\n"
-        "• Cắt giảm 49.7% tổng quãng đường di chuyển (từ 7.24 km xuống 3.64 km).\n"
-        "• Cân bằng tải công việc tốt hơn: độ lệch chuẩn giảm từ 41.71 xuống 34.05 (giảm 18.4%), hạn chế dồn việc quá mức vào một nhân sự.\n"
-        "• Điểm số chất lượng phân công DSS đạt mức tối ưu 0.9803 (vượt trội so với 0.9108 của First Feasible).\n"
-        "• Thời gian giải quyết bài toán của OR-Tools CP-SAT ở quy mô cụm ca là 109.22 ms, Weighted DSS là 57.57 ms, hoàn toàn đáp ứng yêu cầu tương tác thời gian thực.",
-        title="ĐÁNH GIÁ ĐÓNG GÓP CỦA THUẬT TOÁN OR-TOOLS CP-SAT"
+        "Nhận xét thực nghiệm Stress Test chuyên sâu:\n"
+        "1. Ngưỡng bão hòa năng lực hệ thống: Với đội ngũ 10 nhân sự điều dưỡng và ngân sách thời gian chuẩn 480 phút/người/ngày, năng lực tiếp nhận tối đa an toàn của toàn hệ thống là khoảng 50 - 65 ca/ngày. Khi tải vượt lên 100 và 150 ca/ngày, hệ thống rơi vào trạng thái bão hòa công suất nghiêm trọng.\n"
+        "2. Ưu thế vượt trội của OR-Tools CP-SAT ở tải cao: Khi chịu tải 50 ca/ngày, OR-Tools đạt tỷ lệ khả thi 85.20% (phục vụ 42.6 ca), cao hơn 14.8% so với giải thuật tham lam (70.4%, phục vụ 35.2 ca). Ở mức tải 100 ca/ngày, OR-Tools tiếp tục duy trì tỷ lệ 59.80% (vượt trội so với 47.60% của Greedy), đồng thời tối ưu thời gian di chuyển trung bình xuống 8.73 phút/ca (so với 10.13 phút của Greedy).\n"
+        "3. Hiệu năng tính toán (Runtime): Heuristic tham lam có tốc độ cực nhanh (< 7 ms). OR-Tools CP-SAT tìm kiếm không gian nghiệm toàn cục nên thời gian chạy tăng dần từ 20 ms (10 req) đến 397 ms (100 req) và 3.61 giây (150 req), hoàn toàn đáp ứng xuất sắc yêu cầu vận hành theo lô thời gian thực.",
+        title="PHÂN TÍCH HIỆU NĂNG STRESS TEST BENCHMARK"
     )
 
-    # 3.6. Thí nghiệm Ablation Study
+    # 3.6. Kiểm chứng Lập lịch bằng Actual Duration
     h2_36 = doc.add_heading(level=2)
     h2_36.paragraph_format.space_before = Pt(8)
     h2_36.paragraph_format.space_after = Pt(4)
-    r_h2_36 = h2_36.add_run("3.6. Thí nghiệm Bóc tách Suy giảm Bắt buộc (Ablation Study)")
+    r_h2_36 = h2_36.add_run("3.6. Kiểm chứng Lập lịch bằng Actual Duration (Ground-Truth Simulation)")
     r_h2_36.font.name = "Times New Roman"
     r_h2_36.font.color.rgb = NAVY_SECONDARY
 
     doc.add_paragraph(
-        "Theo yêu cầu bắt buộc của Cô tại Mục 4: 'Ablation bắt buộc: Default Duration + OR-Tools so với AI Predicted Duration + OR-Tools. "
-        "Không viết trước kết luận rằng AI chắc chắn cải thiện. Báo cáo đúng kết quả thực nghiệm định lượng'. "
-        "Bảng số liệu dưới đây minh chứng rõ nét tác động thực sự của thành phần AI:"
+        "Theo chỉ đạo trọng tâm của Cô: 'Để chứng minh AI duration prediction thực sự có lợi cho scheduling, em nên lập lịch bằng Default Duration "
+        "và Predicted Duration, nhưng sau đó đánh giá cả hai lịch bằng Actual Duration'. Cả hai phương án lịch trình đều được lập bởi solver OR-Tools, "
+        "sau đó đưa vào mô phỏng thực thi với thời lượng thực tế (Ground-Truth Actual Duration) có tính đến độ phức tạp bệnh lý, vật tư y tế, yếu tố địa bàn "
+        "và nhiễu ngẫu nhiên thực tế tại Nha Trang. Kết quả theo dõi 5 chỉ số vận hành then chốt qua 5 seeds được trình bày trong Bảng 4:"
     )
 
     p_tb_ab = doc.add_paragraph()
     p_tb_ab.paragraph_format.space_before = Pt(4)
     p_tb_ab.paragraph_format.space_after = Pt(4)
-    r_tb_ab = p_tb_ab.add_run("Bảng 4: Kết quả thí nghiệm bóc tách chứng minh đóng góp của mô hình AI")
+    r_tb_ab = p_tb_ab.add_run("Bảng 4: Đánh giá đối chứng lịch trình bằng Actual Duration giữa Default và AI Duration (mean ± std)")
     r_tb_ab.font.bold = True
     r_tb_ab.font.italic = True
     r_tb_ab.font.size = Pt(10.5)
 
-    ab_table = doc.add_table(rows=8, cols=4)
+    ab_table = doc.add_table(rows=9, cols=7)
     ab_table.alignment = WD_TABLE_ALIGNMENT.CENTER
     set_table_borders(ab_table)
 
-    ab_headers = ["Chỉ số đo lường", "Kịch bản A: Default Duration + OR-Tools (Thiếu AI)", "Kịch bản B: AI Predicted Duration + OR-Tools (Có AI)", "Mức độ cải thiện nhờ AI"]
+    ab_headers = ["Mức tải", "Phương án lập lịch", "Số ca trùng lặp (Overlap)", "Số ca bắt đầu trễ", "Tổng phút trễ thực tế", "Độ trễ tối đa", "Tỷ lệ khả thi thực tế"]
     for j, h in enumerate(ab_headers):
         c = ab_table.cell(0, j)
         set_cell_background(c, HEX_PRIMARY)
-        set_cell_margins(c, top=80, bottom=80, left=70, right=70)
+        set_cell_margins(c, top=70, bottom=70, left=50, right=50)
         p = c.paragraphs[0]
         p.alignment = WD_ALIGN_PARAGRAPH.CENTER
         p.paragraph_format.space_after = Pt(0)
         r = p.add_run(h)
         r.font.bold = True
         r.font.color.rgb = RGBColor(255, 255, 255)
-        r.font.size = Pt(9.0)
+        r.font.size = Pt(8.5)
 
     ab_rows = [
-        ("Nguồn dữ liệu thời lượng", "services.default_duration (Cố định)", "ai_predictions (Random Forest v1.1.0)", "Cá nhân hóa theo ca bệnh"),
-        ("Sai số thời lượng ước tính (MAE)", "12.33 phút", "4.71 phút", "Giảm 61.8% sai số"),
-        ("Tỷ lệ phân công khả thi", "80.0% (4/5 ca)", "80.0% (4/5 ca)", "Đảm bảo 100% ràng buộc cứng"),
-        ("Tổng quãng đường di chuyển", "3.64 km", "3.64 km", "Tối ưu hóa hành trình di chuyển"),
-        ("Thời gian di chuyển trung bình", "4.75 phút", "4.75 phút", "Bảo toàn lộ trình hợp lý"),
-        ("Độ lệch chuẩn khối lượng tải", "31.97", "34.05", "Phân bổ tương đương (+2.08)"),
-        ("Thời gian thực thi giải thuật", "97.78 ms", "84.57 ms", "Tối ưu tốc độ giải (84.57 ms)")
+        ("10 req", "Plan A: Default Duration (Thiếu AI)", "0.0 ± 0.0", "0.4 ± 0.5", "4.6 ± 7.4 p", "4.6 ± 7.4 p", "98.0 ± 4.5%"),
+        ("10 req", "Plan B: AI Predicted Duration (Có AI)", "0.0 ± 0.0", "0.4 ± 0.5", "4.6 ± 7.4 p", "4.6 ± 7.4 p", "98.0 ± 4.5%"),
+        ("25 req", "Plan A: Default Duration (Thiếu AI)", "3.4 ± 2.3", "5.8 ± 2.3", "188.8 ± 202.6 p", "67.4 ± 58.0 p", "87.2 ± 13.7%"),
+        ("25 req", "Plan B: AI Predicted Duration (Có AI)", "3.4 ± 2.3", "5.8 ± 2.3", "168.4 ± 161.0 p", "57.6 ± 42.1 p", "87.2 ± 13.7%"),
+        ("50 req", "Plan A: Default Duration (Thiếu AI)", "11.8 ± 3.3", "16.6 ± 4.1", "451.2 ± 225.6 p", "80.6 ± 37.7 p", "78.2 ± 8.2%"),
+        ("50 req", "Plan B: AI Predicted Duration (Có AI)", "10.4 ± 2.5", "14.4 ± 2.7", "402.6 ± 172.8 p", "82.0 ± 32.2 p", "81.2 ± 6.7%"),
+        ("100 req", "Plan A: Default Duration (Thiếu AI)", "23.4 ± 4.0", "32.0 ± 3.5", "864.6 ± 171.8 p", "109.0 ± 33.9 p", "72.2 ± 3.1%"),
+        ("100 req", "Plan B: AI Predicted Duration (Có AI)", "20.4 ± 3.2", "28.6 ± 4.7", "711.2 ± 140.5 p", "92.6 ± 24.3 p", "74.3 ± 5.3%")
     ]
 
-    ab_widths = [Inches(1.8), Inches(1.8), Inches(1.8), Inches(1.1)]
+    ab_widths = [Inches(0.7), Inches(2.1), Inches(1.0), Inches(0.9), Inches(1.1), Inches(0.85), Inches(0.95)]
     for i, row in enumerate(ab_rows):
         for j, val in enumerate(row):
             c = ab_table.cell(i + 1, j)
             c.width = ab_widths[j]
-            if (i % 2) == 1:
+            if "Plan B" in row[1]:
+                set_cell_background(c, "E8F8F5")
+            elif (i % 2) == 1:
                 set_cell_background(c, HEX_LIGHT_BG)
-            set_cell_margins(c, top=70, bottom=70, left=70, right=70)
+            set_cell_margins(c, top=60, bottom=60, left=50, right=50)
             p = c.paragraphs[0]
             p.paragraph_format.space_after = Pt(0)
-            if j in [1, 2, 3]:
+            if j > 1:
                 p.alignment = WD_ALIGN_PARAGRAPH.CENTER
-            if j == 3:
+            if "Plan B" in row[1]:
                 r = p.add_run(val)
                 r.font.bold = True
-                r.font.size = Pt(9.0)
-                r.font.color.rgb = RGBColor(0, 128, 0)
-            elif j == 0:
-                r = p.add_run(val)
-                r.font.bold = True
-                r.font.size = Pt(9.0)
-                r.font.color.rgb = NAVY_SECONDARY
+                r.font.size = Pt(8.2)
+                r.font.color.rgb = RGBColor(16, 120, 70)
             else:
                 r = p.add_run(val)
-                r.font.size = Pt(8.5)
+                r.font.size = Pt(8.0)
 
     doc.add_paragraph().paragraph_format.space_after = Pt(4)
     add_callout(
         doc,
-        "Luận điểm học thuật then chốt bảo vệ trước Hội đồng: Nếu chỉ sử dụng thuật toán tối ưu hóa lập lịch (OR-Tools) với thời lượng cố định danh nghĩa (services.default_duration), "
-        "kế hoạch phân công đối mặt với sai số thời lượng rất lớn (MAE = 12.33 phút). Khi thời lượng thực tế vượt dự tính ở các ca nặng, điều dưỡng viên sẽ bị trễ dây chuyền và vỡ lịch trình đã xếp.\n"
-        "Mô hình AI Random Forest giúp giảm 61.8% sai số dự đoán thời lượng (MAE còn 4.71 phút), cung cấp đầu vào sát thực tế để solver OR-Tools lập lịch khả thi, chính xác và giảm thiểu rủi ro xung đột lịch biểu.",
-        title="LUẬN ĐIỂM BẢO VỆ TÍCH HỢP AI"
+        "Luận điểm bảo vệ cốt lõi trước Hội đồng về giá trị thực tế của AI:\n"
+        "• Bằng chứng định lượng vượt trội so với so sánh MAE đơn thuần: Ở mức tải thấp (10 req), khoảng đệm rảnh rỗi giữa các ca còn nhiều nên chưa thấy rõ xung đột. Tuy nhiên khi tải tăng lên 50 và 100 ca/ngày, kế hoạch Default Duration (luôn giả định thời lượng dịch vụ cố định) bị vỡ lịch nghiêm trọng do các ca bệnh khó, có thiết bị kéo dài hơn dự tính.\n"
+        "• Lập lịch với AI Predicted Duration (Random Forest v1.1.0) chứng minh giá trị lâm sàng rõ rệt: Ở mức tải 100 req/ngày, AI giúp giảm số ca trùng lặp thực tế từ 23.4 xuống 20.4 ca (giảm 12.8%), giảm số ca trễ hẹn từ 32.0 xuống 28.6 ca, và đặc biệt cắt giảm tới 153.4 phút trễ hẹn tích lũy mỗi ngày (giảm 17.7% thời gian chờ đợi của bệnh nhân). Tỷ lệ lịch trình vẫn khả thi thực tế sau khi chạy tăng từ 72.2% lên 74.3%.",
+        title="CHỨNG MINH LỢI ÍCH VẬN HÀNH CỦA AI DURATION TRONG LẬP LỊCH"
     )
 
-    # 3.7. Kết quả kiểm thử Unit Tests
+    # 3.7. Phân tích Độ nhạy Trọng số DSS
     h2_37 = doc.add_heading(level=2)
     h2_37.paragraph_format.space_before = Pt(8)
     h2_37.paragraph_format.space_after = Pt(4)
-    r_h2_37 = h2_37.add_run("3.7. Báo cáo Kết quả Kiểm thử Tự động (Unit Tests: 25/25 Passed)")
+    r_h2_37 = h2_37.add_run("3.7. Phân tích Độ nhạy Trọng số DSS (DSS Weight Sensitivity Analysis)")
     r_h2_37.font.name = "Times New Roman"
     r_h2_37.font.color.rgb = NAVY_SECONDARY
 
     doc.add_paragraph(
-        "Nhằm bảo đảm chất lượng phần mềm theo tiêu chuẩn ngành MIS, toàn bộ 25 test cases đã được thực thi kiểm thử hồi quy tự động "
+        "Nhằm đánh giá tính vững (robustness) của bộ máy ra quyết định DSS và chứng minh tính hợp lý của bộ trọng số cơ sở, hệ thống đã thực nghiệm "
+        "trên 6 kịch bản trọng số khác nhau với quy mô N = 50 ca/ngày qua 5 random seeds:"
+    )
+
+    p_tb_sens = doc.add_paragraph()
+    p_tb_sens.paragraph_format.space_before = Pt(4)
+    p_tb_sens.paragraph_format.space_after = Pt(4)
+    r_tb_sens = p_tb_sens.add_run("Bảng 5: Phân tích độ nhạy của bộ trọng số DSS trên 6 kịch bản ưu tiên (N=50, 5 seeds)")
+    r_tb_sens.font.bold = True
+    r_tb_sens.font.italic = True
+    r_tb_sens.font.size = Pt(10.5)
+
+    sens_table = doc.add_table(rows=7, cols=6)
+    sens_table.alignment = WD_TABLE_ALIGNMENT.CENTER
+    set_table_borders(sens_table)
+
+    sens_headers = ["Kịch bản trọng số", "Phân bổ trọng số (Skill/Time/Dist/WL/Cont)", "Tỷ lệ khả thi", "Tổng cự ly di chuyển", "Độ lệch tải (Std Dev)", "Điểm DSS TB"]
+    for j, h in enumerate(sens_headers):
+        c = sens_table.cell(0, j)
+        set_cell_background(c, HEX_PRIMARY)
+        set_cell_margins(c, top=70, bottom=70, left=50, right=50)
+        p = c.paragraphs[0]
+        p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        p.paragraph_format.space_after = Pt(0)
+        r = p.add_run(h)
+        r.font.bold = True
+        r.font.color.rgb = RGBColor(255, 255, 255)
+        r.font.size = Pt(8.5)
+
+    sens_rows = [
+        ("1. Cơ sở (Baseline)", "0.30 / 0.25 / 0.20 / 0.15 / 0.10", "85.20 ± 5.22%", "115.72 ± 11.09 km", "89.54 ± 20.14", "0.91 ± 0.00"),
+        ("2. Ưu tiên Kỹ năng", "0.35 / 0.20 / 0.20 / 0.15 / 0.10", "85.20 ± 5.22%", "116.23 ± 11.45 km", "89.52 ± 20.10", "0.91 ± 0.00"),
+        ("3. Ưu tiên Thời gian", "0.25 / 0.30 / 0.20 / 0.15 / 0.10", "85.20 ± 5.22%", "115.28 ± 11.78 km", "89.90 ± 20.63", "0.91 ± 0.00"),
+        ("4. Ưu tiên Khoảng cách", "0.25 / 0.20 / 0.30 / 0.15 / 0.10", "85.20 ± 5.22%", "113.59 ± 11.68 km", "87.61 ± 20.36", "0.89 ± 0.00"),
+        ("5. Cân bằng tải", "0.25 / 0.20 / 0.15 / 0.30 / 0.10", "85.20 ± 5.22%", "116.23 ± 11.45 km", "89.52 ± 20.10", "0.92 ± 0.00"),
+        ("6. Ưu tiên Liên tục", "0.25 / 0.20 / 0.15 / 0.10 / 0.30", "85.20 ± 5.22%", "115.72 ± 11.09 km", "89.54 ± 20.14", "0.82 ± 0.00")
+    ]
+
+    sens_widths = [Inches(1.5), Inches(2.2), Inches(0.9), Inches(1.2), Inches(1.0), Inches(0.8)]
+    for i, row in enumerate(sens_rows):
+        for j, val in enumerate(row):
+            c = sens_table.cell(i + 1, j)
+            c.width = sens_widths[j]
+            if (i % 2) == 1:
+                set_cell_background(c, HEX_LIGHT_BG)
+            set_cell_margins(c, top=60, bottom=60, left=50, right=50)
+            p = c.paragraphs[0]
+            p.paragraph_format.space_after = Pt(0)
+            if j > 1:
+                p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+            r = p.add_run(val)
+            r.font.size = Pt(8.0)
+            if j == 0:
+                r.font.bold = True
+                r.font.color.rgb = NAVY_SECONDARY
+
+    doc.add_paragraph().paragraph_format.space_after = Pt(4)
+
+    # 3.8. Cơ chế Human-in-the-loop Override
+    h2_38 = doc.add_heading(level=2)
+    h2_38.paragraph_format.space_before = Pt(8)
+    h2_38.paragraph_format.space_after = Pt(4)
+    r_h2_38 = h2_38.add_run("3.8. Cơ chế Điều phối viên Can thiệp (Human-in-the-loop Override)")
+    r_h2_38.font.name = "Times New Roman"
+    r_h2_38.font.color.rgb = NAVY_SECONDARY
+
+    doc.add_paragraph(
+        "Theo chuẩn nghiệp vụ hệ thống MIS y tế và chỉ đạo của GVHD tại Mục 6, hệ thống không áp đặt 100% quyết định của máy tính mà thiết kế "
+        "cơ chế phối hợp Người - Máy (Human-in-the-loop). Khi điều phối viên quyết định không chọn gợi ý tối ưu của hệ thống, giao diện bắt buộc chọn "
+        "lý do từ danh mục chuẩn hóa kết hợp trường ghi chú nghiệp vụ tự do:\n"
+        "• Dropdown danh mục lý do chuẩn: `distance` (Vị trí thuận tiện hơn), `skill` (Chuyên môn phù hợp hơn), `customer_request` (Khách chỉ định quen), "
+        "`time_constraint` (Ràng buộc đột xuất), `workload_balance` (Cân bằng tải nội bộ), `other` (Yêu cầu đặc biệt khác).\n"
+        "• Trường ghi chú tự do: `override_notes` (Text) ghi nhận giải trình chi tiết của điều phối viên.\n"
+        "• Toàn bộ thông tin can thiệp được lưu vết vĩnh viễn trong CSDL (cột `override_reason` bảng `assignments` và `recommendation_logs`) "
+        "đáp ứng hoàn hảo tính giải trình (Explainability) và kiểm toán nghiệp vụ y tế."
+    )
+
+    # 3.9. Kết quả kiểm thử Unit Tests
+    h2_39 = doc.add_heading(level=2)
+    h2_39.paragraph_format.space_before = Pt(8)
+    h2_39.paragraph_format.space_after = Pt(4)
+    r_h2_39 = h2_39.add_run("3.9. Báo cáo Kết quả Kiểm thử Tự động (Unit Tests: 31/31 Passed - 100%)")
+    r_h2_39.font.name = "Times New Roman"
+    r_h2_39.font.color.rgb = NAVY_SECONDARY
+
+    doc.add_paragraph(
+        "Nhằm bảo đảm chất lượng phần mềm theo tiêu chuẩn ngành MIS và khắc phục triệt để mâu thuẫn số liệu test case theo feedback của Cô, "
+        "toàn bộ 31 test cases (bao gồm các bài test mới về OSRM Routing và Override API) đã được thực thi kiểm thử hồi quy tự động "
         "qua pytest với kết quả 100% Passed:"
     )
 
@@ -902,34 +999,40 @@ def build_word_report():
         "============================= test session starts =============================\n"
         "platform win32 -- Python 3.13.3, pytest-9.1.1, pluggy-1.7.0\n"
         "rootdir: D:\\New folder\\DOAN\\backend\n"
-        "plugins: anyio-4.15.1\n"
-        "collected 25 items\n\n"
-        "test_connection.py::test_db PASSED                                       [  4%]\n"
-        "tests/test_ai.py::test_ai_dataset_integrity PASSED                       [  8%]\n"
-        "tests/test_ai.py::test_ai_model_artifact_load_and_inference PASSED       [ 12%]\n"
-        "tests/test_ai.py::test_ai_model_version_registry_in_db PASSED            [ 16%]\n"
-        "tests/test_ai.py::test_api_predict_duration_endpoint PASSED              [ 20%]\n"
-        "tests/test_ai.py::test_api_ai_models_comparison_endpoint PASSED          [ 24%]\n"
-        "tests/test_ai.py::test_safe_fallback_mechanism PASSED                    [ 28%]\n"
-        "tests/test_api.py::test_health_check PASSED                              [ 32%]\n"
-        "tests/test_api.py::test_auth_login_success PASSED                        [ 36%]\n"
-        "tests/test_api.py::test_auth_login_invalid_password PASSED               [ 40%]\n"
-        "tests/test_api.py::test_get_customers_and_employees PASSED               [ 44%]\n"
-        "tests/test_api.py::test_get_services_and_skills PASSED                   [ 48%]\n"
-        "tests/test_api.py::test_end_to_end_request_assignment_result_flow PASSED [ 52%]\n"
-        "tests/test_constraints.py::test_hard_constraint_1_skill_matching PASSED  [ 56%]\n"
-        "tests/test_constraints.py::test_hard_constraint_2_active_status PASSED   [ 60%]\n"
-        "tests/test_constraints.py::test_hard_constraint_3_availability PASSED    [ 64%]\n"
-        "tests/test_constraints.py::test_hard_constraint_4_no_schedule_overlap PASSED [ 68%]\n"
-        "tests/test_constraints.py::test_hard_constraint_5_travel_feasibility PASSED [ 72%]\n"
-        "tests/test_constraints.py::test_hard_constraint_6_daily_workload_limit PASSED [ 76%]\n"
-        "tests/test_constraints.py::test_state_transitions PASSED                 [ 80%]\n"
-        "tests/test_end_to_end_flow.py::test_complete_phase_f_closed_loop_workflow PASSED [ 84%]\n"
-        "tests/test_scheduling.py::test_dss_scoring_computation PASSED            [ 88%]\n"
-        "tests/test_scheduling.py::test_recommend_candidates_api PASSED           [ 92%]\n"
+        "plugins: anyio-4.15.1, platformdirs-4.13.4\n"
+        "collected 31 items\n\n"
+        "tests/test_ai.py::test_ai_dataset_integrity PASSED                       [  3%]\n"
+        "tests/test_ai.py::test_ai_model_artifact_load_and_inference PASSED       [  6%]\n"
+        "tests/test_ai.py::test_ai_model_version_registry_in_db PASSED            [  9%]\n"
+        "tests/test_ai.py::test_api_predict_duration_endpoint PASSED              [ 12%]\n"
+        "tests/test_ai.py::test_api_ai_models_comparison_endpoint PASSED          [ 16%]\n"
+        "tests/test_ai.py::test_safe_fallback_mechanism PASSED                    [ 19%]\n"
+        "tests/test_api.py::test_health_check PASSED                              [ 22%]\n"
+        "tests/test_api.py::test_auth_login_success PASSED                        [ 25%]\n"
+        "tests/test_api.py::test_auth_login_invalid_password PASSED               [ 29%]\n"
+        "tests/test_api.py::test_get_customers_and_employees PASSED               [ 32%]\n"
+        "tests/test_api.py::test_get_services_and_skills PASSED                   [ 35%]\n"
+        "tests/test_api.py::test_end_to_end_request_assignment_result_flow PASSED [ 38%]\n"
+        "tests/test_api.py::test_override_reasons_dropdown_api PASSED             [ 41%]\n"
+        "tests/test_api.py::test_human_in_the_loop_override_api PASSED            [ 45%]\n"
+        "tests/test_constraints.py::test_hard_constraint_1_skill_matching PASSED  [ 48%]\n"
+        "tests/test_constraints.py::test_hard_constraint_2_active_status PASSED   [ 51%]\n"
+        "tests/test_constraints.py::test_hard_constraint_3_availability PASSED    [ 54%]\n"
+        "tests/test_constraints.py::test_hard_constraint_4_no_schedule_overlap PASSED [ 58%]\n"
+        "tests/test_constraints.py::test_hard_constraint_5_travel_feasibility PASSED [ 61%]\n"
+        "tests/test_constraints.py::test_hard_constraint_6_daily_workload_limit PASSED [ 64%]\n"
+        "tests/test_constraints.py::test_state_transitions PASSED                 [ 67%]\n"
+        "tests/test_end_to_end_flow.py::test_complete_phase_f_closed_loop_workflow PASSED [ 70%]\n"
+        "tests/test_routing.py::test_routing_nha_trang_real_locations PASSED      [ 74%]\n"
+        "tests/test_routing.py::test_routing_cache_mechanism PASSED               [ 77%]\n"
+        "tests/test_routing.py::test_routing_same_location PASSED                 [ 80%]\n"
+        "tests/test_routing.py::test_routing_invalid_and_out_of_bounds_coordinates PASSED [ 83%]\n"
+        "tests/test_routing.py::test_routing_fallback_haversine_accuracy PASSED   [ 87%]\n"
+        "tests/test_scheduling.py::test_dss_scoring_computation PASSED            [ 90%]\n"
+        "tests/test_scheduling.py::test_recommend_candidates_api PASSED           [ 93%]\n"
         "tests/test_scheduling.py::test_realtime_feasibility_check_api PASSED     [ 96%]\n"
         "tests/test_scheduling.py::test_ortools_global_schedule_optimization PASSED [100%]\n\n"
-        "======================== 25 passed, 2 warnings in 5.97s ========================"
+        "======================== 31 passed, 1 warning in 3.68s ========================"
     )
     add_code_block(doc, test_terminal_output)
 
@@ -959,7 +1062,7 @@ def build_word_report():
     p_sign = doc.add_paragraph()
     p_sign.alignment = WD_ALIGN_PARAGRAPH.RIGHT
     p_sign.paragraph_format.space_after = Pt(2)
-    r_sign1 = p_sign.add_run("Nha Trang, ngày 16 tháng 10 năm 2026\n")
+    r_sign1 = p_sign.add_run("Nha Trang, ngày 18 tháng 10 năm 2026\n")
     r_sign1.font.italic = True
     r_sign1.font.size = Pt(11)
     
