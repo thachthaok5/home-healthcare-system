@@ -371,11 +371,11 @@ def seed_database():
         # ----------------------------------------------------
         # 8. AI MODEL VERSION (Baseline Model Registry)
         # ----------------------------------------------------
-        print("8. Seeding AI Model Registry (duration_prediction v1.0.0)...")
+        print("8. Seeding AI Model Registry (duration_prediction v1.1.0)...")
         ai_model = AIModelVersion(
             task="duration_prediction",
-            algorithm="RidgeRegression_Baseline",
-            version="v1.0.0",
+            algorithm="RandomForestRegressor",
+            version="v1.1.0",
             feature_schema_json={
                 "features": [
                     {"name": "service_id", "type": "categorical"},
@@ -389,13 +389,20 @@ def seed_database():
                 ]
             },
             metrics_json={
-                "mae": 6.85,
-                "rmse": 8.42,
-                "r2": 0.725
+                "mae": 4.39,
+                "rmse": 5.56,
+                "r2": 0.943,
+                "all_models_comparison": [
+                    {"name": "Default Duration (Baseline 1)", "mae": 12.90, "rmse": 16.39, "r2": -0.15},
+                    {"name": "Service-specific Mean (Baseline 2)", "mae": 11.45, "rmse": 14.82, "r2": 0.28},
+                    {"name": "Ridge Regression", "mae": 6.85, "rmse": 8.42, "r2": 0.725},
+                    {"name": "Random Forest Regressor (Selected)", "mae": 4.39, "rmse": 5.56, "r2": 0.943},
+                    {"name": "HistGradientBoostingRegressor", "mae": 4.62, "rmse": 5.81, "r2": 0.931}
+                ]
             },
             artifact_path="artifacts/models/duration_model_v1.joblib",
             trained_at=datetime.now(timezone.utc),
-            active=True
+            is_active=True
         )
         db.add(ai_model)
         db.flush()
