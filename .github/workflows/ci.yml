@@ -11,6 +11,21 @@ jobs:
     name: Backend Regression & Verification Tests
     runs-on: ubuntu-latest
 
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: healthcare_db
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: password
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
@@ -26,14 +41,24 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r backend/requirements.txt
 
+      - name: Initialize PostgreSQL Database & Seed Data
+        env:
+          PYTHONPATH: ./backend
+          DATABASE_URL: postgresql://postgres:password@localhost:5432/healthcare_db
+        run: |
+          python -c "from app.db.session import engine; from app.models import Base; Base.metadata.create_all(bind=engine); print('Database schema created successfully')"
+          python backend/scripts/seed_database.py
+
       - name: Run unit & regression tests with pytest
         env:
           PYTHONPATH: ./backend
+          DATABASE_URL: postgresql://postgres:password@localhost:5432/healthcare_db
         run: |
           pytest backend/tests/test_routing.py backend/tests/test_ai.py -v
 
       - name: Verify experimental data consistency
         env:
           PYTHONPATH: ./backend
+          DATABASE_URL: postgresql://postgres:password@localhost:5432/healthcare_db
         run: |
           python backend/scripts/verify_experiments.py
