@@ -7,6 +7,9 @@ from pydantic import BaseModel, ConfigDict
 class OptimizeScheduleRequest(BaseModel):
     target_date: date
     created_by_user_id: int = 1
+    allow_time_window: bool = False
+    window_minutes: int = 60
+    weights: Optional[Dict[str, float]] = None
 
 
 class CandidateBreakdown(BaseModel):

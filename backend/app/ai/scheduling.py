@@ -384,14 +384,24 @@ class SchedulingEngine:
         db: Session,
         target_date: date,
         created_by_user_id: int = 1,
-        algorithm_name: str = "OR-Tools CP-SAT + DSS Multi-Criteria",
+        algorithm_name: Optional[str] = None,
         use_ai_duration: bool = True,
-        weights: Optional[Dict[str, float]] = None
+        weights: Optional[Dict[str, float]] = None,
+        allow_time_window: bool = False,
+        window_minutes: int = 60
     ) -> Dict[str, Any]:
         """
-        Giải bài toán phân công tối ưu toàn cục (Global Assignment Optimization)
-        cho toàn bộ các yêu cầu chăm sóc 'pending' trong ngày chỉ định.
+        Giải bài toán phân công nhân sự tối ưu toàn cục theo thời điểm phục vụ yêu cầu
+        (Global Staff-Assignment Optimization under Fixed/Requested Service Times),
+        hoặc nâng cấp tối ưu hóa đồng thời biến thời gian bắt đầu trong cửa sổ thời gian linh hoạt
+        (Flexible Time Window Optimization [preferred_start, preferred_end]) bằng Google OR-Tools CP-SAT.
         """
+        if algorithm_name is None:
+            if allow_time_window:
+                algorithm_name = "OR-Tools CP-SAT (Staff-Assignment with Flexible Time Windows)"
+            else:
+                algorithm_name = "OR-Tools CP-SAT (Global Staff-Assignment under Fixed Service Times)"
+
         # 1. Lấy danh sách các yêu cầu đang chờ xếp lịch trong ngày
         requests = db.execute(
             select(ServiceRequest).where(
@@ -420,11 +430,11 @@ class SchedulingEngine:
         durations = {}
         breakdowns = {}
         explanations = {}
+        start_vars = {}
 
         # 4. Lọc các cặp (Request, Employee) khả thi thỏa mãn 6 ràng buộc cứng
         feasible_pairs = []
         for req in requests:
-            # Lấy thời lượng dự đoán AI hoặc Default Duration theo kịch bản thực nghiệm
             if use_ai_duration:
                 pred = db.execute(
                     select(AIPrediction).where(AIPrediction.request_id == req.request_id).order_by(AIPrediction.created_at.desc())
@@ -436,6 +446,16 @@ class SchedulingEngine:
 
             st = req.preferred_start
             et = st + timedelta(minutes=dur)
+
+            # Khởi tạo biến quyết định thời điểm bắt đầu nếu bật cửa sổ thời gian linh hoạt
+            if allow_time_window:
+                pref_st_mins = req.preferred_start.hour * 60 + req.preferred_start.minute
+                if req.preferred_end:
+                    pref_et_mins = req.preferred_end.hour * 60 + req.preferred_end.minute
+                else:
+                    pref_et_mins = pref_st_mins + window_minutes
+                latest_st_mins = max(pref_st_mins, pref_et_mins - dur)
+                start_vars[req.request_id] = model.new_int_var(pref_st_mins, latest_st_mins, f"st_{req.request_id}")
 
             for emp in employees:
                 is_feasible, _ = cls.check_hard_constraints(
@@ -476,17 +496,17 @@ class SchedulingEngine:
             if emp_vars:
                 model.add(sum(emp_vars) <= 1)
 
-        # Constraint 2: Hai yêu cầu trùng thời gian hoặc không đủ thời gian di chuyển không thể gán cho cùng 1 nhân viên
+        # Constraint 2: Ràng buộc không trùng lịch và bảo đảm thời gian di chuyển
         for emp in employees:
             assigned_reqs = [r for (r, e) in feasible_pairs if e.employee_id == emp.employee_id]
-            for i in range(len(assigned_reqs)):
-                for j in range(i + 1, len(assigned_reqs)):
+            n_ar = len(assigned_reqs)
+            for i in range(n_ar):
+                for j in range(i + 1, n_ar):
                     r1 = assigned_reqs[i]
                     r2 = assigned_reqs[j]
-                    st1, et1 = r1.preferred_start, r1.preferred_start + timedelta(minutes=durations[r1.request_id])
-                    st2, et2 = r2.preferred_start, r2.preferred_start + timedelta(minutes=durations[r2.request_id])
+                    dur1 = durations[r1.request_id]
+                    dur2 = durations[r2.request_id]
 
-                    # Tính thời gian di chuyển giữa 2 bệnh nhân
                     c1 = r1.customer
                     c2 = r2.customer
                     _, travel_mins = cls.calculate_distance_and_travel(
@@ -499,16 +519,40 @@ class SchedulingEngine:
                         to_lon=c2.lon if c2 else None
                     )
 
-                    conflict = False
-                    if (st1 < et2) and (st2 < et1):
-                        conflict = True
-                    elif et1 <= st2 and (st2 - et1).total_seconds() / 60.0 < travel_mins:
-                        conflict = True
-                    elif et2 <= st1 and (st1 - et2).total_seconds() / 60.0 < travel_mins:
-                        conflict = True
+                    var1 = x[(r1.request_id, emp.employee_id)]
+                    var2 = x[(r2.request_id, emp.employee_id)]
 
-                    if conflict:
-                        model.add(x[(r1.request_id, emp.employee_id)] + x[(r2.request_id, emp.employee_id)] <= 1)
+                    if allow_time_window:
+                        # Tối ưu hóa thời gian bắt đầu trong Time Window:
+                        # Sử dụng biến thứ tự Boolean (Precedence)
+                        prec = model.new_bool_var(f"prec_{r1.request_id}_{r2.request_id}_{emp.employee_id}")
+                        st_v1 = start_vars[r1.request_id]
+                        st_v2 = start_vars[r2.request_id]
+                        # r1 trước r2: st_v2 >= st_v1 + dur1 + travel_mins
+                        model.add(st_v2 >= st_v1 + dur1 + travel_mins).only_enforce_if([var1, var2, prec])
+                        # r2 trước r1: st_v1 >= st_v2 + dur2 + travel_mins
+                        model.add(st_v1 >= st_v2 + dur2 + travel_mins).only_enforce_if([var1, var2, prec.Not()])
+                    else:
+                        # Thời điểm cố định theo yêu cầu khách hàng (Fixed requested start time)
+                        st1, et1 = r1.preferred_start, r1.preferred_start + timedelta(minutes=dur1)
+                        st2, et2 = r2.preferred_start, r2.preferred_start + timedelta(minutes=dur2)
+
+                        conflict = False
+                        if (st1 < et2) and (st2 < et1):
+                            conflict = True
+                        elif et1 <= st2 and (st2 - et1).total_seconds() / 60.0 < travel_mins:
+                            conflict = True
+                        elif et2 <= st1 and (st1 - et2).total_seconds() / 60.0 < travel_mins:
+                            conflict = True
+
+                        if conflict:
+                            model.add(var1 + var2 <= 1)
+
+            # Ràng buộc tải làm việc tối đa trong ngày của nhân viên
+            max_mins = emp.max_daily_minutes or 480
+            w_terms = [x[(r.request_id, emp.employee_id)] * durations[r.request_id] for r in assigned_reqs]
+            if w_terms:
+                model.add(sum(w_terms) <= max_mins)
 
         # 6. Hàm mục tiêu: Tối đa hóa tổng điểm DSS (chuyển sang số nguyên scaled x 1000)
         objective_terms = []
@@ -516,11 +560,20 @@ class SchedulingEngine:
             int_weight = int(scores[(r_id, e_id)] * 1000)
             objective_terms.append(var * int_weight)
 
+        if allow_time_window:
+            # Phạt nhẹ nếu dời giờ xa khỏi preferred_start để giữ sự hài lòng cho bệnh nhân
+            for r in requests:
+                if r.request_id in start_vars:
+                    pref_mins = r.preferred_start.hour * 60 + r.preferred_start.minute
+                    diff = model.new_int_var(0, 1440, f"diff_{r.request_id}")
+                    model.add_abs_equality(diff, start_vars[r.request_id] - pref_mins)
+                    objective_terms.append(-diff * 2)
+
         model.maximize(sum(objective_terms))
 
         # 7. Giải bằng Solver
         solver = cp_model.CpSolver()
-        solver.parameters.max_time_in_seconds = 10.0
+        solver.parameters.max_time_in_seconds = 8.0
         status = solver.solve(model)
 
         if status not in [cp_model.OPTIMAL, cp_model.FEASIBLE]:
@@ -545,7 +598,8 @@ class SchedulingEngine:
             parameters_json={
                 "solver_status": solver.status_name(status),
                 "objective_value": solver.objective_value,
-                "weights": applied_weights
+                "weights": applied_weights,
+                "allow_time_window": allow_time_window
             }
         )
         db.add(new_version)
@@ -557,7 +611,6 @@ class SchedulingEngine:
         for (req, emp) in feasible_pairs:
             pair_key = (req.request_id, emp.employee_id)
             if pair_key in x and solver.boolean_value(x[pair_key]):
-                # Lưu log đề xuất (RecommendationLog)
                 rec_log = RecommendationLog(
                     request_id=req.request_id,
                     employee_id=emp.employee_id,
@@ -569,12 +622,16 @@ class SchedulingEngine:
                 db.add(rec_log)
                 db.flush()
 
-                # Tạo Assignment ở trạng thái 'proposed'
-                st = req.preferred_start
                 dur = durations[req.request_id]
-                et = st + timedelta(minutes=dur)
+                if allow_time_window and req.request_id in start_vars:
+                    opt_mins = solver.value(start_vars[req.request_id])
+                    opt_h, opt_m = divmod(opt_mins, 60)
+                    st = datetime(target_date.year, target_date.month, target_date.day, opt_h, opt_m, tzinfo=req.preferred_start.tzinfo)
+                    et = st + timedelta(minutes=dur)
+                else:
+                    st = req.preferred_start
+                    et = st + timedelta(minutes=dur)
 
-                # Lấy prediction_id nếu có
                 pred = db.execute(
                     select(AIPrediction).where(AIPrediction.request_id == req.request_id).order_by(AIPrediction.created_at.desc())
                 ).scalars().first()
@@ -606,5 +663,5 @@ class SchedulingEngine:
             "unassigned_count": len(requests) - assigned_requests_count,
             "assignments_count": len(created_assignments),
             "assignments": created_assignments,
-            "message": f"Đã tối ưu thành công {assigned_requests_count}/{len(requests)} yêu cầu chăm sóc cho ngày {target_date}."
+            "message": f"Đã tối ưu thành công {assigned_requests_count}/{len(requests)} yêu cầu chăm sóc cho ngày {target_date} ({algorithm_name})."
         }

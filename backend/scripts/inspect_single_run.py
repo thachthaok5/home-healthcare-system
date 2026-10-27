@@ -73,7 +73,7 @@ def inspect_run(load=25, seed=42):
                 
                 # Tính cự ly từ vị trí trước
                 loc = (a["lat"], a["lon"])
-                dist_km, t_min = RoutingEngine.haversine_estimate(prev_loc[0], prev_loc[1], loc[0], loc[1])
+                dist_km, t_min, _ = RoutingEngine.get_distance_and_travel_time(prev_loc[0], prev_loc[1], loc[0], loc[1])
                 
                 # Mô phỏng giờ đến thực tế
                 if curr_time is None:

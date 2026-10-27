@@ -68,3 +68,36 @@ def test_routing_fallback_haversine_accuracy():
     dist, travel_time = RoutingEngine.haversine_estimate(12.2388, 109.1967, 12.2200, 109.1800)
     assert 2.0 <= dist <= 6.0
     assert 5 <= travel_time <= 25
+
+
+def test_calculate_daily_tour_metrics():
+    """Kiểm thử tính toán chuỗi hành trình tuần tự: Base -> Ca 1 -> Ca 2 -> Base"""
+    from datetime import datetime, timezone
+    base_lat, base_lon = 12.2388, 109.1967 # Lộc Thọ
+    slots = [
+        {
+            "scheduled_start": datetime(2026, 10, 20, 10, 0, tzinfo=timezone.utc),
+            "lat": 12.2530, "lon": 109.1930 # Vạn Thạnh
+        },
+        {
+            "scheduled_start": datetime(2026, 10, 20, 8, 30, tzinfo=timezone.utc),
+            "lat": 12.2450, "lon": 109.1890 # Phước Tiến
+        }
+    ]
+    # Sắp xếp theo giờ: Slot 2 (08:30) trước, Slot 1 (10:00) sau
+    # Chuỗi: Base (Lộc Thọ) -> Phước Tiến -> Vạn Thạnh -> Base (Lộc Thọ)
+    tot_dist, tot_time, legs = RoutingEngine.calculate_daily_tour_metrics(
+        base_lat=base_lat, base_lon=base_lon, assigned_slots=slots, include_return=True
+    )
+    assert legs == 3
+    assert tot_dist > 0.0
+    assert tot_time > 0
+
+
+def test_routing_engine_stats_tracking():
+    """Kiểm thử theo dõi thống kê truy vấn OSRM Cache / Fallback"""
+    RoutingEngine.reset_stats()
+    RoutingEngine.get_distance_and_travel_time(12.2400, 109.1900, 12.2400, 109.1900)
+    stats = RoutingEngine.get_routing_stats()
+    assert stats["total_queries"] >= 1
+    assert stats["counts"]["same_location"] >= 1

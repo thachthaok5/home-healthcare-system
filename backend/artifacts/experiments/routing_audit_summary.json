@@ -1,0 +1,18 @@
+{
+  "counts": {
+    "osrm_cache": 27167,
+    "osrm_network": 0,
+    "haversine_fallback": 6069,
+    "same_location": 3,
+    "other_fallback": 0
+  },
+  "total_queries": 33239,
+  "ratios_pct": {
+    "osrm_cache_pct": 81.73,
+    "osrm_network_pct": 0.0,
+    "haversine_fallback_pct": 18.26,
+    "same_location_pct": 0.01,
+    "other_fallback_pct": 0.0
+  },
+  "osrm_coverage_pct": 81.73
+}

@@ -18,7 +18,7 @@ Mục đích:
 import time
 import math
 import random
-from datetime import date, datetime, timedelta, timezone
+from datetime import date, datetime, timedelta, timezone, time as dt_time
 from decimal import Decimal
 from typing import Any, Dict, List, Optional, Tuple
 import numpy as np
@@ -202,7 +202,9 @@ class SchedulingExperimentRunner:
         req: BenchmarkRequest,
         st: datetime,
         et: datetime,
-        emp_existing_slots: List[Dict[str, Any]]
+        emp_existing_slots: List[Dict[str, Any]],
+        emp_shifts: Optional[Dict[int, Dict[str, Any]]] = None,
+        emp_leaves: Optional[Dict[int, List[Dict[str, Any]]]] = None
     ) -> Tuple[bool, Optional[str]]:
         """
         Kiểm tra 6 ràng buộc cứng giữa yêu cầu và nhân viên bao gồm cả các ca đã xếp trong đợt chạy.
@@ -216,9 +218,19 @@ class SchedulingExperimentRunner:
             if sk_id not in emp_skills:
                 return False, f"H1: Missing skill {sk_id}"
 
-        # H3: Khung giờ làm việc (07:00 - 18:00)
-        if st.hour < 7 or et.hour > 18 or (et.hour == 18 and et.minute > 0):
-            return False, "H3: Outside shift"
+        # H3: Khung ca làm việc (Shift Availability) & Đơn nghỉ phép (Leave Request)
+        if emp_shifts and employee.employee_id in emp_shifts:
+            sh = emp_shifts[employee.employee_id]
+            if st.time() < sh["start_time"] or et.time() > sh["end_time"]:
+                return False, f"H3: Outside shift ({sh['start_time']} - {sh['end_time']})"
+        else:
+            if st.hour < 7 or et.hour > 18 or (et.hour == 18 and et.minute > 0):
+                return False, "H3: Outside standardized shift (07:00 - 18:00)"
+
+        if emp_leaves and employee.employee_id in emp_leaves:
+            for lv in emp_leaves[employee.employee_id]:
+                if lv["from_time"] < et and st < lv["to_time"]:
+                    return False, f"H3: Approved leave conflict"
 
         # H4: Không trùng lặp lịch & H5: Tính khả thi di chuyển với các ca trong cùng ngày
         new_dur = int((et - st).total_seconds() / 60.0)
@@ -579,9 +591,29 @@ class SchedulingExperimentRunner:
                 "avg_dss_score": 0.0
             }
 
-        total_dist = sum(a["distance_km"] for a in assignments)
-        total_travel_time = sum(a["travel_mins"] for a in assignments)
-        mean_travel_time = total_travel_time / assigned_count
+        # Gom nhóm theo nhân viên và tính chuỗi hành trình thực tế: Base -> Ca 1 -> Ca 2 -> ... -> Base
+        emp_slots = {e.employee_id: [] for e in employees}
+        for a in assignments:
+            emp_slots[a["employee_id"]].append(a)
+
+        total_dist = 0.0
+        total_travel_time = 0
+        total_legs = 0
+
+        for e in employees:
+            slots = emp_slots[e.employee_id]
+            if slots:
+                d_km, t_min, legs = RoutingEngine.calculate_daily_tour_metrics(
+                    base_lat=float(e.base_lat),
+                    base_lon=float(e.base_lon),
+                    assigned_slots=slots,
+                    include_return=True
+                )
+                total_dist += d_km
+                total_travel_time += t_min
+                total_legs += legs
+
+        mean_travel_time = (total_travel_time / total_legs) if total_legs > 0 else 0.0
 
         # Workload per employee & Overtime
         emp_workloads = {e.employee_id: 0 for e in employees}
@@ -616,24 +648,32 @@ class SchedulingExperimentRunner:
     def simulate_actual_duration_execution(
         cls,
         assignments: List[Dict[str, Any]],
-        employees: List[Employee]
+        employees: List[Employee],
+        emp_shifts: Optional[Dict[int, Dict[str, Any]]] = None
     ) -> Dict[str, Any]:
         """
         Mô phỏng thực thi lịch trình với thời lượng thực tế (Ground-truth Actual Duration).
         Đo lường:
-        - actual_overlap_count: Số ca bị chồng lấn thực tế.
-        - late_start_count: Số ca bắt đầu muộn hơn giờ hẹn.
+        - direct_overlap_count: Số ca bị chồng lấn thực tế trực tiếp (Physical Overlap).
+        - cascading_delay_count: Số ca bắt đầu muộn hơn giờ hẹn do dây chuyền (Late arrival).
+        - mild_delay_count: Số ca trễ nhẹ trong ngưỡng lâm sàng (<= 15 phút, Grace Period).
+        - severe_delay_count: Số ca trễ nặng (> 15 phút, vi phạm SLA).
         - total_delay_minutes: Tổng số phút bắt đầu trễ của các ca.
         - max_delay_minutes: Số phút trễ lớn nhất.
+        - overtime_minutes: Tổng thời gian làm thêm ngoài giờ làm việc chuẩn của nhân viên.
         - actual_feasible_rate: Tỷ lệ ca không bị trễ nghiêm trọng (trễ <= 15 phút).
         """
         if not assignments:
             return {
                 "total_assigned": 0,
-                "actual_overlap_count": 0,
+                "direct_overlap_count": 0,
+                "cascading_delay_count": 0,
                 "late_start_count": 0,
+                "mild_delay_count": 0,
+                "severe_delay_count": 0,
                 "total_delay_minutes": 0,
                 "max_delay_minutes": 0,
+                "overtime_minutes": 0,
                 "actual_feasible_rate": 0.0
             }
 
@@ -642,17 +682,28 @@ class SchedulingExperimentRunner:
         for a in assignments:
             emp_assignments[a["employee_id"]].append(a)
 
-        actual_overlaps = 0
-        late_starts = 0
+        direct_overlaps = 0
+        cascading_delays = 0
+        mild_delays = 0
+        severe_delays = 0
         total_delay = 0
         max_delay = 0
-        severely_delayed_count = 0
+        total_overtime = 0
 
-        for emp_id, a_list in emp_assignments.items():
+        for emp in employees:
+            eid = emp.employee_id
+            a_list = emp_assignments.get(eid, [])
             if not a_list:
                 continue
 
             a_list.sort(key=lambda x: x["scheduled_start"])
+
+            target_d = a_list[0]["scheduled_start"].date()
+            if emp_shifts and eid in emp_shifts:
+                sh_end_t = emp_shifts[eid]["end_time"]
+            else:
+                sh_end_t = time(18, 0)
+            shift_end_dt = datetime.combine(target_d, sh_end_t, tzinfo=vn_tz)
 
             current_time = None
             prev_loc = None
@@ -664,33 +715,31 @@ class SchedulingExperimentRunner:
                 curr_loc = (ca["lat"], ca["lon"])
 
                 if i == 0:
-                    # Ca đầu tiên: nhân viên bắt đầu đúng giờ hẹn
                     actual_st = sched_st
                     delay_mins = 0
                 else:
-                    # Tính thời gian di chuyển từ ca trước đến ca hiện tại
                     _, travel_mins, _ = RoutingEngine.get_distance_and_travel_time(
                         from_lat=prev_loc[0], from_lon=prev_loc[1],
                         to_lat=curr_loc[0], to_lon=curr_loc[1]
                     )
 
                     earliest_arrival = current_time + timedelta(minutes=travel_mins)
+
+                    # Kiểm tra xung đột vật lý trực tiếp (Direct Physical Overlap)
+                    if current_time > sched_st or earliest_arrival > sched_et:
+                        direct_overlaps += 1
+
                     if earliest_arrival > sched_st:
-                        # Bắt đầu trễ
                         delay_mins = int((earliest_arrival - sched_st).total_seconds() / 60.0)
                         actual_st = earliest_arrival
-                        late_starts += 1
+                        cascading_delays += 1
                         total_delay += delay_mins
                         max_delay = max(max_delay, delay_mins)
 
-                        # Kiểm tra chồng lấn: ca trước + di chuyển vượt quá giờ kết thúc dự kiến hoặc đè lên ca
-                        if earliest_arrival > sched_et:
-                            actual_overlaps += 1
-                        elif current_time > sched_st:
-                            actual_overlaps += 1
-
-                        if delay_mins > 15:
-                            severely_delayed_count += 1
+                        if delay_mins <= 15:
+                            mild_delays += 1
+                        else:
+                            severe_delays += 1
                     else:
                         actual_st = sched_st
                         delay_mins = 0
@@ -699,14 +748,28 @@ class SchedulingExperimentRunner:
                 current_time = actual_et
                 prev_loc = curr_loc
 
+            # Di chuyển về trạm y tế
+            _, return_mins, _ = RoutingEngine.get_distance_and_travel_time(
+                from_lat=prev_loc[0], from_lon=prev_loc[1],
+                to_lat=float(emp.base_lat), to_lon=float(emp.base_lon)
+            )
+            day_finish_dt = current_time + timedelta(minutes=return_mins)
+            if day_finish_dt > shift_end_dt:
+                emp_overtime = int((day_finish_dt - shift_end_dt).total_seconds() / 60.0)
+                total_overtime += emp_overtime
+
         total_ca = len(assignments)
-        actual_feasible_rate = round(((total_ca - severely_delayed_count) / total_ca * 100.0), 2) if total_ca > 0 else 0.0
+        actual_feasible_rate = round(((total_ca - severe_delays) / total_ca * 100.0), 2) if total_ca > 0 else 0.0
 
         return {
             "total_assigned": total_ca,
-            "actual_overlap_count": actual_overlaps,
-            "late_start_count": late_starts,
+            "direct_overlap_count": direct_overlaps,
+            "cascading_delay_count": cascading_delays,
+            "late_start_count": cascading_delays,
+            "mild_delay_count": mild_delays,
+            "severe_delay_count": severe_delays,
             "total_delay_minutes": total_delay,
             "max_delay_minutes": max_delay,
+            "overtime_minutes": total_overtime,
             "actual_feasible_rate": actual_feasible_rate
         }

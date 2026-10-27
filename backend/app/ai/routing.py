@@ -12,7 +12,7 @@ import logging
 import math
 from pathlib import Path
 from decimal import Decimal
-from typing import Optional, Tuple, Dict
+from typing import Optional, Tuple, Dict, Any
 import httpx
 
 logger = logging.getLogger(__name__)
@@ -26,6 +26,50 @@ class RoutingEngine:
     """
     _memory_cache: Dict[str, Tuple[float, int, str]] = {}
     _cache_loaded: bool = False
+    _network_available: bool = True
+    _query_stats: Dict[str, int] = {
+        "osrm_cache": 0,
+        "osrm_network": 0,
+        "haversine_fallback": 0,
+        "same_location": 0,
+        "other_fallback": 0
+    }
+
+    @classmethod
+    def disable_network(cls):
+        """Vô hiệu hóa gọi mạng OSRM khi chạy experiments để đảm bảo tính tái lập và tốc độ tối đa."""
+        cls._network_available = False
+
+    @classmethod
+    def enable_network(cls):
+        cls._network_available = True
+
+    @classmethod
+    def reset_stats(cls):
+        """Đặt lại bộ đếm thống kê nguồn định tuyến."""
+        cls._query_stats = {
+            "osrm_cache": 0,
+            "osrm_network": 0,
+            "haversine_fallback": 0,
+            "same_location": 0,
+            "other_fallback": 0
+        }
+
+    @classmethod
+    def get_routing_stats(cls) -> Dict[str, Any]:
+        """Lấy tỷ lệ phần trăm và số lượng truy vấn theo từng nguồn (OSRM Cache, Network, Fallback)."""
+        total = sum(cls._query_stats.values())
+        ratios = {}
+        for k, v in cls._query_stats.items():
+            ratios[f"{k}_pct"] = round((v / total * 100.0), 2) if total > 0 else 0.0
+        osrm_hits = cls._query_stats["osrm_cache"] + cls._query_stats["osrm_network"]
+        osrm_cov = round((osrm_hits / total * 100.0), 2) if total > 0 else 0.0
+        return {
+            "counts": dict(cls._query_stats),
+            "total_queries": total,
+            "ratios_pct": ratios,
+            "osrm_coverage_pct": osrm_cov
+        }
 
     @classmethod
     def _init_cache(cls):
@@ -92,6 +136,7 @@ class RoutingEngine:
 
         # Kiểm tra tính hợp lệ của tọa độ
         if from_lat is None or from_lon is None or to_lat is None or to_lon is None:
+            cls._query_stats["other_fallback"] += 1
             return 3.0, 10, "default_fallback"
 
         try:
@@ -100,24 +145,28 @@ class RoutingEngine:
             t_lat = float(to_lat)
             t_lon = float(to_lon)
         except (ValueError, TypeError):
+            cls._query_stats["other_fallback"] += 1
             return 3.0, 10, "invalid_coords_fallback"
 
         # Kiểm tra biên vĩ độ, kinh độ
         if not (-90.0 <= f_lat <= 90.0 and -180.0 <= f_lon <= 180.0 and
                 -90.0 <= t_lat <= 90.0 and -180.0 <= t_lon <= 180.0):
+            cls._query_stats["other_fallback"] += 1
             return 3.0, 10, "out_of_bounds_fallback"
 
         # Điểm trùng nhau hoặc cực gần (< 30m)
         if abs(f_lat - t_lat) < 0.0003 and abs(f_lon - t_lon) < 0.0003:
+            cls._query_stats["same_location"] += 1
             return 0.0, 2, "same_location"
 
         cache_key = f"{f_lat:.5f},{f_lon:.5f}->{t_lat:.5f},{t_lon:.5f}"
         if cache_key in cls._memory_cache:
             dist_km, dur_mins, _ = cls._memory_cache[cache_key]
+            cls._query_stats["osrm_cache"] += 1
             return dist_km, dur_mins, "osrm_cache"
 
-        # Nếu cho phép gọi mạng, truy vấn OSRM public server
-        if allow_network:
+        # Nếu cho phép gọi mạng và mạng khả dụng, truy vấn OSRM public server
+        if allow_network and cls._network_available:
             url = f"http://router.project-osrm.org/route/v1/driving/{f_lon:.6f},{f_lat:.6f};{t_lon:.6f},{t_lat:.6f}?overview=false"
             try:
                 with httpx.Client(timeout=timeout_seconds) as client:
@@ -132,14 +181,58 @@ class RoutingEngine:
                             
                             cls._memory_cache[cache_key] = (dist_km, dur_mins, "osrm_network")
                             cls._save_cache()
+                            cls._query_stats["osrm_network"] += 1
                             return dist_km, dur_mins, "osrm_network"
             except Exception as e:
-                logger.debug(f"OSRM query fallback do ngoại lệ: {e}")
+                # Nếu không thể kết nối tới server OSRM (môi trường sandbox offline), tự động vô hiệu hóa để không tốn timeout cho các truy vấn sau
+                cls._network_available = False
+                logger.debug(f"OSRM query fallback do ngoại lệ (tự động tắt network): {e}")
 
         # Dự phòng Fallback Haversine
         h_dist, h_time = cls.haversine_estimate(f_lat, f_lon, t_lat, t_lon)
         cls._memory_cache[cache_key] = (h_dist, h_time, "haversine_fallback")
+        cls._query_stats["haversine_fallback"] += 1
         return h_dist, h_time, "haversine_fallback"
+
+    @classmethod
+    def calculate_daily_tour_metrics(
+        cls,
+        base_lat: float,
+        base_lon: float,
+        assigned_slots: list,
+        include_return: bool = True
+    ) -> Tuple[float, int, int]:
+        """
+        Tính toán cự ly và thời gian di chuyển theo chuỗi hành trình thực tế của nhân viên:
+        Base -> Ca 1 -> Ca 2 -> ... -> Ca k (-> Base).
+        Trả về: (total_distance_km, total_travel_minutes, leg_count)
+        """
+        if not assigned_slots:
+            return 0.0, 0, 0
+
+        # Sắp xếp các ca theo thời gian bắt đầu
+        sorted_slots = sorted(assigned_slots, key=lambda s: s["scheduled_start"])
+        curr_lat, curr_lon = float(base_lat), float(base_lon)
+        tot_dist = 0.0
+        tot_time = 0
+        leg_count = 0
+
+        for slot in sorted_slots:
+            dest_lat = float(slot["lat"])
+            dest_lon = float(slot["lon"])
+            d_km, t_min, _ = cls.get_distance_and_travel_time(curr_lat, curr_lon, dest_lat, dest_lon)
+            tot_dist += d_km
+            tot_time += t_min
+            leg_count += 1
+            curr_lat, curr_lon = dest_lat, dest_lon
+
+        if include_return:
+            ret_d_km, ret_t_min, _ = cls.get_distance_and_travel_time(curr_lat, curr_lon, float(base_lat), float(base_lon))
+            tot_dist += ret_d_km
+            tot_time += ret_t_min
+            leg_count += 1
+
+        return round(tot_dist, 2), tot_time, leg_count
 
     @classmethod
     def clear_cache(cls):

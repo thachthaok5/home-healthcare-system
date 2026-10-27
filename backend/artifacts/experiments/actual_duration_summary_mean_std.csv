@@ -1,9 +1,11 @@
-﻿load,plan,actual_overlap_count,late_start_count,total_delay_minutes,max_delay_minutes,actual_feasible_rate
-10,A. Default Duration (Thiếu AI),0.0 ± 0.0,0.4 ± 0.5,4.6 ± 7.4,4.6 ± 7.4,98.0 ± 4.5
-10,B. AI Predicted Duration (Có AI),0.0 ± 0.0,0.4 ± 0.5,4.6 ± 7.4,4.6 ± 7.4,98.0 ± 4.5
-25,A. Default Duration (Thiếu AI),3.4 ± 2.3,5.8 ± 2.3,188.8 ± 202.6,67.4 ± 58.0,87.2 ± 13.7
-25,B. AI Predicted Duration (Có AI),3.4 ± 2.3,5.8 ± 2.3,168.4 ± 161.0,57.6 ± 42.1,87.2 ± 13.7
-50,A. Default Duration (Thiếu AI),11.8 ± 3.3,16.6 ± 4.1,451.2 ± 225.6,80.6 ± 37.7,78.2 ± 8.2
-50,B. AI Predicted Duration (Có AI),10.4 ± 2.5,14.4 ± 2.7,402.6 ± 172.8,82.0 ± 32.2,81.2 ± 6.7
-100,A. Default Duration (Thiếu AI),23.2 ± 4.3,32.0 ± 3.5,861.8 ± 177.3,109.0 ± 33.9,72.5 ± 3.7
-100,B. AI Predicted Duration (Có AI),20.2 ± 3.2,28.4 ± 4.6,704.4 ± 135.6,92.6 ± 24.3,74.6 ± 5.7
+﻿load,plan,direct_overlap_count,cascading_delay_count,mild_delay_count,severe_delay_count,total_delay_minutes,max_delay_minutes,overtime_minutes,actual_feasible_rate
+10,A. Default Duration (Thiếu AI),0.4 ± 0.5,0.8 ± 0.8,0.6 ± 0.9,0.2 ± 0.4,9.8 ± 12.6,8.6 ± 11.9,0.0 ± 0.0,98.0 ± 4.5
+10,B. AI Predicted Duration (Có AI),0.4 ± 0.5,0.8 ± 0.8,0.6 ± 0.9,0.2 ± 0.4,9.8 ± 12.6,8.6 ± 11.9,0.0 ± 0.0,98.0 ± 4.5
+25,A. Default Duration (Thiếu AI),2.4 ± 1.7,3.6 ± 1.7,1.4 ± 1.1,2.2 ± 1.3,69.0 ± 42.5,32.2 ± 12.1,22.6 ± 15.0,90.7 ± 5.5
+25,B. AI Predicted Duration (Có AI),2.2 ± 1.6,3.8 ± 1.6,2.0 ± 1.4,1.8 ± 1.3,65.8 ± 42.3,31.0 ± 13.5,11.0 ± 13.9,92.2 ± 5.7
+50,A. Default Duration (Thiếu AI),7.6 ± 2.1,12.6 ± 2.9,6.4 ± 0.9,6.2 ± 2.6,367.6 ± 147.3,104.8 ± 40.0,82.4 ± 68.1,84.2 ± 5.8
+50,B. AI Predicted Duration (Có AI),8.0 ± 2.1,12.6 ± 2.3,6.4 ± 1.1,6.2 ± 2.3,331.0 ± 90.8,89.0 ± 28.8,39.6 ± 43.6,83.8 ± 5.0
+100,A. Default Duration (Thiếu AI),21.0 ± 6.4,27.6 ± 4.2,10.4 ± 1.7,17.2 ± 4.8,863.0 ± 202.2,110.0 ± 28.2,173.2 ± 47.4,68.7 ± 7.0
+100,B. AI Predicted Duration (Có AI),18.4 ± 5.9,25.0 ± 7.0,9.8 ± 4.3,15.2 ± 4.3,701.8 ± 176.3,89.6 ± 27.1,69.2 ± 47.0,71.3 ± 6.1
+150,A. Default Duration (Thiếu AI),28.0 ± 6.8,33.8 ± 5.8,10.0 ± 1.0,23.8 ± 6.1,1137.0 ± 321.7,129.2 ± 45.4,258.0 ± 77.6,60.7 ± 8.4
+150,B. AI Predicted Duration (Có AI),23.2 ± 7.9,30.2 ± 5.2,12.0 ± 2.4,18.2 ± 5.9,799.4 ± 179.9,82.6 ± 15.4,72.2 ± 27.4,68.8 ± 8.0

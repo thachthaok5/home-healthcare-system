@@ -1,0 +1,6 @@
+scenario_id,scenario_name,description,mae_default,rmse_default,mae_ai,rmse_ai,r2_ai,mae_reduction_pct
+R0,R0. Baseline Distribution,"Phân phối gốc ban đầu (noise sigma = 4.5p, hệ số chuẩn)",12.90 ± 0.27,16.39 ± 0.35,4.39 ± 0.47,5.56 ± 0.52,0.943 ± 0.011,66.0% ± 3.5%
+R1,R1. High Noise Perturbation,"Nhiễu ngẫu nhiên gấp đôi (sigma = 9.0p: kẹt xe, chậm thủ tục)",14.35 ± 0.57,18.05 ± 0.75,7.56 ± 0.90,9.44 ± 1.04,0.851 ± 0.031,47.4% ± 5.2%
+R2,R2. Heavy-tail Complications,Biến chứng đột xuất (12% ca kéo dài thêm 20-45 phút bất ngờ),16.23 ± 0.79,21.53 ± 1.32,7.07 ± 0.71,11.71 ± 1.24,0.792 ± 0.029,56.6% ± 2.5%
+R3,R3. Structural Shift (Older Cohort),"Bệnh nền nặng hơn (độ phức tạp 18%, thiết bị đặc biệt +18p)",17.48 ± 0.26,22.72 ± 0.34,6.52 ± 0.30,8.76 ± 0.40,0.892 ± 0.009,62.7% ± 1.5%
+R4,R4. Combined Extreme Stress,Thử thách kết hợp (sigma = 8.0p + 10% ca biến chứng đột xuất),18.43 ± 0.79,23.69 ± 1.07,9.03 ± 0.86,12.39 ± 0.98,0.796 ± 0.014,51.1% ± 2.7%

@@ -29,7 +29,10 @@ def optimize_schedule(
     result = SchedulingEngine.optimize_schedule(
         db=db,
         target_date=req.target_date,
-        created_by_user_id=req.created_by_user_id
+        created_by_user_id=req.created_by_user_id,
+        weights=req.weights,
+        allow_time_window=req.allow_time_window,
+        window_minutes=req.window_minutes
     )
     if result["status"] == "infeasible":
         raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=result["message"])
