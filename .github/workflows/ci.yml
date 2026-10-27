@@ -15,16 +15,25 @@ jobs:
       postgres:
         image: postgres:16
         env:
-          POSTGRES_DB: healthcare_db
+          POSTGRES_DB: home_healthcare_db
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: password
         ports:
           - 5432:5432
         options: >-
           --health-cmd pg_isready
-          --health-interval 10s
+          --health-interval 5s
           --health-timeout 5s
           --health-retries 5
+
+    env:
+      PYTHONPATH: ./backend
+      DB_HOST: localhost
+      DB_PORT: 5432
+      DB_USER: postgres
+      DB_PASSWORD: password
+      DB_NAME: home_healthcare_db
+      DATABASE_URL: postgresql+psycopg://postgres:password@localhost:5432/home_healthcare_db
 
     steps:
       - name: Check out repository
@@ -42,23 +51,14 @@ jobs:
           pip install -r backend/requirements.txt
 
       - name: Initialize PostgreSQL Database & Seed Data
-        env:
-          PYTHONPATH: ./backend
-          DATABASE_URL: postgresql://postgres:password@localhost:5432/healthcare_db
         run: |
           python -c "from app.db.session import engine; from app.models import Base; Base.metadata.create_all(bind=engine); print('Database schema created successfully')"
           python backend/scripts/seed_database.py
 
       - name: Run unit & regression tests with pytest
-        env:
-          PYTHONPATH: ./backend
-          DATABASE_URL: postgresql://postgres:password@localhost:5432/healthcare_db
         run: |
-          pytest backend/tests/test_routing.py backend/tests/test_ai.py -v
+          pytest backend/tests/test_routing.py backend/tests/test_ai.py -v --tb=short
 
       - name: Verify experimental data consistency
-        env:
-          PYTHONPATH: ./backend
-          DATABASE_URL: postgresql://postgres:password@localhost:5432/healthcare_db
         run: |
           python backend/scripts/verify_experiments.py

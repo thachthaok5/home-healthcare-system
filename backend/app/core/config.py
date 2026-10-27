@@ -24,6 +24,7 @@ class Settings(BaseSettings):
     DB_USER: str = "postgres"
     DB_PASSWORD: str = "262005"
     DB_NAME: str = "home_healthcare_db"
+    DATABASE_URL: Optional[str] = None
 
     # Security & JWT
     SECRET_KEY: str = "9a2b8e3f4c1d7a5b6c8d0e2f4a6b8c0d2e4f6a8b0c2d4e6f8a0b2c4d6e8f0a2b"
@@ -32,12 +33,18 @@ class Settings(BaseSettings):
 
     @computed_field
     @property
-    def SQLALCHEMY_DATABASE_URI(self) -> URL:
+    def SQLALCHEMY_DATABASE_URI(self) -> URL | str:
         """
         Tạo kết nối SQLAlchemy URL chuẩn xác bằng URL.create()
-        để tránh lỗi escape các ký tự đặc biệt trong mật khẩu.
+        hoặc chuỗi DATABASE_URL được cung cấp từ biến môi trường.
         Sử dụng driver Psycopg 3: postgresql+psycopg
         """
+        if self.DATABASE_URL:
+            uri = self.DATABASE_URL
+            if uri.startswith("postgresql://") and not uri.startswith("postgresql+psycopg://"):
+                uri = uri.replace("postgresql://", "postgresql+psycopg://", 1)
+            return uri
+
         return URL.create(
             drivername="postgresql+psycopg",
             username=self.DB_USER,
