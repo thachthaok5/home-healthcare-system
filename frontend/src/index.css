@@ -1,0 +1,117 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --color-bg-app: #F7FAF9;
+    --color-surface: #FFFFFF;
+    --color-primary: #2F6F64;
+    --color-primary-hover: #255A51;
+    --color-primary-pale: #E5F1EC;
+    --color-text-primary: #253438;
+    --color-text-secondary: #687A78;
+    --color-border: #E1E9E6;
+    --color-accent-pink: #D96F7C;
+    --color-warning: #E6A64B;
+    --color-error: #D85D68;
+    --color-success: #4D947B;
+    --font-family-base: 'Inter', 'Be Vietnam Pro', -apple-system, BlinkMacSystemFont, sans-serif;
+  }
+
+  body {
+    font-family: var(--font-family-base);
+    background-color: #F7FAF9;
+    color: #253438;
+    font-size: 14px;
+    line-height: 1.5;
+    margin: 0;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .tabular-nums {
+    font-variant-numeric: tabular-nums;
+  }
+
+  .font-mono-num {
+    font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, monospace;
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+/* Ant Design & Custom Component Overrides for CareFlow */
+.ant-card,
+.ant-modal-content,
+.ant-drawer-content {
+  border-radius: 10px !important;
+  font-family: var(--font-family-base);
+}
+
+.ant-btn,
+.ant-input,
+.ant-input-affix-wrapper,
+.ant-select-selector,
+.ant-picker {
+  border-radius: 8px !important;
+  font-family: var(--font-family-base);
+}
+
+.ant-btn {
+  box-shadow: none !important;
+}
+
+.ant-btn-primary {
+  background-color: #2F6F64 !important;
+  border-color: #2F6F64 !important;
+  color: #FFFFFF !important;
+}
+
+.ant-btn-primary:hover {
+  background-color: #255A51 !important;
+  border-color: #255A51 !important;
+}
+
+.ant-drawer .ant-drawer-mask,
+.ant-modal-mask {
+  background-color: rgba(37, 52, 56, 0.25) !important;
+}
+
+/* Custom thin scrollbars for timeline & lists */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #F7FAF9;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #CBD8D3;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #9DB3AC;
+}
+
+/* Leaflet Map Customizations for CareFlow */
+.leaflet-container {
+  font-family: var(--font-family-base) !important;
+  background-color: #EBF2F0 !important;
+}
+
+.leaflet-popup-content-wrapper {
+  border-radius: 10px !important;
+  border: 1px solid #E1E9E6 !important;
+  box-shadow: 0 8px 24px rgba(37, 52, 56, 0.12) !important;
+  padding: 0 !important;
+}
+
+.leaflet-popup-content {
+  margin: 12px 14px !important;
+  line-height: 1.45 !important;
+}
+
+.leaflet-popup-tip {
+  background: #FFFFFF !important;
+}
+

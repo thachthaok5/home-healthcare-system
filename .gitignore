@@ -69,3 +69,12 @@ Desktop.ini
 database.py/
 ~$*
 *.tmp
+
+# ==============================================================================
+# NODE.JS & FRONTEND
+# ==============================================================================
+node_modules/
+*/node_modules/
+frontend/node_modules/
+frontend/dist/
+frontend/.cache/

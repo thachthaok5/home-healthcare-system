@@ -1,0 +1,6 @@
+{
+  "name": "CarePulse Dispatch — Hệ thống Điều phối Chăm sóc Sức khỏe Tại nhà",
+  "description": "Nền tảng quản trị dịch vụ chăm sóc sức khỏe tại nhà tích hợp AI dự đoán thời lượng ca bệnh và hỗ trợ điều phối nhân sự y tế có giải thích (Explainable AI).",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
