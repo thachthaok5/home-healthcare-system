@@ -1,11 +1,4 @@
 # HỆ THỐNG THÔNG TIN QUẢN LÝ DỊCH VỤ CHĂM SÓC SỨC KHỎE TẠI NHÀ TÍCH HỢP AI & OR-TOOLS (CAREFLOW / HOME HEALTHCARE DISPATCH SYSTEM)
-
-**Đồ án tốt nghiệp Đại học ngành Hệ thống Thông tin Quản lý (MIS)**  
-* **Sinh viên thực hiện:** Nguyễn Thạch Thảo – Lớp 65.TTQL_1
-* **Giảng viên hướng dẫn:** TS. Trần Thị Thúy
-* **Địa bàn nghiên cứu & ứng dụng:** Thành phố Nha Trang, Tỉnh Khánh Hòa
-* **Phiên bản mã nguồn:** v2.1 (Đợt 2 - Lần 4)
-
 ---
 
 ## 📌 GIỚI THIỆU TỔNG QUAN
@@ -223,7 +216,7 @@ cd "d:\New folder\DOAN\backend"
 cd "d:\New folder\DOAN\docs"
 ..\backend\venv\Scripts\python generate_word_report.py
 ```
-*File xuất ra:* `docs/Bao_cao_Tien_do_Dot_2_Nguyen_Thach_Thao.docx` (Tự động điền 100% số liệu từ CSV, nhúng Git Commit SHA, danh sách seeds `[42, 101, 2024, 7777, 9999]`, Python 3.13.3, Model version v1.1.0 mà không chỉnh sửa thủ công).
+
 
 ---
 
