@@ -222,6 +222,5 @@ cd "d:\New folder\DOAN\docs"
 
 ## 👥 THÔNG TIN LIÊN HỆ & BẢN QUYỀN
 
-* **Sinh viên:** Nguyễn Thạch Thảo (Email: `thachthao.k65@gmail.com` | GitHub: `thachthaok5`)
-* **Đơn vị đào tạo:** Khoa Hệ thống Thông tin Kinh tế & Thương mại Điện tử – Trường Đại học Thương Mại (TMU)
+* **Sinh viên:** Nguyễn Thạch Thảo | GitHub: `thachthaok5`)
 * **Kho lưu trữ GitHub:** [home-healthcare-system](https://github.com/thachthaok5/home-healthcare-system.git)
