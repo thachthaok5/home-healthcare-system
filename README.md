@@ -101,7 +101,7 @@ DOAN/
    .\venv\Scripts\activate.bat
    ```
 2. Tạo và kích hoạt môi trường ảo Python (`venv`):
-   ```powershell
+ ```powershell
   cmd /k "D:\New folder\DOAN\backend\venv\Scripts\activate.bat"
    ```
 
