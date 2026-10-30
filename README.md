@@ -95,11 +95,14 @@ DOAN/
    ```powershell
    cd "d:\New folder\DOAN\backend"
    ```
-
+ Kích hoạt bằng file .bat
+   Ngay tại PowerShell, chạy:
+```powershell
+   .\venv\Scripts\activate.bat
+   ```
 2. Tạo và kích hoạt môi trường ảo Python (`venv`):
    ```powershell
-   python -m venv venv
-   .\venv\Scripts\activate
+  cmd /k "D:\New folder\DOAN\backend\venv\Scripts\activate.bat"
    ```
 
 3. Cài đặt các thư viện cần thiết:
