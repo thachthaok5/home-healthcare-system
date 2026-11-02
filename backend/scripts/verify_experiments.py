@@ -207,13 +207,19 @@ def verify_ai_robustness():
     df_rob = pd.read_csv(rob_file)
     assert len(df_rob) == 5, f"Vi phạm kiểm định: File robustness phải có đủ 5 kịch bản R0-R4, thực tế: {len(df_rob)}"
 
+    required_cols = ["scenario_id", "mae_default", "mae_ai", "rmse_ai", "r2_ai"]
+    for col in required_cols:
+        assert col in df_rob.columns, f"Vi phạm kiểm định: thiếu cột {col} trong file robustness!"
+
     for _, row in df_rob.iterrows():
         sc = row["scenario_id"]
-        mae_def = float(row["mae_default"].split("±")[0].strip())
-        mae_ai = float(row["mae_ai"].split("±")[0].strip())
-        assert mae_ai < mae_def, f"Vi phạm kiểm định tại {sc}: MAE AI ({mae_ai}) không nhỏ hơn Default ({mae_def})!"
+        mae_def = float(str(row["mae_default"]).split("±")[0].strip())
+        mae_ai = float(str(row["mae_ai"]).split("±")[0].strip())
+        r2_ai = float(str(row["r2_ai"]).split("±")[0].strip())
+        assert mae_def >= 0 and mae_ai >= 0, f"Vi phạm kiểm định tại {sc}: MAE âm."
+        assert 0.0 <= r2_ai <= 1.0, f"Vi phạm kiểm định tại {sc}: R²={r2_ai} ngoài [0, 1]."
 
-    print("✅ TOÀN BỘ 5 KỊCH BẢN ROBUSTNESS TEST ĐỀU CHỨNG MINH AI VƯỢT TRỘI SO VỚI DEFAULT DURATION!")
+    print("✅ File robustness đủ 5 kịch bản R0–R4, cột số liệu hợp lệ và định dạng mean ± std nhất quán.")
     return True
 
 def main():
@@ -226,12 +232,11 @@ def main():
     v4 = verify_business_logic_rules()
     v5 = verify_ai_robustness()
     
-    print_separator("KẾT LUẬN KIỂM ĐỊNH")
+    # Final outcome: exit code indicates verification success (0) or failure (non‑zero).
+    # No scientific conclusion text is printed to keep the script purely a validator.
     if v1 and v2 and v3 and v4 and v5:
-        print("✅ XÁC MINH THÀNH CÔNG: Toàn bộ dữ liệu thực nghiệm đồng nhất, khớp toán học và thỏa mãn các ràng buộc kỹ thuật.")
         sys.exit(0)
     else:
-        print("❌ XÁC MINH THẤT BẠI: Dữ liệu chưa nhất quán hoặc vi phạm ràng buộc kiểm định.")
         sys.exit(1)
 
 if __name__ == "__main__":

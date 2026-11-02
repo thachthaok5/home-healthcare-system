@@ -163,7 +163,7 @@ def load_fixtures():
 
 
 class BenchmarkReq:
-    def __init__(self, req_id, cust_id, srv_id, srv_name, def_dur, pred_dur, act_dur, pref_st, comp, equip, prio, dist_code, lat, lon, skill_ids):
+    def __init__(self, req_id, cust_id, srv_id, srv_name, def_dur, pred_dur, act_dur, pref_st, pref_et, comp, equip, prio, dist_code, lat, lon, skill_ids):
         self.request_id = req_id
         self.customer_id = cust_id
         self.service_id = srv_id
@@ -172,6 +172,7 @@ class BenchmarkReq:
         self.predicted_duration = pred_dur
         self.actual_duration = act_dur
         self.preferred_start = pref_st
+        self.preferred_end = pref_et
         self.complexity_level = comp
         self.has_special_equip = equip
         self.priority = prio
@@ -225,6 +226,7 @@ def generate_requests(num_reqs, seed, target_date, emps=None, services=None, srv
         h = int(rng.choice(hours, p=prob))
         m = int(rng.choice([0, 15, 30, 45]))
         st = datetime(target_date.year, target_date.month, target_date.day, h, m, tzinfo=vn_tz)
+        et_pref = st + timedelta(minutes=90)
 
         base_dur = srv.default_duration
 
@@ -253,7 +255,7 @@ def generate_requests(num_reqs, seed, target_date, emps=None, services=None, srv
         cust_id = (i % pool_size) + 1
         requests.append(BenchmarkReq(
             i, cust_id, srv.service_id, srv.service_name, base_dur, pred_dur, act_dur,
-            st, comp, equip, prio, dist["code"], lat, lon, srv_skills.get(srv.service_id, [])
+            st, et_pref, comp, equip, prio, dist["code"], lat, lon, srv_skills.get(srv.service_id, [])
         ))
 
     return requests, customer_emp_history
@@ -444,65 +446,187 @@ def run_weighted(reqs, emps, use_ai=True, weights=None, emp_shifts=None, emp_lea
     return assigns, (time.time() - t0) * 1000.0
 
 
-def run_ortools_opt(reqs, emps, use_ai=True, weights=None, time_limit=6.0, emp_shifts=None, emp_leaves=None, customer_history=None):
+def _window_bounds_minutes(req, dur, window_minutes=90):
+    pref_st = req.preferred_start.hour * 60 + req.preferred_start.minute
+    if getattr(req, "preferred_end", None):
+        diff_mins = int((req.preferred_end - req.preferred_start).total_seconds() / 60.0)
+        pref_et = pref_st + max(dur, diff_mins)
+    else:
+        pref_et = pref_st + max(dur, window_minutes)
+    latest_st = max(pref_st, pref_et - dur)
+    return pref_st, latest_st
+
+
+def run_ortools_opt(
+    reqs, emps, use_ai=True, weights=None, time_limit=6.0,
+    emp_shifts=None, emp_leaves=None, customer_history=None,
+    allow_time_window=True, window_minutes=90
+):
+    """
+    Global staff-assignment & start-time optimization via Google OR-Tools CP-SAT.
+    Start time is a true decision variable constrained within [preferred_start, preferred_end - duration],
+    respecting all hard constraints: skill (H1), active status (H2), shift availability & leave (H3),
+    no schedule overlap (H4), travel feasibility (H5), and daily workload limit (H6).
+    """
     t0 = time.time()
     emp_skills = {e.employee_id: {es.skill_id: es.level for es in e.employee_skills} for e in emps}
+    day0 = reqs[0].preferred_start if reqs else datetime.now(vn_tz)
 
     model = cp_model.CpModel()
     x = {}
     pair_map = {}
+    start_vars = {}
+    durations = {}
 
     for r in reqs:
         dur = r.predicted_duration if use_ai else r.default_duration
-        st, et = r.preferred_start, r.preferred_start + timedelta(minutes=dur)
-        for e in emps:
-            if is_feasible(e, emp_skills[e.employee_id], r, st, et, [], emp_shifts=emp_shifts, emp_leaves=emp_leaves):
-                score, d_km, t_min, bd = calc_dss(e, emp_skills[e.employee_id], r, st, 0, weights, customer_history=customer_history)
-                var = model.new_bool_var(f"x_{r.request_id}_{e.employee_id}")
-                x[(r.request_id, e.employee_id)] = var
-                pair_map[(r.request_id, e.employee_id)] = {
-                    "request": r, "employee": e, "st": st, "et": et,
-                    "dur": dur, "act_dur": r.actual_duration, "d_km": d_km,
-                    "t_min": t_min, "score": score, "breakdown": bd
-                }
+        durations[r.request_id] = dur
+        pref_st_mins, latest_st_mins = _window_bounds_minutes(r, dur, window_minutes)
+        if allow_time_window:
+            start_vars[r.request_id] = model.new_int_var(pref_st_mins, latest_st_mins, f"st_{r.request_id}")
+        else:
+            start_vars[r.request_id] = model.new_int_var(pref_st_mins, pref_st_mins, f"st_{r.request_id}")
 
+        for e in emps:
+            # H2: Active status
+            if e.status != "active":
+                continue
+            # H1: Mandatory skill match
+            if not all(sk_id in emp_skills.get(e.employee_id, {}) for sk_id in r.required_skill_ids):
+                continue
+
+            # H3: Shift feasibility
+            if emp_shifts and e.employee_id in emp_shifts:
+                sh = emp_shifts[e.employee_id]
+                sh_st = sh["start_time"].hour * 60 + sh["start_time"].minute
+                sh_et = sh["end_time"].hour * 60 + sh["end_time"].minute
+            else:
+                sh_st = 7 * 60
+                sh_et = 18 * 60
+
+            earliest_possible = max(pref_st_mins, sh_st)
+            latest_possible = min(latest_st_mins, sh_et - dur)
+            if earliest_possible > latest_possible:
+                continue
+
+            # H3: Leave request feasibility
+            leave_blocked = False
+            if emp_leaves and e.employee_id in emp_leaves:
+                for lv in emp_leaves[e.employee_id]:
+                    lv_st = lv["from_time"].hour * 60 + lv["from_time"].minute
+                    lv_et = lv["to_time"].hour * 60 + lv["to_time"].minute
+                    if earliest_possible + dur > lv_st and latest_possible < lv_et:
+                        leave_blocked = True
+                        break
+            if leave_blocked:
+                continue
+
+            # H6: Max daily minutes
+            max_mins = e.max_daily_minutes or 480
+            if dur > max_mins:
+                continue
+
+            score, d_km, t_min, bd = calc_dss(
+                e, emp_skills[e.employee_id], r, r.preferred_start, 0, weights, customer_history=customer_history
+            )
+            var = model.new_bool_var(f"x_{r.request_id}_{e.employee_id}")
+            x[(r.request_id, e.employee_id)] = var
+            pair_map[(r.request_id, e.employee_id)] = {
+                "request": r, "employee": e, "dur": dur, "act_dur": r.actual_duration,
+                "d_km": d_km, "t_min": t_min, "score": score, "breakdown": bd
+            }
+
+    # Constraint 1: Mỗi yêu cầu chỉ được gán tối đa cho 1 nhân viên
     for r in reqs:
         vars_r = [x[(r.request_id, e.employee_id)] for e in emps if (r.request_id, e.employee_id) in x]
         if vars_r:
             model.add(sum(vars_r) <= 1)
 
+    # Constraints 2 & 3: Shift, Leave, Overlap, Travel, Workload
     for e in emps:
         p_list = [pair_map[k] for k in pair_map if k[1] == e.employee_id]
+        if not p_list:
+            continue
+
+        # Shift bounds per assigned request
+        if emp_shifts and e.employee_id in emp_shifts:
+            sh = emp_shifts[e.employee_id]
+            sh_st = sh["start_time"].hour * 60 + sh["start_time"].minute
+            sh_et = sh["end_time"].hour * 60 + sh["end_time"].minute
+        else:
+            sh_st = 7 * 60
+            sh_et = 18 * 60
+
+        for p in p_list:
+            r = p["request"]
+            var = x[(r.request_id, e.employee_id)]
+            dur = p["dur"]
+            model.add(start_vars[r.request_id] >= sh_st).only_enforce_if(var)
+            model.add(start_vars[r.request_id] + dur <= sh_et).only_enforce_if(var)
+
+            # Leave bounds per assigned request
+            if emp_leaves and e.employee_id in emp_leaves:
+                for lv in emp_leaves[e.employee_id]:
+                    lv_st = lv["from_time"].hour * 60 + lv["from_time"].minute
+                    lv_et = lv["to_time"].hour * 60 + lv["to_time"].minute
+                    pref_st_mins, latest_st_mins = _window_bounds_minutes(r, dur, window_minutes)
+                    can_before = (pref_st_mins + dur <= lv_st)
+                    can_after = (latest_st_mins >= lv_et)
+                    if can_before and can_after:
+                        blv = model.new_bool_var(f"blv_{r.request_id}_{e.employee_id}_{lv_st}")
+                        model.add(start_vars[r.request_id] + dur <= lv_st).only_enforce_if([var, blv])
+                        model.add(start_vars[r.request_id] >= lv_et).only_enforce_if([var, blv.Not()])
+                    elif can_before:
+                        model.add(start_vars[r.request_id] + dur <= lv_st).only_enforce_if(var)
+                    elif can_after:
+                        model.add(start_vars[r.request_id] >= lv_et).only_enforce_if(var)
+
+        # No Overlap & Travel Feasibility between requests of same employee
         n_p = len(p_list)
         for i in range(n_p):
             for j in range(i + 1, n_p):
                 p1, p2 = p_list[i], p_list[j]
-                st1, et1 = p1["st"], p1["et"]
-                st2, et2 = p2["st"], p2["et"]
+                r1, r2 = p1["request"], p2["request"]
+                var1 = x[(r1.request_id, e.employee_id)]
+                var2 = x[(r2.request_id, e.employee_id)]
+                dur1 = p1["dur"]
+                dur2 = p2["dur"]
+                _, t_mins, _ = RoutingEngine.get_distance_and_travel_time(r1.lat, r1.lon, r2.lat, r2.lon)
 
-                # Neu khoang cach thoi gian vuot qua 45 phut, trong noi thanh Nha Trang (ban kinh < 10km) chac chan khong conflict
-                if abs((st1 - st2).total_seconds()) > 2700:
-                    continue
+                r1_st_min, r1_st_max = _window_bounds_minutes(r1, dur1, window_minutes)
+                r2_st_min, r2_st_max = _window_bounds_minutes(r2, dur2, window_minutes)
 
-                conflict = False
-                if (st1 < et2) and (st2 < et1):
-                    conflict = True
+                can_1_before_2 = (r1_st_min + dur1 + t_mins <= r2_st_max)
+                can_2_before_1 = (r2_st_min + dur2 + t_mins <= r1_st_max)
+
+                if not can_1_before_2 and not can_2_before_1:
+                    model.add(var1 + var2 <= 1)
+                elif can_1_before_2 and not can_2_before_1:
+                    model.add(start_vars[r2.request_id] >= start_vars[r1.request_id] + dur1 + t_mins).only_enforce_if([var1, var2])
+                elif can_2_before_1 and not can_1_before_2:
+                    model.add(start_vars[r1.request_id] >= start_vars[r2.request_id] + dur2 + t_mins).only_enforce_if([var1, var2])
                 else:
-                    _, t_mins, _ = RoutingEngine.get_distance_and_travel_time(p1["request"].lat, p1["request"].lon, p2["request"].lat, p2["request"].lon)
-                    if et1 <= st2 and (st2 - et1).total_seconds() / 60.0 < t_mins:
-                        conflict = True
-                    elif et2 <= st1 and (st1 - et2).total_seconds() / 60.0 < t_mins:
-                        conflict = True
+                    prec = model.new_bool_var(f"prec_{r1.request_id}_{r2.request_id}_{e.employee_id}")
+                    st_v1 = start_vars[r1.request_id]
+                    st_v2 = start_vars[r2.request_id]
+                    model.add(st_v2 >= st_v1 + dur1 + t_mins).only_enforce_if([var1, var2, prec])
+                    model.add(st_v1 >= st_v2 + dur2 + t_mins).only_enforce_if([var1, var2, prec.Not()])
 
-                if conflict:
-                    model.add(x[(p1["request"].request_id, e.employee_id)] + x[(p2["request"].request_id, e.employee_id)] <= 1)
-
+        # Max daily workload limit
         max_mins = e.max_daily_minutes or 480
         w_terms = [x[(p["request"].request_id, e.employee_id)] * p["dur"] for p in p_list]
         if w_terms:
             model.add(sum(w_terms) <= max_mins)
 
+    # Hàm mục tiêu: Tối đa hóa tổng điểm DSS kết hợp phạt độ lệch thời gian
     obj_terms = [x[k] * int(pair_map[k]["score"] * 1000) for k in x]
+    if allow_time_window:
+        for r in reqs:
+            if r.request_id in start_vars:
+                pref_mins = r.preferred_start.hour * 60 + r.preferred_start.minute
+                diff = model.new_int_var(0, 1440, f"diff_{r.request_id}")
+                model.add_abs_equality(diff, start_vars[r.request_id] - pref_mins)
+                obj_terms.append(-diff * 2)
     model.maximize(sum(obj_terms))
 
     solver = cp_model.CpSolver()
@@ -514,13 +638,22 @@ def run_ortools_opt(reqs, emps, use_ai=True, weights=None, time_limit=6.0, emp_s
         for k, var in x.items():
             if solver.boolean_value(var):
                 p = pair_map[k]
+                r, e = p["request"], p["employee"]
+                opt_mins = int(solver.value(start_vars[r.request_id]))
+                opt_h, opt_m = divmod(opt_mins, 60)
+                st = datetime(day0.year, day0.month, day0.day, opt_h, min(opt_m, 59), tzinfo=day0.tzinfo)
+                et = st + timedelta(minutes=p["dur"])
+                wl = 0
+                score, d_km, t_min, bd = calc_dss(
+                    e, emp_skills[e.employee_id], r, st, wl, weights, customer_history=customer_history
+                )
                 assigns.append({
-                    "request_id": p["request"].request_id, "customer_id": p["request"].customer_id,
-                    "employee_id": p["employee"].employee_id,
-                    "scheduled_start": p["st"], "scheduled_end": p["et"], "duration_mins": p["dur"],
-                    "actual_duration": p["act_dur"], "lat": p["request"].lat, "lon": p["request"].lon,
-                    "distance_km": p["d_km"], "travel_mins": p["t_min"], "dss_score": p["score"],
-                    "breakdown": p["breakdown"]
+                    "request_id": r.request_id, "customer_id": r.customer_id,
+                    "employee_id": e.employee_id,
+                    "scheduled_start": st, "scheduled_end": et, "duration_mins": p["dur"],
+                    "actual_duration": p["act_dur"], "lat": r.lat, "lon": r.lon,
+                    "distance_km": d_km, "travel_mins": t_min, "dss_score": score,
+                    "breakdown": bd
                 })
 
     return assigns, (time.time() - t0) * 1000.0
@@ -899,7 +1032,38 @@ def main():
         with open(exp_dir / "routing_audit_summary.json", "w", encoding="utf-8") as f:
             json.dump(routing_stats, f, ensure_ascii=False, indent=2)
 
+        import platform
+        import subprocess
+        sha = "unknown"
+        try:
+            sha = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=str(BASE_DIR.parent), text=True).strip()
+        except Exception:
+            pass
+        manifest = {
+            "git_commit_sha": sha,
+            "run_datetime_local": datetime.now().isoformat(timespec="seconds"),
+            "python_version": platform.python_version(),
+            "platform": platform.platform(),
+            "seeds": seeds,
+            "load_levels": loads,
+            "ortools_allow_time_window": True,
+            "ortools_time_limit_seconds": 6.0,
+            "ai_model_artifact": "backend/artifacts/models/duration_model_v1.joblib",
+            "ai_model_version": "v1.1.0",
+            "dataset": "synthetic_nha_trang_seeded",
+            "routing_stats": routing_stats,
+            "workforce_availability": "per-seed shifts + approved leave (H3)",
+            "delay_feasibility_definition": "actual_feasible if delay_minutes <= 15 (clinical grace / SLA); severe_delay if delay > 15",
+            "overlap_definition": {
+                "direct_overlap": "physical overlap: previous visit still running when next scheduled_start is due, or earliest_arrival exceeds previous scheduled_end",
+                "cascading_delay": "late start of a later visit caused by previous actual duration + travel, without requiring simultaneous occupancy at scheduled_start"
+            }
+        }
+        with open(exp_dir / "experiment_run_manifest.json", "w", encoding="utf-8") as f:
+            json.dump(manifest, f, ensure_ascii=False, indent=2)
+
         print(f"\n---> ALL EXPERIMENTS FINISHED! Files saved to: {exp_dir}")
+        print(f"-> Git SHA: {sha}")
 
     finally:
         if db:

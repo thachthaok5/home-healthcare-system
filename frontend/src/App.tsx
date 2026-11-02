@@ -130,21 +130,10 @@ export function App() {
   const fetchSystemState = useCallback(async () => {
     try {
       setIsLoading(true);
-      const [stateRes, kpiRes, optRes] = await Promise.all([
-        fetch('/api/dispatch/state'),
-        fetch('/api/kpis'),
-        fetch('/api/optimization/run', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            weights: {
-              travelWeight: 40,
-              workloadBalanceWeight: 30,
-              continuityWeight: 20,
-              slaPenaltyWeight: 10,
-            },
-          }),
-        }),
+      const dateQs = selectedDate ? `?target_date=${selectedDate}` : '';
+      const [stateRes, kpiRes] = await Promise.all([
+        fetch(`/api/v1/coordinator/dispatch-state${dateQs}`),
+        fetch(`/api/v1/coordinator/kpis${dateQs}`),
       ]);
 
       const isJsonResponse = (res: Response) =>
@@ -165,6 +154,12 @@ export function App() {
           }
         );
         setOverrideLogs(data.overrideLogs || []);
+
+        if (data.targetDate && data.targetDate !== selectedDate) {
+
+          setSelectedDate(data.targetDate);
+
+        }
         if (data.unassignedRequests?.length > 0) {
           setSelectedRequestId((prev) =>
             data.unassignedRequests.some((r: UnassignedRequest) => r.id === prev)
@@ -179,10 +174,7 @@ export function App() {
         setKpiData(kData);
       }
 
-      if (isJsonResponse(optRes)) {
-        const oData = await optRes.json();
-        setOptimizationResult(oData);
-      }
+
     } catch (err) {
       console.error('Error fetching CareFlow state:', err);
     } finally {
@@ -197,15 +189,31 @@ export function App() {
   // Update DSS weights via backend
   const handleUpdateWeights = async (newWeights: DSSWeights) => {
     try {
-      const res = await fetch('/api/dss/evaluate', {
+      const dateQs = selectedDate ? ?target_date= : '';
+      let res = await fetch(/api/v1/coordinator/evaluate-dss, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ weights: newWeights }),
+        body: JSON.stringify({
+          weights: {
+            skill: newWeights.skillFit,
+            time: newWeights.timeFit,
+            distance: newWeights.distance,
+            workload: newWeights.workload,
+            continuity: newWeights.continuity,
+          },
+        }),
       });
+      if (!res.ok) {
+        res = await fetch('/api/dss/evaluate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ weights: newWeights }),
+        });
+      }
       if (res.ok) {
         const data = await res.json();
-        setDssWeights(data.dssWeights);
-        setUnassignedRequests(data.unassignedRequests);
+        setDssWeights(data.dssWeights || newWeights);
+        setUnassignedRequests(data.unassignedRequests || []);
         showToast('Đã cập nhật trọng số DSS và tính toán lại điểm phù hợp của ứng viên.');
       }
     } catch (err) {
@@ -229,19 +237,32 @@ export function App() {
     });
 
     try {
-      const res = await fetch('/api/v1/assignments/manual', {
+      let res = await fetch('/api/v1/coordinator/assign', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          requestId,
-          staffId: candidate.staffId,
-          isOverride,
-          overrideReasonCode: overrideReasonCode || 'skill',
-          overrideCategory: overrideCategory || 'Điều phối viên Xác nhận',
-          overrideNotes: overrideReason || 'Xác nhận từ màn hình Đề xuất AI',
-          dispatcherName: 'Điều phối viên Trần Thu Hà',
+          request_id: requestId,
+          employee_id: candidate.staffId,
+          is_override: isOverride,
+          reason_code: overrideReasonCode || 'skill',
+          override_notes: overrideReason || 'Xác nhận từ màn hình Đề xuất AI',
         }),
       });
+      if (!res.ok) {
+        res = await fetch('/api/v1/assignments/manual', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            requestId,
+            staffId: candidate.staffId,
+            isOverride,
+            overrideReasonCode: overrideReasonCode || 'skill',
+            overrideCategory: overrideCategory || 'Điều phối viên Xác nhận',
+            overrideNotes: overrideReason || 'Xác nhận từ màn hình Đề xuất AI',
+            dispatcherName: 'Điều phối viên Trần Thu Hà',
+          }),
+        });
+      }
 
       if (res.ok) {
         const data = await res.json();
@@ -334,16 +355,28 @@ export function App() {
     newStaffId?: string
   ) => {
     try {
-      const res = await fetch('/api/dispatch/resolve-conflict', {
+      let res = await fetch('/api/v1/coordinator/resolve-conflict', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          assignmentId,
-          newStartTime,
-          newEndTime,
-          newStaffId,
+          assignment_id: assignmentId,
+          new_start_time: newStartTime,
+          new_end_time: newEndTime,
+          new_staff_id: newStaffId,
         }),
       });
+      if (!res.ok) {
+        res = await fetch('/api/dispatch/resolve-conflict', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            assignmentId,
+            newStartTime,
+            newEndTime,
+            newStaffId,
+          }),
+        });
+      }
       if (res.ok) {
         const data = await res.json();
         setStaffList(data.staffList);
@@ -472,10 +505,12 @@ export function App() {
 
   // Run & Apply Optimization in Reports
   const handleRunOptimization = async () => {
-    const res = await fetch('/api/optimization/run', {
+    let res = await fetch('/api/v1/coordinator/optimize', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
+        target_date: selectedDate,
+        allow_time_window: true,
         weights: {
           travelWeight: 40,
           workloadBalanceWeight: 30,
@@ -484,10 +519,27 @@ export function App() {
         },
       }),
     });
+    if (!res.ok) {
+      res = await fetch('/api/optimization/run', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          weights: {
+            travelWeight: 40,
+            workloadBalanceWeight: 30,
+            continuityWeight: 20,
+            slaPenaltyWeight: 10,
+          },
+        }),
+      });
+    }
     if (res.ok) {
       const data = await res.json();
       setOptimizationResult(data);
-      showToast('Đã hoàn tất chạy tối ưu hóa lộ trình và cân bằng tải.');
+      if (data.staffList) setStaffList(data.staffList);
+      if (data.assignments) setAssignments(data.assignments);
+      if (data.unassignedRequests) setUnassignedRequests(data.unassignedRequests);
+      showToast('Đã hoàn tất chạy tối ưu hóa lộ trình và cân bằng tải bằng Google OR-Tools CP-SAT.');
     }
   };
 

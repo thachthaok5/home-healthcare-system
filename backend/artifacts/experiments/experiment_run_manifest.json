@@ -1,0 +1,49 @@
+{
+  "git_commit_sha": "6fd103ba76587d3e9f69ce09acef201c75b6e29d",
+  "run_datetime_local": "2026-10-31T19:14:54",
+  "python_version": "3.13.3",
+  "platform": "Windows-11-10.0.26200-SP0",
+  "seeds": [
+    42,
+    101,
+    202,
+    303,
+    404
+  ],
+  "load_levels": [
+    10,
+    25,
+    50,
+    100,
+    150
+  ],
+  "ortools_allow_time_window": true,
+  "ortools_time_limit_seconds": 6.0,
+  "ai_model_artifact": "backend/artifacts/models/duration_model_v1.joblib",
+  "ai_model_version": "v1.1.0",
+  "dataset": "synthetic_nha_trang_seeded",
+  "routing_stats": {
+    "counts": {
+      "osrm_cache": 1357,
+      "osrm_network": 0,
+      "haversine_fallback": 351762,
+      "same_location": 211,
+      "other_fallback": 0
+    },
+    "total_queries": 353330,
+    "ratios_pct": {
+      "osrm_cache_pct": 0.38,
+      "osrm_network_pct": 0.0,
+      "haversine_fallback_pct": 99.56,
+      "same_location_pct": 0.06,
+      "other_fallback_pct": 0.0
+    },
+    "osrm_coverage_pct": 0.38
+  },
+  "workforce_availability": "per-seed shifts + approved leave (H3)",
+  "delay_feasibility_definition": "actual_feasible if delay_minutes <= 15 (clinical grace / SLA); severe_delay if delay > 15",
+  "overlap_definition": {
+    "direct_overlap": "physical overlap: previous visit still running when next scheduled_start is due, or earliest_arrival exceeds previous scheduled_end",
+    "cascading_delay": "late start of a later visit caused by previous actual duration + travel, without requiring simultaneous occupancy at scheduled_start"
+  }
+}

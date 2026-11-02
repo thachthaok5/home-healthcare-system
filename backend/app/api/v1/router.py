@@ -9,6 +9,7 @@ from app.api.v1.assignments import router as assignments_router
 from app.api.v1.dashboard import router as dashboard_router
 from app.api.v1.ai import router as ai_router
 from app.api.v1.scheduling import router as scheduling_router
+from app.api.v1.coordinator import router as coordinator_router
 
 api_router = APIRouter()
 
@@ -22,3 +23,4 @@ api_router.include_router(assignments_router)
 api_router.include_router(dashboard_router)
 api_router.include_router(ai_router)
 api_router.include_router(scheduling_router)
+api_router.include_router(coordinator_router)

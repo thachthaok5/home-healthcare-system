@@ -59,14 +59,19 @@ def test_recommend_candidates_api():
     rec_res = client.get(f"/api/v1/schedule/recommend-candidates/{req_id}?top_k=3")
     assert rec_res.status_code == 200, rec_res.text
     candidates = rec_res.json()
-    assert len(candidates) <= 3
+    feasible = [c for c in candidates if c.get("is_feasible")]
+    infeasible = [c for c in candidates if not c.get("is_feasible")]
+    assert len(feasible) <= 3
+    assert len(candidates) == len(feasible) + len(infeasible)
 
-    if len(candidates) > 0:
-        top_1 = candidates[0]
+    if len(feasible) > 0:
+        top_1 = feasible[0]
         assert "employee_id" in top_1
         assert "score" in top_1
         assert "explanation" in top_1
         assert top_1["is_feasible"] is True
+    if infeasible:
+        assert infeasible[0].get("rejection_reason")
 
 
 def test_realtime_feasibility_check_api():

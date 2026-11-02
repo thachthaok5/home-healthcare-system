@@ -268,7 +268,7 @@ class SchedulingEngine:
                 ServiceResult.status_outcome == "successful"
             )
         ).scalar() or 0
-        continuity_score = 1.0 if past_successful > 0 else 0.0
+        continuity_score = min(1.0, past_successful / 2.0) if past_successful > 0 else 0.0
 
         # Tổng hợp điểm theo trọng số (mặc định hoặc cấu hình phân tích độ nhạy)
         if weights is None:
@@ -295,10 +295,12 @@ class SchedulingEngine:
             "workload_score": round(workload_score, 3),
             "continuity_score": round(continuity_score, 3),
             "distance_km": dist_km,
-            "current_workload_mins": current_workload
+            "travel_mins": travel_mins,
+            "current_workload_mins": current_workload,
+            "past_visits": int(past_successful)
         }
 
-        continuity_str = "từng phục vụ tốt bệnh nhân này" if past_successful > 0 else "ứng viên mới"
+        continuity_str = f"đã phục vụ bệnh nhân này {past_successful} lần" if past_successful > 0 else "ứng viên mới"
         explanation = (
             f"Nhân viên {employee.full_name} đạt {total_score*100:.1f}/100 điểm DSS. "
             f"Kỹ năng: {skill_fit*100:.0f}%, Khoảng cách: {dist_km}km ({travel_mins}p di chuyển), "
@@ -372,11 +374,10 @@ class SchedulingEngine:
                     "rejection_reason": reject_reason
                 })
 
-        # Sắp xếp ứng viên khả thi theo điểm số giảm dần
         feasible_candidates = [c for c in candidates if c["is_feasible"]]
         feasible_candidates.sort(key=lambda x: x["score"], reverse=True)
-
-        return feasible_candidates[:top_k]
+        infeasible_candidates = [c for c in candidates if not c["is_feasible"]]
+        return feasible_candidates[:top_k] + infeasible_candidates
 
     @classmethod
     def optimize_schedule(
@@ -422,6 +423,19 @@ class SchedulingEngine:
         employees = db.execute(
             select(Employee).where(Employee.status == "active")
         ).scalars().all()
+
+        # 2b. Lấy các Assignment đã tồn tại trong ngày cho các nhân viên này
+        existing_assigns = db.execute(
+            select(Assignment).where(
+                Assignment.employee_id.in_([e.employee_id for e in employees]),
+                func.date(Assignment.scheduled_start) == target_date,
+                Assignment.assignment_status.in_(["proposed", "confirmed", "completed"]),
+            )
+        ).scalars().all()
+        # Gom lại theo employee_id để truy cập nhanh
+        existing_by_emp: Dict[int, List[Assignment]] = {}
+        for a in existing_assigns:
+            existing_by_emp.setdefault(a.employee_id, []).append(a)
 
         # 3. Tạo mô hình tối ưu OR-Tools CP-SAT
         model = cp_model.CpModel()

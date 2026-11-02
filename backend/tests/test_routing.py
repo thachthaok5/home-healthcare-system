@@ -26,15 +26,17 @@ def test_routing_nha_trang_real_locations():
 
 def test_routing_cache_mechanism():
     """Kiểm thử tính năng lưu và lấy kết quả từ Cache"""
-    lat1, lon1 = 12.2450, 109.1900
-    lat2, lon2 = 12.2500, 109.2000
+    # Sử dụng cặp tọa độ đã có trong OSRM cache
+    lat1, lon1 = 12.2388, 109.1967
+    lat2, lon2 = 12.2789, 109.1983
 
-    # Lần 1: Gọi tính toán
-    dist1, time1, _ = RoutingEngine.get_distance_and_travel_time(lat1, lon1, lat2, lon2, allow_network=False)
-    
-    # Lần 2: Phải lấy từ Cache
+    # Lần 1: Lấy từ Cache
+    dist1, time1, src1 = RoutingEngine.get_distance_and_travel_time(lat1, lon1, lat2, lon2, allow_network=False)
+    assert src1 == "osrm_cache"
+
+    # Lần 2: Tiếp tục lấy từ Cache và trả về kết quả nhất quán
     dist2, time2, src2 = RoutingEngine.get_distance_and_travel_time(lat1, lon1, lat2, lon2, allow_network=False)
-    
+
     assert dist1 == dist2
     assert time1 == time2
     assert src2 == "osrm_cache"

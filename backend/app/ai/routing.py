@@ -161,9 +161,15 @@ class RoutingEngine:
 
         cache_key = f"{f_lat:.5f},{f_lon:.5f}->{t_lat:.5f},{t_lon:.5f}"
         if cache_key in cls._memory_cache:
-            dist_km, dur_mins, _ = cls._memory_cache[cache_key]
+            dist_km, dur_mins, stored_source = cls._memory_cache[cache_key]
+            if stored_source in ("osrm_network", "osrm_cache"):
+                cls._query_stats["osrm_cache"] += 1
+                return dist_km, dur_mins, "osrm_cache"
+            if stored_source == "haversine_fallback":
+                cls._query_stats["haversine_fallback"] += 1
+                return dist_km, dur_mins, "haversine_fallback"
             cls._query_stats["osrm_cache"] += 1
-            return dist_km, dur_mins, "osrm_cache"
+            return dist_km, dur_mins, stored_source or "osrm_cache"
 
         # Nếu cho phép gọi mạng và mạng khả dụng, truy vấn OSRM public server
         if allow_network and cls._network_available:
