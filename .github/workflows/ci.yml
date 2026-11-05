@@ -55,9 +55,9 @@ jobs:
           python -c "from app.db.session import engine; from app.models import Base; Base.metadata.create_all(bind=engine); print('Database schema created successfully')"
           python backend/scripts/seed_database.py
 
-      - name: Run unit & regression tests with pytest
+      - name: Run all backend tests with pytest
         run: |
-          pytest backend/tests/test_routing.py backend/tests/test_ai.py -v --tb=short
+          pytest backend/tests/ -v --tb=short
 
       - name: Verify experimental data consistency
         run: |
