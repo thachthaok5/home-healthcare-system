@@ -55,29 +55,29 @@ const renderAvailabilityBadge = (avail: StaffAvailabilityState) => {
   switch (avail) {
     case 'Available':
       return (
-        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-semibold bg-[#EBF6F1] text-[#2E755D] border border-[#C5E2D7]">
-          <span className="w-1.5 h-1.5 rounded-full bg-[#4D947B]" />
+        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-semibold bg-ok-tint text-ok border border-brand-200">
+          <span className="w-1.5 h-1.5 rounded-full bg-ok" />
           Sẵn sàng (Available)
         </span>
       );
     case 'Partially Busy':
       return (
-        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium bg-[#E5F1EC] text-[#2F6F64] border border-[#B8D9CE]">
-          <span className="w-1.5 h-1.5 rounded-full bg-[#2F6F64]" />
+        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium bg-brand-100 text-brand-600 border border-brand-200">
+          <span className="w-1.5 h-1.5 rounded-full bg-brand-600" />
           Bận một phần (Partially Busy)
         </span>
       );
     case 'Fully Booked':
       return (
-        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-semibold bg-[#FDF6EC] text-[#B87514] border border-[#F3D9B1]">
-          <span className="w-1.5 h-1.5 rounded-full bg-[#E6A64B]" />
+        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-semibold bg-high-tint text-high-ink border border-high-line">
+          <span className="w-1.5 h-1.5 rounded-full bg-high" />
           Kín lịch (Fully Booked)
         </span>
       );
     case 'Unavailable':
       return (
-        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium bg-[#FDF2F3] text-[#C03A47] border border-[#F2C6CB]">
-          <span className="w-1.5 h-1.5 rounded-full bg-[#D85D68]" />
+        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium bg-urgent-tint text-urgent border border-urgent-line">
+          <span className="w-1.5 h-1.5 rounded-full bg-urgent" />
           Không khả dụng (Unavailable)
         </span>
       );
@@ -87,14 +87,14 @@ const renderAvailabilityBadge = (avail: StaffAvailabilityState) => {
 const renderActiveStatusBadge = (isActive: boolean) => {
   if (isActive) {
     return (
-      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium bg-[#EBF6F1] text-[#2E755D] border border-[#C5E2D7]">
+      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium bg-ok-tint text-ok border border-brand-200">
         <CheckCircle2 className="w-3 h-3" />
         Đang hoạt động
       </span>
     );
   }
   return (
-    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium bg-[#F7FAF9] text-[#687A78] border border-[#CBD8D3]">
+    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium bg-canvas text-muted border border-line-strong">
       Tạm ngưng (Inactive)
     </span>
   );
@@ -336,7 +336,7 @@ export const CareTeamPage: React.FC<CareTeamPageProps> = ({
       role: newRole,
       specialty: skillsArr[0] || 'Chăm sóc tổng quát',
       skills: skillsArr.length > 0 ? skillsArr : ['Chăm sóc vết thương'],
-      avatarColor: '#2F6F64',
+      avatarColor: '#1A73A0',
       zone: newZone,
       baseLocation: { lat: 12.2388, lng: 109.1967 },
       baseAddress: `Trạm Y tế ${newZone}, Nha Trang`,
@@ -360,7 +360,7 @@ export const CareTeamPage: React.FC<CareTeamPageProps> = ({
           <button
             type="button"
             onClick={() => setAddModalOpen(true)}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg border border-[#E1E9E6] bg-white text-[#253438] text-[13px] font-medium hover:border-[#2F6F64] hover:text-[#2F6F64] transition-colors cursor-pointer"
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg border border-line bg-white text-ink text-[13px] font-medium hover:border-brand-600 hover:text-brand-600 transition-colors cursor-pointer"
           >
             <UserPlus className="w-4 h-4" />
             + Thêm Nhân sự
@@ -374,7 +374,7 @@ export const CareTeamPage: React.FC<CareTeamPageProps> = ({
           label="Nhân sự Đang hoạt động (Active Staff)"
           value={activeStaffCount}
           sublabel={`Trên tổng số ${staffList.length} nhân sự trong danh sách`}
-          tone="default"
+          tone="sun"
           icon={<Users className="w-4 h-4" />}
           onClick={() => setActiveStatusFilter('Active')}
         />
@@ -397,15 +397,15 @@ export const CareTeamPage: React.FC<CareTeamPageProps> = ({
       </div>
 
       {/* 3.3 Search and Filters Toolbar */}
-      <div className="bg-white rounded-[10px] border border-[#E1E9E6] p-3.5 flex flex-wrap items-center justify-between gap-3">
+      <div className="bg-white rounded-[10px] border border-line p-3.5 flex flex-wrap items-center justify-between gap-3">
         <div className="relative flex-1 min-w-[230px] max-w-sm">
-          <Search className="w-4 h-4 text-[#687A78] absolute left-3 top-1/2 -translate-y-1/2" />
+          <Search className="w-4 h-4 text-muted absolute left-3 top-1/2 -translate-y-1/2" />
           <input
             type="text"
             placeholder="Tìm theo tên nhân sự, mã EMP, chức danh hoặc khu vực..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-9 pr-3 py-1.5 rounded-lg border border-[#E1E9E6] bg-[#F7FAF9] text-[13px] text-[#253438] focus:bg-white focus:border-[#2F6F64] outline-none"
+            className="w-full pl-9 pr-3 py-1.5 rounded-lg border border-line bg-canvas text-[13px] text-ink focus:bg-white focus:border-brand-600 outline-none"
           />
         </div>
 
@@ -414,7 +414,7 @@ export const CareTeamPage: React.FC<CareTeamPageProps> = ({
           <select
             value={availabilityFilter}
             onChange={(e) => setAvailabilityFilter(e.target.value)}
-            className="px-2.5 py-1.5 rounded-lg border border-[#E1E9E6] bg-white text-[12px] text-[#253438]"
+            className="px-2.5 py-1.5 rounded-lg border border-line bg-white text-[12px] text-ink"
           >
             <option value="ALL">Tất cả Mức khả dụng</option>
             <option value="Available">Sẵn sàng (Available)</option>
@@ -427,7 +427,7 @@ export const CareTeamPage: React.FC<CareTeamPageProps> = ({
           <select
             value={skillFilter}
             onChange={(e) => setSkillFilter(e.target.value)}
-            className="px-2.5 py-1.5 rounded-lg border border-[#E1E9E6] bg-white text-[12px] text-[#253438]"
+            className="px-2.5 py-1.5 rounded-lg border border-line bg-white text-[12px] text-ink"
           >
             <option value="ALL">Tất cả Kỹ năng chuyên môn</option>
             {allSkills.map((sk) => (
@@ -443,7 +443,7 @@ export const CareTeamPage: React.FC<CareTeamPageProps> = ({
             onChange={(e) =>
               setActiveStatusFilter(e.target.value as 'ALL' | 'Active' | 'Inactive')
             }
-            className="px-2.5 py-1.5 rounded-lg border border-[#E1E9E6] bg-white text-[12px] text-[#253438]"
+            className="px-2.5 py-1.5 rounded-lg border border-line bg-white text-[12px] text-ink"
           >
             <option value="ALL">Tất cả Trạng thái</option>
             <option value="Active">Đang hoạt động (Active)</option>
@@ -455,7 +455,7 @@ export const CareTeamPage: React.FC<CareTeamPageProps> = ({
             <button
               type="button"
               onClick={handleClearFilters}
-              className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-[#E1E9E6] bg-[#F7FAF9] text-[12px] font-medium text-[#687A78] hover:text-[#253438] hover:border-[#2F6F64] cursor-pointer"
+              className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-line bg-canvas text-[12px] font-medium text-muted hover:text-ink hover:border-brand-600 cursor-pointer"
             >
               <RotateCcw className="w-3.5 h-3.5" />
               Xóa bộ lọc
@@ -473,11 +473,11 @@ export const CareTeamPage: React.FC<CareTeamPageProps> = ({
           onAction={handleClearFilters}
         />
       ) : (
-        <div className="bg-white rounded-[10px] border border-[#E1E9E6] overflow-hidden">
+        <div className="bg-white rounded-[10px] border border-line overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
               <thead>
-                <tr className="border-b border-[#E1E9E6] bg-[#F7FAF9] text-[12px] font-semibold text-[#687A78]">
+                <tr className="border-b border-line bg-canvas text-[12px] font-semibold text-muted">
                   <th className="py-3 px-4">Nhân sự Y tế (Staff Member)</th>
                   <th className="py-3 px-4">Kỹ năng (Skills)</th>
                   <th className="py-3 px-4">Mức Khả dụng (Availability)</th>
@@ -486,7 +486,7 @@ export const CareTeamPage: React.FC<CareTeamPageProps> = ({
                   <th className="py-3 px-4 text-right">Thao tác</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-[#E1E9E6] text-[13px]">
+              <tbody className="divide-y divide-line text-[13px]">
                 {filteredStaff.map((staff) => {
                   const assignedMin =
                     staff.assignedMinutes ??
@@ -504,8 +504,8 @@ export const CareTeamPage: React.FC<CareTeamPageProps> = ({
                       onClick={() => handleOpenStaffDetail(staff)}
                       className={`transition-colors cursor-pointer ${
                         selectedStaffId === staff.id
-                          ? 'bg-[#E5F1EC]/60'
-                          : 'hover:bg-[#F7FAF9]'
+                          ? 'bg-brand-100/60'
+                          : 'hover:bg-canvas'
                       }`}
                     >
                       {/* 1. Staff Member */}
@@ -513,14 +513,14 @@ export const CareTeamPage: React.FC<CareTeamPageProps> = ({
                         <div className="flex items-center gap-2.5">
                           <div
                             className="w-8 h-8 rounded-full flex items-center justify-center text-white text-[12px] font-semibold shrink-0"
-                            style={{ backgroundColor: staff.avatarColor || '#2F6F64' }}
+                            style={{ backgroundColor: staff.avatarColor || '#1A73A0' }}
                           >
                             {staff.name.slice(-2).toUpperCase()}
                           </div>
                           <div>
-                            <div className="font-semibold text-[#253438]">{staff.name}</div>
-                            <div className="text-[11px] text-[#687A78]">
-                              <span className="font-mono-num font-medium text-[#2F6F64]">
+                            <div className="font-semibold text-ink">{staff.name}</div>
+                            <div className="text-[11px] text-muted">
+                              <span className="font-mono-num font-medium text-brand-600">
                                 {staff.id}
                               </span>{' '}
                               · {staff.role} · {staff.zone}
@@ -535,14 +535,14 @@ export const CareTeamPage: React.FC<CareTeamPageProps> = ({
                           {visibleSkills.map((sk) => (
                             <span
                               key={sk}
-                              className="px-2 py-0.5 rounded bg-[#F7FAF9] border border-[#E1E9E6] text-[11px] text-[#253438]"
+                              className="px-2 py-0.5 rounded bg-canvas border border-line text-[11px] text-ink"
                             >
                               {sk}
                             </span>
                           ))}
                           {extraSkillsCount > 0 && (
                             <span
-                              className="px-1.5 py-0.5 rounded bg-[#E5F1EC] text-[#2F6F64] text-[11px] font-semibold"
+                              className="px-1.5 py-0.5 rounded bg-brand-100 text-brand-600 text-[11px] font-semibold"
                               title={staff.skills.slice(2).join(', ')}
                             >
                               +{extraSkillsCount}
@@ -555,8 +555,8 @@ export const CareTeamPage: React.FC<CareTeamPageProps> = ({
                       <td className="py-3.5 px-4 tabular-nums">
                         <div className="space-y-1">
                           <div>{renderAvailabilityBadge(availabilityState)}</div>
-                          <div className="text-[11px] text-[#687A78] flex items-center gap-1">
-                            <Clock className="w-3 h-3 text-[#2F6F64]" />
+                          <div className="text-[11px] text-muted flex items-center gap-1">
+                            <Clock className="w-3 h-3 text-brand-600" />
                             {staff.isOnApprovedLeave ? (
                               <span>{staff.leaveWindowText || 'Nghỉ ca hôm nay'}</span>
                             ) : (
@@ -571,26 +571,26 @@ export const CareTeamPage: React.FC<CareTeamPageProps> = ({
                       {/* 4. Daily Workload */}
                       <td className="py-3.5 px-4 w-[240px]">
                         <div className="flex items-center justify-between text-[11px] tabular-nums mb-1">
-                          <span className="font-semibold text-[#253438]">
+                          <span className="font-semibold text-ink">
                             {assignedMin} / {staff.maxDailyMinutes} phút ({staff.workloadPct}%)
                           </span>
                           {isHighWorkload ? (
-                            <span className="text-[#C03A47] font-semibold inline-flex items-center gap-0.5">
+                            <span className="text-urgent font-semibold inline-flex items-center gap-0.5">
                               <AlertTriangle className="w-3 h-3" />
                               Tải cao
                             </span>
                           ) : (
-                            <span className="text-[#687A78]">Trống {remainingMin}p</span>
+                            <span className="text-muted">Trống {remainingMin}p</span>
                           )}
                         </div>
-                        <div className="w-full h-2 bg-[#E1E9E6] rounded-full overflow-hidden">
+                        <div className="w-full h-2 bg-line rounded-full overflow-hidden">
                           <div
                             className={`h-full rounded-full ${
                               staff.workloadPct >= 85
-                                ? 'bg-[#D85D68]'
+                                ? 'bg-urgent'
                                 : staff.workloadPct >= 75
-                                ? 'bg-[#E6A64B]'
-                                : 'bg-[#2F6F64]'
+                                ? 'bg-high'
+                                : 'bg-brand-600'
                             }`}
                             style={{ width: `${Math.min(100, staff.workloadPct)}%` }}
                           />
@@ -608,7 +608,7 @@ export const CareTeamPage: React.FC<CareTeamPageProps> = ({
                             e.stopPropagation();
                             handleOpenStaffDetail(staff);
                           }}
-                          className="px-2.5 py-1 rounded border border-[#E1E9E6] bg-white text-[12px] font-medium text-[#2F6F64] hover:border-[#2F6F64] cursor-pointer"
+                          className="px-2.5 py-1 rounded border border-line bg-white text-[12px] font-medium text-brand-600 hover:border-brand-600 cursor-pointer"
                         >
                           Xem chi tiết
                         </button>
@@ -624,24 +624,24 @@ export const CareTeamPage: React.FC<CareTeamPageProps> = ({
 
       {/* 3.5 Staff Detail Drawer (Right-Side, 420px–480px) with 3 Tabs */}
       {selectedStaff && (
-        <div className="fixed inset-0 z-50 flex justify-end bg-[#253438]/30 backdrop-blur-[1px]">
-          <div className="w-full max-w-[470px] bg-white h-full shadow-xl border-l border-[#E1E9E6] flex flex-col">
+        <div className="fixed inset-0 z-50 flex justify-end bg-ink/30 backdrop-blur-[1px]">
+          <div className="w-full max-w-[470px] bg-white h-full shadow-xl border-l border-line flex flex-col">
             {/* Drawer Header */}
-            <div className="px-6 py-4 border-b border-[#E1E9E6] bg-[#F7FAF9] shrink-0 space-y-3">
+            <div className="px-6 py-4 border-b border-line bg-canvas shrink-0 space-y-3">
               <div className="flex items-start justify-between gap-3">
                 <div className="flex items-center gap-3">
                   <div
                     className="w-10 h-10 rounded-full flex items-center justify-center text-white font-semibold text-[14px] shrink-0"
-                    style={{ backgroundColor: selectedStaff.avatarColor || '#2F6F64' }}
+                    style={{ backgroundColor: selectedStaff.avatarColor || '#1A73A0' }}
                   >
                     {selectedStaff.name.slice(-2).toUpperCase()}
                   </div>
                   <div>
-                    <h3 className="text-[16px] font-semibold text-[#253438] m-0">
+                    <h3 className="text-[16px] font-semibold text-ink m-0">
                       {selectedStaff.name}
                     </h3>
-                    <p className="text-[12px] text-[#687A78] m-0">
-                      <span className="font-mono-num font-semibold text-[#2F6F64]">
+                    <p className="text-[12px] text-muted m-0">
+                      <span className="font-mono-num font-semibold text-brand-600">
                         {selectedStaff.id}
                       </span>{' '}
                       · {selectedStaff.role}
@@ -651,7 +651,7 @@ export const CareTeamPage: React.FC<CareTeamPageProps> = ({
                 <button
                   type="button"
                   onClick={() => setSelectedStaffId(null)}
-                  className="p-1.5 rounded-lg text-[#687A78] hover:text-[#253438] cursor-pointer"
+                  className="p-1.5 rounded-lg text-muted hover:text-ink cursor-pointer"
                 >
                   <X className="w-5 h-5" />
                 </button>
@@ -665,7 +665,7 @@ export const CareTeamPage: React.FC<CareTeamPageProps> = ({
                 <button
                   type="button"
                   onClick={() => handleStartEditStaff(selectedStaff)}
-                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded border border-[#E1E9E6] bg-white text-[12px] font-medium text-[#2F6F64] hover:border-[#2F6F64] cursor-pointer"
+                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded border border-line bg-white text-[12px] font-medium text-brand-600 hover:border-brand-600 cursor-pointer"
                 >
                   <Edit3 className="w-3.5 h-3.5" />
                   Chỉnh sửa
@@ -673,7 +673,7 @@ export const CareTeamPage: React.FC<CareTeamPageProps> = ({
               </div>
 
               {/* 3 Tabs inside Drawer */}
-              <div className="grid grid-cols-3 gap-1 bg-white p-1 rounded-lg border border-[#E1E9E6]">
+              <div className="grid grid-cols-3 gap-1 bg-white p-1 rounded-lg border border-line">
                 {(
                   [
                     { key: 'Overview', label: 'Tổng quan (Overview)' },
@@ -693,8 +693,8 @@ export const CareTeamPage: React.FC<CareTeamPageProps> = ({
                     }}
                     className={`py-1.5 px-2 rounded-md text-[12px] font-medium transition-colors cursor-pointer ${
                       drawerTab === t.key
-                        ? 'bg-[#2F6F64] text-white font-semibold'
-                        : 'text-[#687A78] hover:text-[#253438]'
+                        ? 'bg-brand-600 text-white font-semibold'
+                        : 'text-muted hover:text-ink'
                     }`}
                   >
                     {t.label}
@@ -708,28 +708,28 @@ export const CareTeamPage: React.FC<CareTeamPageProps> = ({
               {isEditingStaff ? (
                 /* Inline Edit Staff / Edit Availability Form */
                 <form onSubmit={handleSaveStaffEdit} className="space-y-4">
-                  <div className="flex items-center justify-between pb-2 border-b border-[#E1E9E6]">
-                    <span className="text-[13px] font-semibold text-[#253438]">
+                  <div className="flex items-center justify-between pb-2 border-b border-line">
+                    <span className="text-[13px] font-semibold text-ink">
                       Cập nhật Thông tin & Lịch khả dụng ({selectedStaff.id})
                     </span>
                     <button
                       type="button"
                       onClick={() => setIsEditingStaff(false)}
-                      className="text-[12px] text-[#687A78] cursor-pointer"
+                      className="text-[12px] text-muted cursor-pointer"
                     >
                       Hủy
                     </button>
                   </div>
 
                   {editError && (
-                    <div className="p-3 rounded-lg bg-[#FDF2F3] border border-[#F2C6CB] text-[12px] text-[#C03A47] flex items-start gap-2">
+                    <div className="p-3 rounded-lg bg-urgent-tint border border-urgent-line text-[12px] text-urgent flex items-start gap-2">
                       <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
                       <span>{editError}</span>
                     </div>
                   )}
 
                   {editIsInactive && selectedStaffVisits.length > 0 && (
-                    <div className="p-3 rounded-lg bg-[#FDF6EC] border border-[#F3D9B1] text-[12px] text-[#B87514] flex items-start gap-2">
+                    <div className="p-3 rounded-lg bg-high-tint border border-high-line text-[12px] text-high-ink flex items-start gap-2">
                       <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
                       <span>
                         Cảnh báo Ràng buộc: Nhân sự này đang có{' '}
@@ -740,56 +740,56 @@ export const CareTeamPage: React.FC<CareTeamPageProps> = ({
                   )}
 
                   <div>
-                    <label className="block text-[12px] font-medium text-[#253438] mb-1">
+                    <label className="block text-[12px] font-medium text-ink mb-1">
                       Khu vực phụ trách chính (Primary Zone)
                     </label>
                     <input
                       type="text"
                       value={editZone}
                       onChange={(e) => setEditZone(e.target.value)}
-                      className="w-full px-3 py-1.5 rounded-lg border border-[#E1E9E6] text-[13px]"
+                      className="w-full px-3 py-1.5 rounded-lg border border-line text-[13px]"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-[12px] font-medium text-[#253438] mb-1">
+                    <label className="block text-[12px] font-medium text-ink mb-1">
                       Kỹ năng chuyên môn (phân cách bằng dấu phẩy)
                     </label>
                     <input
                       type="text"
                       value={editSkillsText}
                       onChange={(e) => setEditSkillsText(e.target.value)}
-                      className="w-full px-3 py-1.5 rounded-lg border border-[#E1E9E6] text-[13px]"
+                      className="w-full px-3 py-1.5 rounded-lg border border-line text-[13px]"
                     />
                   </div>
 
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <label className="block text-[12px] font-medium text-[#253438] mb-1">
+                      <label className="block text-[12px] font-medium text-ink mb-1">
                         Giờ bắt đầu ca
                       </label>
                       <input
                         type="time"
                         value={editShiftStart}
                         onChange={(e) => setEditShiftStart(e.target.value)}
-                        className="w-full px-3 py-1.5 rounded-lg border border-[#E1E9E6] text-[13px] tabular-nums"
+                        className="w-full px-3 py-1.5 rounded-lg border border-line text-[13px] tabular-nums"
                       />
                     </div>
                     <div>
-                      <label className="block text-[12px] font-medium text-[#253438] mb-1">
+                      <label className="block text-[12px] font-medium text-ink mb-1">
                         Giờ kết thúc ca
                       </label>
                       <input
                         type="time"
                         value={editShiftEnd}
                         onChange={(e) => setEditShiftEnd(e.target.value)}
-                        className="w-full px-3 py-1.5 rounded-lg border border-[#E1E9E6] text-[13px] tabular-nums"
+                        className="w-full px-3 py-1.5 rounded-lg border border-line text-[13px] tabular-nums"
                       />
                     </div>
                   </div>
 
                   <div>
-                    <label className="block text-[12px] font-medium text-[#253438] mb-1">
+                    <label className="block text-[12px] font-medium text-ink mb-1">
                       Trần thời lượng tối đa/ngày (phút) — Đã gán:{' '}
                       {selectedStaff.assignedMinutes ?? 0}p
                     </label>
@@ -799,16 +799,16 @@ export const CareTeamPage: React.FC<CareTeamPageProps> = ({
                       max={600}
                       value={editMaxMinutes}
                       onChange={(e) => setEditMaxMinutes(Number(e.target.value))}
-                      className="w-full px-3 py-1.5 rounded-lg border border-[#E1E9E6] text-[13px] tabular-nums"
+                      className="w-full px-3 py-1.5 rounded-lg border border-line text-[13px] tabular-nums"
                     />
                   </div>
 
-                  <div className="p-3 rounded-lg bg-[#F7FAF9] border border-[#E1E9E6] flex items-center justify-between">
+                  <div className="p-3 rounded-lg bg-canvas border border-line flex items-center justify-between">
                     <div>
-                      <div className="text-[13px] font-medium text-[#253438]">
+                      <div className="text-[13px] font-medium text-ink">
                         Trạng thái Hoạt động (Active Status)
                       </div>
-                      <div className="text-[11px] text-[#687A78]">
+                      <div className="text-[11px] text-muted">
                         Nhân sự Inactive sẽ không được AI gợi ý phân công
                       </div>
                     </div>
@@ -817,8 +817,8 @@ export const CareTeamPage: React.FC<CareTeamPageProps> = ({
                       onClick={() => setEditIsInactive((v) => !v)}
                       className={`px-3 py-1.5 rounded-lg text-[12px] font-semibold border cursor-pointer ${
                         !editIsInactive
-                          ? 'bg-[#EBF6F1] text-[#2E755D] border-[#C5E2D7]'
-                          : 'bg-[#FDF2F3] text-[#C03A47] border-[#F2C6CB]'
+                          ? 'bg-ok-tint text-ok border-brand-200'
+                          : 'bg-urgent-tint text-urgent border-urgent-line'
                       }`}
                     >
                       {!editIsInactive ? 'Đang hoạt động (Active)' : 'Tạm ngưng (Inactive)'}
@@ -829,13 +829,13 @@ export const CareTeamPage: React.FC<CareTeamPageProps> = ({
                     <button
                       type="button"
                       onClick={() => setIsEditingStaff(false)}
-                      className="px-3.5 py-2 rounded-lg border border-[#E1E9E6] text-[13px] cursor-pointer"
+                      className="px-3.5 py-2 rounded-lg border border-line text-[13px] cursor-pointer"
                     >
                       Hủy
                     </button>
                     <button
                       type="submit"
-                      className="px-4 py-2 rounded-lg bg-[#2F6F64] text-white text-[13px] font-semibold cursor-pointer"
+                      className="px-4 py-2 rounded-lg bg-brand-600 text-white text-[13px] font-semibold cursor-pointer"
                     >
                       Lưu Cập nhật
                     </button>
@@ -845,24 +845,24 @@ export const CareTeamPage: React.FC<CareTeamPageProps> = ({
                 /* TAB 1: Overview */
                 <>
                   <div className="space-y-2">
-                    <div className="text-[11px] font-semibold uppercase tracking-wider text-[#687A78]">
+                    <div className="text-[11px] font-semibold uppercase tracking-wider text-muted">
                       Chức danh & Khu vực Phụ trách
                     </div>
-                    <div className="p-3.5 rounded-lg bg-[#F7FAF9] border border-[#E1E9E6] space-y-2 text-[13px]">
+                    <div className="p-3.5 rounded-lg bg-canvas border border-line space-y-2 text-[13px]">
                       <div className="flex justify-between">
-                        <span className="text-[#687A78]">Chức danh chuyên môn:</span>
-                        <span className="font-semibold text-[#253438]">{selectedStaff.role}</span>
+                        <span className="text-muted">Chức danh chuyên môn:</span>
+                        <span className="font-semibold text-ink">{selectedStaff.role}</span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-[#687A78]">Khu vực chính (Primary Zone):</span>
-                        <span className="font-medium text-[#253438] inline-flex items-center gap-1">
-                          <MapPin className="w-3.5 h-3.5 text-[#2F6F64]" />
+                        <span className="text-muted">Khu vực chính (Primary Zone):</span>
+                        <span className="font-medium text-ink inline-flex items-center gap-1">
+                          <MapPin className="w-3.5 h-3.5 text-brand-600" />
                           {selectedStaff.zone}
                         </span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-[#687A78]">Trạm xuất phát:</span>
-                        <span className="text-[#253438] text-right">
+                        <span className="text-muted">Trạm xuất phát:</span>
+                        <span className="text-ink text-right">
                           {selectedStaff.baseAddress}
                         </span>
                       </div>
@@ -870,16 +870,16 @@ export const CareTeamPage: React.FC<CareTeamPageProps> = ({
                   </div>
 
                   <div className="space-y-2">
-                    <div className="text-[11px] font-semibold uppercase tracking-wider text-[#687A78]">
+                    <div className="text-[11px] font-semibold uppercase tracking-wider text-muted">
                       Kỹ năng & Chứng chỉ Đủ Điều kiện (Qualified Skills)
                     </div>
-                    <div className="p-3.5 rounded-lg bg-[#F7FAF9] border border-[#E1E9E6] flex flex-wrap gap-1.5">
+                    <div className="p-3.5 rounded-lg bg-canvas border border-line flex flex-wrap gap-1.5">
                       {selectedStaff.skills.map((sk) => (
                         <span
                           key={sk}
-                          className="inline-flex items-center gap-1 px-2.5 py-1 rounded bg-white border border-[#E1E9E6] text-[12px] font-medium text-[#253438]"
+                          className="inline-flex items-center gap-1 px-2.5 py-1 rounded bg-white border border-line text-[12px] font-medium text-ink"
                         >
-                          <Stethoscope className="w-3.5 h-3.5 text-[#2F6F64]" />
+                          <Stethoscope className="w-3.5 h-3.5 text-brand-600" />
                           {sk}
                         </span>
                       ))}
@@ -896,39 +896,39 @@ export const CareTeamPage: React.FC<CareTeamPageProps> = ({
                     const remainingMin = Math.max(0, selectedStaff.maxDailyMinutes - assignedMin);
                     return (
                       <div className="space-y-2">
-                        <div className="text-[11px] font-semibold uppercase tracking-wider text-[#687A78]">
+                        <div className="text-[11px] font-semibold uppercase tracking-wider text-muted">
                           Tải Công việc & Dung lượng Còn lại (Daily Capacity)
                         </div>
-                        <div className="p-3.5 rounded-lg bg-[#F7FAF9] border border-[#E1E9E6] space-y-2.5">
+                        <div className="p-3.5 rounded-lg bg-canvas border border-line space-y-2.5">
                           <div className="grid grid-cols-3 gap-2 text-center">
-                            <div className="p-2 rounded bg-white border border-[#E1E9E6]">
-                              <span className="block text-[11px] text-[#687A78]">Trần tối đa</span>
-                              <strong className="text-[14px] text-[#253438] tabular-nums">
+                            <div className="p-2 rounded bg-white border border-line">
+                              <span className="block text-[11px] text-muted">Trần tối đa</span>
+                              <strong className="text-[14px] text-ink tabular-nums">
                                 {selectedStaff.maxDailyMinutes}p
                               </strong>
                             </div>
-                            <div className="p-2 rounded bg-white border border-[#E1E9E6]">
-                              <span className="block text-[11px] text-[#687A78]">Đã phân công</span>
-                              <strong className="text-[14px] text-[#2F6F64] tabular-nums">
+                            <div className="p-2 rounded bg-white border border-line">
+                              <span className="block text-[11px] text-muted">Đã phân công</span>
+                              <strong className="text-[14px] text-brand-600 tabular-nums">
                                 {assignedMin}p
                               </strong>
                             </div>
-                            <div className="p-2 rounded bg-white border border-[#E1E9E6]">
-                              <span className="block text-[11px] text-[#687A78]">Còn trống</span>
-                              <strong className="text-[14px] text-[#253438] tabular-nums">
+                            <div className="p-2 rounded bg-white border border-line">
+                              <span className="block text-[11px] text-muted">Còn trống</span>
+                              <strong className="text-[14px] text-ink tabular-nums">
                                 {remainingMin}p
                               </strong>
                             </div>
                           </div>
 
-                          <div className="w-full h-2.5 bg-[#E1E9E6] rounded-full overflow-hidden">
+                          <div className="w-full h-2.5 bg-line rounded-full overflow-hidden">
                             <div
                               className={`h-full rounded-full ${
                                 selectedStaff.workloadPct >= 85
-                                  ? 'bg-[#D85D68]'
+                                  ? 'bg-urgent'
                                   : selectedStaff.workloadPct >= 75
-                                  ? 'bg-[#E6A64B]'
-                                  : 'bg-[#2F6F64]'
+                                  ? 'bg-high'
+                                  : 'bg-brand-600'
                               }`}
                               style={{ width: `${Math.min(100, selectedStaff.workloadPct)}%` }}
                             />
@@ -940,15 +940,15 @@ export const CareTeamPage: React.FC<CareTeamPageProps> = ({
 
                   {/* Operational Notes */}
                   <div className="space-y-2">
-                    <div className="text-[11px] font-semibold uppercase tracking-wider text-[#687A78]">
+                    <div className="text-[11px] font-semibold uppercase tracking-wider text-muted">
                       Ghi chú Vận hành (Operational Notes)
                     </div>
-                    <div className="p-3.5 rounded-lg bg-[#F7FAF9] border border-[#E1E9E6] text-[12px] text-[#253438] space-y-1.5">
-                      <div className="flex items-center gap-1.5 text-[#2E755D] font-medium">
+                    <div className="p-3.5 rounded-lg bg-canvas border border-line text-[12px] text-ink space-y-1.5">
+                      <div className="flex items-center gap-1.5 text-ok font-medium">
                         <ShieldCheck className="w-4 h-4" />
                         <span>Tuân thủ quy tắc 6 ràng buộc cứng khi điều phối tự động</span>
                       </div>
-                      <p className="text-[#687A78] m-0">
+                      <p className="text-muted m-0">
                         {selectedStaff.isOnApprovedLeave
                           ? `Nhân sự đang tạm ngưng nhận ca (${selectedStaff.leaveWindowText}).`
                           : `Phụ trách chính tại ${selectedStaff.zone}, ưu tiên các ca ${selectedStaff.specialty}.`}
@@ -960,15 +960,15 @@ export const CareTeamPage: React.FC<CareTeamPageProps> = ({
                 /* TAB 2: Availability */
                 <>
                   <div className="space-y-2">
-                    <div className="text-[11px] font-semibold uppercase tracking-wider text-[#687A78]">
+                    <div className="text-[11px] font-semibold uppercase tracking-wider text-muted">
                       Khung Giờ Làm việc Hôm nay (Working Hours)
                     </div>
-                    <div className="p-3.5 rounded-lg bg-[#F7FAF9] border border-[#E1E9E6] flex items-center justify-between text-[13px]">
-                      <span className="text-[#687A78] inline-flex items-center gap-1.5">
-                        <Clock className="w-4 h-4 text-[#2F6F64]" />
+                    <div className="p-3.5 rounded-lg bg-canvas border border-line flex items-center justify-between text-[13px]">
+                      <span className="text-muted inline-flex items-center gap-1.5">
+                        <Clock className="w-4 h-4 text-brand-600" />
                         Ca trực tiêu chuẩn:
                       </span>
-                      <span className="font-semibold text-[#253438] tabular-nums">
+                      <span className="font-semibold text-ink tabular-nums">
                         {selectedStaff.shiftStart} – {selectedStaff.shiftEnd}
                       </span>
                     </div>
@@ -976,11 +976,11 @@ export const CareTeamPage: React.FC<CareTeamPageProps> = ({
 
                   {/* Available Time Windows */}
                   <div className="space-y-2">
-                    <div className="text-[11px] font-semibold uppercase tracking-wider text-[#2F6F64]">
+                    <div className="text-[11px] font-semibold uppercase tracking-wider text-brand-600">
                       Khung giờ Trống Khả dụng (Available Time Windows)
                     </div>
                     {calculatedAvailableWindows.length === 0 ? (
-                      <div className="p-3.5 rounded-lg bg-[#FDF2F3] border border-[#F2C6CB] text-[12px] text-[#C03A47]">
+                      <div className="p-3.5 rounded-lg bg-urgent-tint border border-urgent-line text-[12px] text-urgent">
                         Không còn khoảng trống khả dụng trong ca trực hôm nay.
                       </div>
                     ) : (
@@ -988,12 +988,12 @@ export const CareTeamPage: React.FC<CareTeamPageProps> = ({
                         {calculatedAvailableWindows.map((win, idx) => (
                           <div
                             key={idx}
-                            className="p-3 rounded-lg bg-[#EBF6F1] border border-[#C5E2D7] flex items-center justify-between text-[12px]"
+                            className="p-3 rounded-lg bg-ok-tint border border-brand-200 flex items-center justify-between text-[12px]"
                           >
-                            <span className="font-mono-num font-semibold text-[#2E755D]">
+                            <span className="font-mono-num font-semibold text-ok">
                               {win.start} – {win.end}
                             </span>
-                            <span className="text-[#2E755D] tabular-nums">
+                            <span className="text-ok tabular-nums">
                               Trống {win.durationMin} phút
                             </span>
                           </div>
@@ -1004,15 +1004,15 @@ export const CareTeamPage: React.FC<CareTeamPageProps> = ({
 
                   {/* Busy / Unavailable Slots */}
                   <div className="space-y-2">
-                    <div className="text-[11px] font-semibold uppercase tracking-wider text-[#687A78]">
+                    <div className="text-[11px] font-semibold uppercase tracking-wider text-muted">
                       Khung giờ Đã Kín lịch / Không Khả dụng (Busy & Blocked Slots)
                     </div>
                     {selectedStaff.isOnApprovedLeave ? (
-                      <div className="p-3 rounded-lg bg-[#FDF2F3] border border-[#F2C6CB] text-[12px] text-[#C03A47]">
+                      <div className="p-3 rounded-lg bg-urgent-tint border border-urgent-line text-[12px] text-urgent">
                         {selectedStaff.leaveWindowText || 'Nghỉ phép cả ngày đã duyệt'}
                       </div>
                     ) : selectedStaffVisits.length === 0 ? (
-                      <div className="p-3 rounded-lg bg-[#F7FAF9] border border-[#E1E9E6] text-[12px] text-[#687A78]">
+                      <div className="p-3 rounded-lg bg-canvas border border-line text-[12px] text-muted">
                         Chưa có khung giờ nào bị khóa trong ngày.
                       </div>
                     ) : (
@@ -1020,12 +1020,12 @@ export const CareTeamPage: React.FC<CareTeamPageProps> = ({
                         {selectedStaffVisits.map((v) => (
                           <div
                             key={v.id}
-                            className="p-2.5 rounded-lg bg-[#F7FAF9] border border-[#E1E9E6] flex items-center justify-between text-[12px]"
+                            className="p-2.5 rounded-lg bg-canvas border border-line flex items-center justify-between text-[12px]"
                           >
-                            <span className="font-mono-num font-semibold text-[#253438]">
+                            <span className="font-mono-num font-semibold text-ink">
                               {v.startTime} – {v.endTime}
                             </span>
-                            <span className="text-[#687A78] truncate max-w-[220px]">
+                            <span className="text-muted truncate max-w-[220px]">
                               Bận ca {v.id} ({v.patientName})
                             </span>
                           </div>
@@ -1038,7 +1038,7 @@ export const CareTeamPage: React.FC<CareTeamPageProps> = ({
                 /* TAB 3: Assignments */
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
-                    <span className="text-[11px] font-semibold uppercase tracking-wider text-[#687A78]">
+                    <span className="text-[11px] font-semibold uppercase tracking-wider text-muted">
                       Danh sách Ca Đã phân công Hôm nay ({selectedStaffVisits.length})
                     </span>
                     {onNavigate && (
@@ -1048,7 +1048,7 @@ export const CareTeamPage: React.FC<CareTeamPageProps> = ({
                           setSelectedStaffId(null);
                           onNavigate('/dispatch');
                         }}
-                        className="text-[12px] font-medium text-[#2F6F64] hover:underline inline-flex items-center gap-1 cursor-pointer"
+                        className="text-[12px] font-medium text-brand-600 hover:underline inline-flex items-center gap-1 cursor-pointer"
                       >
                         <CalendarClock className="w-3.5 h-3.5" />
                         Mở Bảng Điều phối
@@ -1057,7 +1057,7 @@ export const CareTeamPage: React.FC<CareTeamPageProps> = ({
                   </div>
 
                   {selectedStaffVisits.length === 0 ? (
-                    <div className="p-5 rounded-lg bg-[#F7FAF9] border border-[#E1E9E6] text-[12px] text-[#687A78] text-center">
+                    <div className="p-5 rounded-lg bg-canvas border border-line text-[12px] text-muted text-center">
                       Chưa có ca chăm sóc nào được phân công cho nhân sự này hôm nay.
                     </div>
                   ) : (
@@ -1073,31 +1073,31 @@ export const CareTeamPage: React.FC<CareTeamPageProps> = ({
                           }}
                           className={`p-3.5 rounded-lg border transition-colors cursor-pointer ${
                             v.isConflict
-                              ? 'bg-[#FDF2F3] border-[#F2C6CB] hover:border-[#D85D68]'
-                              : 'bg-[#F7FAF9] border-[#E1E9E6] hover:border-[#2F6F64]'
+                              ? 'bg-urgent-tint border-urgent-line hover:border-urgent'
+                              : 'bg-canvas border-line hover:border-brand-600'
                           }`}
                         >
                           <div className="flex items-center justify-between gap-2">
                             <div className="flex items-center gap-2">
-                              <span className="font-mono-num text-[12px] font-semibold text-[#2F6F64]">
+                              <span className="font-mono-num text-[12px] font-semibold text-brand-600">
                                 {v.id}
                               </span>
-                              <span className="font-mono-num text-[12px] font-semibold text-[#253438] bg-white px-2 py-0.5 rounded border border-[#E1E9E6]">
+                              <span className="font-mono-num text-[12px] font-semibold text-ink bg-white px-2 py-0.5 rounded border border-line">
                                 {v.startTime} – {v.endTime}
                               </span>
                             </div>
                             <StatusBadge status={v.isConflict ? 'Conflict' : v.status} />
                           </div>
 
-                          <div className="text-[13px] font-semibold text-[#253438] mt-1.5">
+                          <div className="text-[13px] font-semibold text-ink mt-1.5">
                             {v.serviceName}
                           </div>
 
-                          <div className="flex items-center justify-between text-[12px] text-[#687A78] mt-1">
+                          <div className="flex items-center justify-between text-[12px] text-muted mt-1">
                             <span>
                               {v.patientName} · {v.district}
                             </span>
-                            <span className="tabular-nums font-medium text-[#2F6F64] inline-flex items-center gap-1">
+                            <span className="tabular-nums font-medium text-brand-600 inline-flex items-center gap-1">
                               {v.predictedDurationMin} phút
                               <ExternalLink className="w-3 h-3" />
                             </span>
@@ -1111,11 +1111,11 @@ export const CareTeamPage: React.FC<CareTeamPageProps> = ({
             </div>
 
             {/* Drawer Footer */}
-            <div className="p-4 border-t border-[#E1E9E6] bg-[#F7FAF9] flex items-center justify-between gap-2 shrink-0">
+            <div className="p-4 border-t border-line bg-canvas flex items-center justify-between gap-2 shrink-0">
               <button
                 type="button"
                 onClick={() => handleStartEditStaff(selectedStaff)}
-                className="px-3.5 py-2 rounded-lg border border-[#E1E9E6] bg-white text-[13px] font-medium text-[#253438] hover:border-[#2F6F64] inline-flex items-center gap-1.5 cursor-pointer"
+                className="px-3.5 py-2 rounded-lg border border-line bg-white text-[13px] font-medium text-ink hover:border-brand-600 inline-flex items-center gap-1.5 cursor-pointer"
               >
                 <Edit3 className="w-4 h-4" />
                 Cập nhật Hồ sơ / Lịch trực
@@ -1127,7 +1127,7 @@ export const CareTeamPage: React.FC<CareTeamPageProps> = ({
                     setSelectedStaffId(null);
                     onNavigate('/dispatch');
                   }}
-                  className="px-4 py-2 rounded-lg bg-[#2F6F64] text-white text-[13px] font-semibold hover:bg-[#255A51] inline-flex items-center gap-1.5 cursor-pointer"
+                  className="px-4 py-2 rounded-lg bg-brand-600 text-white text-[13px] font-semibold hover:bg-brand-700 inline-flex items-center gap-1.5 cursor-pointer"
                 >
                   <CalendarClock className="w-4 h-4" />
                   Xem Lịch Điều phối
@@ -1140,17 +1140,17 @@ export const CareTeamPage: React.FC<CareTeamPageProps> = ({
 
       {/* Add Staff Modal */}
       {addModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#253438]/30 p-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/30 p-4">
           <form
             onSubmit={handleCreateStaff}
-            className="bg-white rounded-[12px] border border-[#E1E9E6] max-w-md w-full p-6 shadow-xl space-y-4"
+            className="bg-white rounded-[12px] border border-line max-w-md w-full p-6 shadow-xl space-y-4"
           >
-            <h3 className="text-[16px] font-semibold text-[#253438] m-0">
+            <h3 className="text-[16px] font-semibold text-ink m-0">
               Thêm Nhân sự Y tế Mới
             </h3>
             <div className="space-y-3">
               <div>
-                <label className="block text-[12px] font-medium text-[#253438] mb-1">
+                <label className="block text-[12px] font-medium text-ink mb-1">
                   Họ tên & Học vị *
                 </label>
                 <input
@@ -1158,17 +1158,17 @@ export const CareTeamPage: React.FC<CareTeamPageProps> = ({
                   required
                   value={newName}
                   onChange={(e) => setNewName(e.target.value)}
-                  className="w-full px-3 py-1.5 rounded-lg border border-[#E1E9E6] text-[13px]"
+                  className="w-full px-3 py-1.5 rounded-lg border border-line text-[13px]"
                 />
               </div>
               <div>
-                <label className="block text-[12px] font-medium text-[#253438] mb-1">
+                <label className="block text-[12px] font-medium text-ink mb-1">
                   Chức danh Chuyên môn
                 </label>
                 <select
                   value={newRole}
                   onChange={(e) => setNewRole(e.target.value as MedicalStaff['role'])}
-                  className="w-full px-3 py-1.5 rounded-lg border border-[#E1E9E6] text-[13px]"
+                  className="w-full px-3 py-1.5 rounded-lg border border-line text-[13px]"
                 >
                   <option value="Điều dưỡng Chuyên khoa">Điều dưỡng Chuyên khoa</option>
                   <option value="Bác sĩ Gia đình">Bác sĩ Gia đình</option>
@@ -1177,25 +1177,25 @@ export const CareTeamPage: React.FC<CareTeamPageProps> = ({
                 </select>
               </div>
               <div>
-                <label className="block text-[12px] font-medium text-[#253438] mb-1">
+                <label className="block text-[12px] font-medium text-ink mb-1">
                   Khu vực Phụ trách Chính (Phường)
                 </label>
                 <input
                   type="text"
                   value={newZone}
                   onChange={(e) => setNewZone(e.target.value)}
-                  className="w-full px-3 py-1.5 rounded-lg border border-[#E1E9E6] text-[13px]"
+                  className="w-full px-3 py-1.5 rounded-lg border border-line text-[13px]"
                 />
               </div>
               <div>
-                <label className="block text-[12px] font-medium text-[#253438] mb-1">
+                <label className="block text-[12px] font-medium text-ink mb-1">
                   Chứng chỉ Kỹ năng (phân cách bằng dấu phẩy)
                 </label>
                 <input
                   type="text"
                   value={newSkillsText}
                   onChange={(e) => setNewSkillsText(e.target.value)}
-                  className="w-full px-3 py-1.5 rounded-lg border border-[#E1E9E6] text-[13px]"
+                  className="w-full px-3 py-1.5 rounded-lg border border-line text-[13px]"
                 />
               </div>
             </div>
@@ -1203,13 +1203,13 @@ export const CareTeamPage: React.FC<CareTeamPageProps> = ({
               <button
                 type="button"
                 onClick={() => setAddModalOpen(false)}
-                className="px-3.5 py-1.5 rounded-lg border border-[#E1E9E6] text-[13px] cursor-pointer"
+                className="px-3.5 py-1.5 rounded-lg border border-line text-[13px] cursor-pointer"
               >
                 Hủy
               </button>
               <button
                 type="submit"
-                className="px-3.5 py-1.5 rounded-lg bg-[#2F6F64] text-white text-[13px] font-semibold cursor-pointer"
+                className="px-3.5 py-1.5 rounded-lg bg-brand-600 text-white text-[13px] font-semibold cursor-pointer"
               >
                 Lưu Nhân sự
               </button>

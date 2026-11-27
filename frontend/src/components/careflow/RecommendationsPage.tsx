@@ -10,6 +10,7 @@ import {
   AlertTriangle,
   ShieldCheck,
   Stethoscope,
+  Sparkles,
 } from 'lucide-react';
 import {
   AICandidate,
@@ -27,6 +28,8 @@ import {
   evaluateSixHardConstraints,
   EmptyStateCard,
 } from './SharedUI';
+
+const PRIORITY_RANK: Record<string, number> = { 'Khẩn cấp': 0, Cao: 1, 'Tiêu chuẩn': 2 };
 
 export interface RecommendationsPageProps {
   selectedDate: string;
@@ -125,7 +128,9 @@ export const RecommendationsPage: React.FC<RecommendationsPageProps> = ({
         if (priorityFilter === 'Standard' && req.priority !== 'Tiêu chuẩn') return false;
       }
       return true;
-    });
+    })
+      // Ghim ca Khẩn cấp lên đầu, sau đó Ưu tiên cao, rồi Tiêu chuẩn
+      .sort((a, b) => (PRIORITY_RANK[a.priority] ?? 9) - (PRIORITY_RANK[b.priority] ?? 9));
   }, [unassignedRequests, serviceFilter, priorityFilter]);
 
   // Summary counts (Section 6.2 — Maximum 3 compact counts)
@@ -269,8 +274,8 @@ export const RecommendationsPage: React.FC<RecommendationsPageProps> = ({
         title="Đề xuất AI & Giải trình DSS"
         subtitle="Đánh giá gợi ý ứng viên của AI, kiểm tra ràng buộc và xác nhận phân công"
         badge={
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-[#E5F1EC] text-[#2F6F64] border border-[#C6DFD7]">
-            <span className="w-1.5 h-1.5 rounded-full bg-[#4D947B]" />
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-brand-100 text-brand-600 border border-brand-200 whitespace-nowrap">
+            <span className="w-1.5 h-1.5 rounded-full bg-ok" />
             Đã đồng bộ
           </span>
         }
@@ -281,13 +286,13 @@ export const RecommendationsPage: React.FC<RecommendationsPageProps> = ({
               type="date"
               value={selectedDate}
               onChange={(e) => onDateChange(e.target.value)}
-              className="px-2.5 py-1.5 rounded-lg border border-[#E1E9E6] bg-white text-[12px] text-[#253438] tabular-nums"
+              className="px-2.5 py-1.5 rounded-lg border border-line bg-white text-[12px] text-ink tabular-nums"
             />
             {/* Service Type Filter */}
             <select
               value={serviceFilter}
               onChange={(e) => setServiceFilter(e.target.value)}
-              className="px-2.5 py-1.5 rounded-lg border border-[#E1E9E6] bg-white text-[12px] text-[#253438]"
+              className="px-2.5 py-1.5 rounded-lg border border-line bg-white text-[12px] text-ink"
             >
               <option value="ALL">Tất cả Loại dịch vụ</option>
               {serviceTypes.map((st) => (
@@ -300,7 +305,7 @@ export const RecommendationsPage: React.FC<RecommendationsPageProps> = ({
             <select
               value={priorityFilter}
               onChange={(e) => setPriorityFilter(e.target.value)}
-              className="px-2.5 py-1.5 rounded-lg border border-[#E1E9E6] bg-white text-[12px] text-[#253438]"
+              className="px-2.5 py-1.5 rounded-lg border border-line bg-white text-[12px] text-ink"
             >
               <option value="ALL">Tất cả Mức ưu tiên</option>
               <option value="Urgent">Khẩn cấp</option>
@@ -308,7 +313,7 @@ export const RecommendationsPage: React.FC<RecommendationsPageProps> = ({
               <option value="Standard">Tiêu chuẩn</option>
             </select>
             {/* Status Filter (Pending Review / Reviewed) */}
-            <div className="inline-flex rounded-lg border border-[#E1E9E6] bg-white p-0.5">
+            <div className="inline-flex rounded-lg border border-line bg-white p-0.5">
               {(
                 [
                   { key: 'Pending Review', label: 'Chờ xét duyệt' },
@@ -321,8 +326,8 @@ export const RecommendationsPage: React.FC<RecommendationsPageProps> = ({
                   onClick={() => setStatusFilter(st.key)}
                   className={`px-2.5 py-1 rounded-md text-[12px] font-medium transition-colors cursor-pointer ${
                     statusFilter === st.key
-                      ? 'bg-[#2F6F64] text-white'
-                      : 'text-[#687A78] hover:text-[#253438]'
+                      ? 'bg-brand-600 text-white'
+                      : 'text-muted hover:text-ink'
                   }`}
                 >
                   {st.label}
@@ -338,27 +343,27 @@ export const RecommendationsPage: React.FC<RecommendationsPageProps> = ({
 
       {/* 6.2 Compact Summary Row (Maximum 3 Compact Counts) */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-        <div className="bg-white rounded-[10px] border border-[#E1E9E6] px-4 py-3 flex items-center justify-between">
-          <span className="text-[13px] text-[#687A78] font-medium">
+        <div className="bg-white rounded-[10px] border border-line px-4 py-3 flex items-center justify-between">
+          <span className="text-[13px] text-muted font-medium">
             Yêu cầu đang chờ xét duyệt
           </span>
-          <span className="text-[20px] font-semibold text-[#253438] tabular-nums">
+          <span className="text-[20px] font-semibold text-ink tabular-nums">
             {awaitingReviewCount}
           </span>
         </div>
-        <div className="bg-white rounded-[10px] border border-[#C6DFD7] px-4 py-3 flex items-center justify-between">
-          <span className="text-[13px] text-[#2F6F64] font-medium">
+        <div className="bg-gradient-to-br from-lav-100 to-lav-50 rounded-2xl border border-lav-200 px-4 py-3 flex items-center justify-between">
+          <span className="text-[13px] text-lav-700 font-bold">
             Đề xuất AI sẵn sàng phê duyệt
           </span>
-          <span className="text-[20px] font-semibold text-[#2F6F64] tabular-nums">
+          <span className="font-display text-[22px] font-semibold text-lav-700 tabular-nums">
             {readyForReviewCount}
           </span>
         </div>
-        <div className="bg-white rounded-[10px] border border-[#F3D9B1] px-4 py-3 flex items-center justify-between">
-          <span className="text-[13px] text-[#B87514] font-medium">
+        <div className="bg-white rounded-[10px] border border-high-line px-4 py-3 flex items-center justify-between">
+          <span className="text-[13px] text-high-ink font-medium">
             Ca cần điều phối viên can thiệp
           </span>
-          <span className="text-[20px] font-semibold text-[#B87514] tabular-nums">
+          <span className="text-[20px] font-semibold text-high-ink tabular-nums">
             {manualInterventionCount}
           </span>
         </div>
@@ -374,13 +379,13 @@ export const RecommendationsPage: React.FC<RecommendationsPageProps> = ({
             onAction={() => setStatusFilter('Pending Review')}
           />
         ) : (
-          <div className="bg-white rounded-[10px] border border-[#E1E9E6] overflow-hidden">
-            <div className="px-5 py-3.5 border-b border-[#E1E9E6] flex items-center justify-between">
-              <h2 className="text-[15px] font-semibold text-[#253438] m-0">
+          <div className="bg-white rounded-[10px] border border-line overflow-hidden">
+            <div className="px-5 py-3.5 border-b border-line flex items-center justify-between">
+              <h2 className="text-[15px] font-semibold text-ink m-0">
                 Đề xuất Đã Xử lý ({reviewedRecords.length})
               </h2>
             </div>
-            <div className="divide-y divide-[#E1E9E6]">
+            <div className="divide-y divide-line">
               {reviewedRecords.map((rec) => (
                 <div
                   key={`${rec.requestId}-${rec.reviewedAt}`}
@@ -388,24 +393,24 @@ export const RecommendationsPage: React.FC<RecommendationsPageProps> = ({
                 >
                   <div>
                     <div className="flex items-center gap-2">
-                      <span className="font-mono-num text-[12px] font-semibold text-[#2F6F64]">
+                      <span className="font-mono-num text-[12px] font-semibold text-brand-600">
                         {rec.requestId}
                       </span>
-                      <span className="text-[14px] font-semibold text-[#253438]">
+                      <span className="text-[14px] font-semibold text-ink">
                         {rec.serviceName}
                       </span>
                       <PriorityBadge priority={rec.priority} />
                     </div>
-                    <div className="text-[12px] text-[#687A78] mt-0.5">
+                    <div className="text-[12px] text-muted mt-0.5">
                       Bệnh nhân: {rec.patientName} · {rec.district} · Khung giờ {rec.requestedWindow}
                     </div>
                   </div>
                   <div className="flex items-center gap-3">
                     <div className="text-right">
-                      <div className="text-[13px] font-semibold text-[#253438]">
+                      <div className="text-[13px] font-semibold text-ink">
                         {rec.assignedStaffName}
                       </div>
-                      <div className="text-[11px] text-[#687A78] tabular-nums">
+                      <div className="text-[11px] text-muted tabular-nums">
                         Xử lý lúc {rec.reviewedAt}
                       </div>
                     </div>
@@ -431,17 +436,17 @@ export const RecommendationsPage: React.FC<RecommendationsPageProps> = ({
            Independent split-pane scrolling: scrolling left queue keeps right panel stationary and vice versa */
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start lg:h-[calc(100vh-250px)] lg:min-h-[560px]">
           {/* LEFT COLUMN (7 cols ~ 58-60%) — Request Queue (Independent Scroll Container) */}
-          <div className="lg:col-span-7 bg-white rounded-[10px] border border-[#E1E9E6] overflow-hidden flex flex-col lg:h-full">
-            <div className="px-5 py-3.5 border-b border-[#E1E9E6] flex items-center justify-between bg-[#F7FAF9] shrink-0">
+          <div className="lg:col-span-7 bg-white rounded-[10px] border border-line overflow-hidden flex flex-col lg:h-full">
+            <div className="px-5 py-3.5 border-b border-line flex items-center justify-between bg-canvas shrink-0">
               <div>
-                <h2 className="text-[15px] font-semibold text-[#253438] m-0">
+                <h2 className="text-[15px] font-semibold text-ink m-0">
                   Hàng đợi Yêu cầu Chăm sóc
                 </h2>
-                <p className="text-[12px] text-[#687A78] m-0">
+                <p className="text-[12px] text-muted m-0">
                   Chọn một yêu cầu để xem giải trình DSS và kiểm tra 6 ràng buộc cứng
                 </p>
               </div>
-              <span className="text-[12px] font-medium text-[#687A78] tabular-nums">
+              <span className="text-[12px] font-medium text-muted tabular-nums">
                 {filteredPending.length} yêu cầu
               </span>
             </div>
@@ -460,11 +465,11 @@ export const RecommendationsPage: React.FC<RecommendationsPageProps> = ({
                     className={`p-4 rounded-lg transition-colors cursor-pointer ${
                       isUrgent
                         ? isSelected
-                          ? 'border-2 border-[#C03A47] bg-[#FDF2F3] ring-2 ring-[#D85D68]/25'
-                          : 'border-2 border-[#D85D68] bg-[#FDF2F3]/50 hover:bg-[#FDF2F3]'
+                          ? 'border-2 border-urgent bg-urgent-tint ring-2 ring-urgent/25'
+                          : 'border-2 border-urgent bg-urgent-tint/50 hover:bg-urgent-tint'
                         : isSelected
-                        ? 'border-2 border-[#2F6F64] bg-[#E5F1EC]/55'
-                        : 'border border-[#E1E9E6] bg-white hover:bg-[#F7FAF9]'
+                        ? 'border-2 border-brand-600 bg-brand-100/55'
+                        : 'border border-line bg-white hover:bg-canvas'
                     }`}
                   >
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
@@ -472,15 +477,15 @@ export const RecommendationsPage: React.FC<RecommendationsPageProps> = ({
                         <span
                           className={`font-mono-num text-[12px] font-semibold px-2 py-0.5 rounded ${
                             isUrgent
-                              ? 'bg-[#C03A47] text-white'
-                              : 'text-[#2F6F64] bg-[#E5F1EC]'
+                              ? 'bg-urgent text-white'
+                              : 'text-brand-600 bg-brand-100'
                           }`}
                         >
                           {req.id}
                         </span>
                         <span
                           className={`text-[14px] font-semibold ${
-                            isUrgent ? 'text-[#A32935]' : 'text-[#253438]'
+                            isUrgent ? 'text-urgent-ink' : 'text-ink'
                           }`}
                         >
                           {req.serviceName}
@@ -488,12 +493,13 @@ export const RecommendationsPage: React.FC<RecommendationsPageProps> = ({
                         <PriorityBadge
                           priority={req.priority}
                           showCountdown={isUrgent}
-                          seedId={req.id}
+                          deadline={req.requestedWindow}
                         />
                       </div>
                       <div className="flex items-center gap-2 shrink-0">
                         {hasEligible && topCand ? (
-                          <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[11px] font-semibold bg-[#E5F1EC] text-[#2F6F64] border border-[#C6DFD7] tabular-nums">
+                          <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-bold bg-lav-100 text-lav-700 border border-lav-200 tabular-nums">
+                            <Sparkles className="w-3 h-3" />
                             Top 1: {topCand.staffName} ({topCand.totalScore}%)
                           </span>
                         ) : (
@@ -503,26 +509,26 @@ export const RecommendationsPage: React.FC<RecommendationsPageProps> = ({
                     </div>
 
                     {/* Concise Grid Row for Glanceability */}
-                    <div className="mt-2.5 grid grid-cols-2 sm:grid-cols-4 gap-2 text-[12px] text-[#687A78]">
+                    <div className="mt-2.5 grid grid-cols-2 sm:grid-cols-4 gap-2 text-[12px] text-muted">
                       <div className="flex items-center gap-1.5 truncate">
-                        <Clock className="w-3.5 h-3.5 text-[#2F6F64] shrink-0" />
-                        <span className="tabular-nums text-[#253438] font-medium">
+                        <Clock className="w-3.5 h-3.5 text-brand-600 shrink-0" />
+                        <span className="tabular-nums text-ink font-medium">
                           {req.requestedWindow}
                         </span>
                       </div>
                       <div className="flex items-center gap-1.5 truncate">
-                        <MapPin className="w-3.5 h-3.5 text-[#687A78] shrink-0" />
+                        <MapPin className="w-3.5 h-3.5 text-muted shrink-0" />
                         <span className="truncate">{req.district}</span>
                       </div>
                       <div className="flex items-center gap-1.5 truncate">
-                        <Stethoscope className="w-3.5 h-3.5 text-[#687A78] shrink-0" />
+                        <Stethoscope className="w-3.5 h-3.5 text-muted shrink-0" />
                         <span className="truncate">
                           {req.requiredSkills[0] || req.serviceCategory}
                         </span>
                       </div>
                       <div className="flex items-center justify-end sm:justify-start gap-1 tabular-nums">
                         <span>AI dự báo:</span>
-                        <strong className="text-[#253438]">{req.predictedDurationMin}p</strong>
+                        <strong className="text-ink">{req.predictedDurationMin}p</strong>
                         <span className="text-[11px] opacity-75">
                           (Chuẩn {req.standardDurationMin}p)
                         </span>
@@ -539,74 +545,74 @@ export const RecommendationsPage: React.FC<RecommendationsPageProps> = ({
             <div
               className={`lg:col-span-5 bg-white rounded-[10px] overflow-hidden flex flex-col lg:h-full ${
                 activeRequest.priority === 'Khẩn cấp'
-                  ? 'border-2 border-[#D85D68]'
-                  : 'border border-[#E1E9E6]'
+                  ? 'border-2 border-urgent'
+                  : 'border border-line'
               }`}
             >
               <div
                 className={`px-5 py-3.5 border-b flex items-center justify-between gap-2 flex-wrap shrink-0 ${
                   activeRequest.priority === 'Khẩn cấp'
-                    ? 'bg-[#FDF2F3] border-[#F2C6CB]'
-                    : 'bg-[#F7FAF9] border-[#E1E9E6]'
+                    ? 'bg-urgent-tint border-urgent-line'
+                    : 'bg-canvas border-line'
                 }`}
               >
                 <div>
                   <div
                     className={`text-[11px] font-semibold uppercase tracking-wider ${
-                      activeRequest.priority === 'Khẩn cấp' ? 'text-[#C03A47]' : 'text-[#2F6F64]'
+                      activeRequest.priority === 'Khẩn cấp' ? 'text-urgent' : 'text-brand-600'
                     }`}
                   >
                     Chi tiết Đề xuất Đang chọn
                   </div>
-                  <h2 className="text-[16px] font-semibold text-[#253438] m-0">
+                  <h2 className="text-[16px] font-semibold text-ink m-0">
                     {activeRequest.id} · {activeRequest.patientName} ({activeRequest.patientAge} tuổi)
                   </h2>
                 </div>
                 <PriorityBadge
                   priority={activeRequest.priority}
                   showCountdown={activeRequest.priority === 'Khẩn cấp'}
-                  seedId={activeRequest.id}
+                  deadline={activeRequest.requestedWindow}
                 />
               </div>
 
               <div className="p-5 space-y-5 flex-1 overflow-y-auto overscroll-contain">
                 {/* SECTION 1: Request Summary */}
-                <div className="space-y-2 pb-4 border-b border-[#E1E9E6]">
-                  <div className="text-[12px] font-semibold text-[#687A78] uppercase tracking-wider">
+                <div className="space-y-2 pb-4 border-b border-line">
+                  <div className="text-[12px] font-semibold text-muted uppercase tracking-wider">
                     1. Tóm tắt Yêu cầu Chăm sóc
                   </div>
-                  <div className="text-[14px] font-semibold text-[#253438]">
+                  <div className="text-[14px] font-semibold text-ink">
                     {activeRequest.serviceName}
                   </div>
                   <div className="grid grid-cols-2 gap-2 text-[12px]">
-                    <div className="bg-[#F7FAF9] p-2 rounded border border-[#E1E9E6]">
-                      <span className="text-[#687A78] block text-[11px]">Khung giờ yêu cầu</span>
-                      <span className="font-semibold text-[#253438] tabular-nums">
+                    <div className="bg-canvas p-2 rounded border border-line">
+                      <span className="text-muted block text-[11px]">Khung giờ yêu cầu</span>
+                      <span className="font-semibold text-ink tabular-nums">
                         {activeRequest.requestedWindow} (Ưu tiên: {activeRequest.preferredStart})
                       </span>
                     </div>
-                    <div className="bg-[#F7FAF9] p-2 rounded border border-[#E1E9E6]">
-                      <span className="text-[#687A78] block text-[11px]">
+                    <div className="bg-canvas p-2 rounded border border-line">
+                      <span className="text-muted block text-[11px]">
                         Thời lượng (Định mức vs AI)
                       </span>
-                      <span className="font-semibold text-[#2F6F64] tabular-nums">
+                      <span className="font-semibold text-brand-600 tabular-nums">
                         {activeRequest.predictedDurationMin} phút{' '}
-                        <span className="text-[#687A78] font-normal">
+                        <span className="text-muted font-normal">
                           (Chuẩn {activeRequest.standardDurationMin}p)
                         </span>
                       </span>
                     </div>
                   </div>
-                  <div className="flex items-center justify-between text-[12px] text-[#687A78] pt-1 flex-wrap gap-2">
+                  <div className="flex items-center justify-between text-[12px] text-muted pt-1 flex-wrap gap-2">
                     <span className="inline-flex items-center gap-1">
-                      <MapPin className="w-3.5 h-3.5 text-[#2F6F64]" />
+                      <MapPin className="w-3.5 h-3.5 text-brand-600" />
                       {activeRequest.address}
                     </span>
                     <div className="flex items-center gap-1 flex-wrap">
                       {activeRequest.requiredSkills.map((sk) => (
                         <span
                           key={sk}
-                          className="px-2 py-0.5 rounded bg-[#E5F1EC] text-[#2F6F64] text-[11px] font-medium"
+                          className="px-2 py-0.5 rounded bg-brand-100 text-brand-600 text-[11px] font-medium"
                         >
                           {sk}
                         </span>
@@ -617,37 +623,37 @@ export const RecommendationsPage: React.FC<RecommendationsPageProps> = ({
 
                 {/* SECTION 2: Recommended Staff Member */}
                 {activeCandidate ? (
-                  <div className="space-y-3 pb-4 border-b border-[#E1E9E6]">
+                  <div className="space-y-3 pb-4 border-b border-line">
                     <div className="flex items-center justify-between">
-                      <span className="text-[12px] font-semibold text-[#687A78] uppercase tracking-wider">
+                      <span className="text-[12px] font-semibold text-muted uppercase tracking-wider">
                         2. Nhân sự Y tế Đề xuất
                       </span>
-                      <span className="text-[11px] font-semibold px-2 py-0.5 rounded bg-[#E5F1EC] text-[#2F6F64]">
+                      <span className="text-[11px] font-semibold px-2 py-0.5 rounded bg-brand-100 text-brand-600">
                         {activeCandidate.rankLabel}
                       </span>
                     </div>
 
-                    <div className="p-3.5 rounded-lg border border-[#C6DFD7] bg-[#E5F1EC]/35 space-y-3">
+                    <div className="p-3.5 rounded-lg border border-brand-200 bg-brand-100/35 space-y-3">
                       <div className="flex items-start justify-between gap-3">
                         <div className="flex items-center gap-2.5">
                           <div
                             className="w-9 h-9 rounded-full flex items-center justify-center text-white font-semibold text-[13px] shrink-0"
-                            style={{ backgroundColor: activeCandidate.avatarColor || '#2F6F64' }}
+                            style={{ backgroundColor: activeCandidate.avatarColor || '#1A73A0' }}
                           >
                             {activeCandidate.staffName.slice(-2).toUpperCase()}
                           </div>
                           <div>
-                            <div className="text-[15px] font-semibold text-[#253438]">
+                            <div className="text-[15px] font-semibold text-ink">
                               {activeCandidate.staffName}
                             </div>
-                            <div className="text-[12px] text-[#687A78]">
+                            <div className="text-[12px] text-muted">
                               {activeCandidate.staffRole} · {activeCandidate.zone}
                             </div>
                           </div>
                         </div>
 
                         <div className="text-right">
-                          <div className="text-[10px] uppercase tracking-wider text-[#687A78] mb-0.5">
+                          <div className="text-[10px] uppercase tracking-wider text-muted mb-0.5">
                             Điểm Phù hợp (DSS)
                           </div>
                           <SuitabilityScoreBadge score={activeCandidate.totalScore} size="md" />
@@ -657,17 +663,17 @@ export const RecommendationsPage: React.FC<RecommendationsPageProps> = ({
                       {/* Availability + Stacked Workload Progress Bar (Current + Projected out of 480m) */}
                       <div className="space-y-1.5 pt-1">
                         <div className="flex items-center justify-between text-[12px]">
-                          <span className="text-[#687A78] inline-flex items-center gap-1">
-                            <Clock className="w-3.5 h-3.5 text-[#2F6F64]" />
-                            Lịch trống: <strong className="text-[#253438] tabular-nums">{activeCandidate.criteria.availableGapText}</strong>
+                          <span className="text-muted inline-flex items-center gap-1">
+                            <Clock className="w-3.5 h-3.5 text-brand-600" />
+                            Lịch trống: <strong className="text-ink tabular-nums">{activeCandidate.criteria.availableGapText}</strong>
                           </span>
-                          <span className="text-[11px] text-[#687A78] tabular-nums">
+                          <span className="text-[11px] text-muted tabular-nums">
                             Tải công việc:{' '}
-                            <strong className="text-[#253438]">
+                            <strong className="text-ink">
                               {activeCandidate.criteria.assignedMinutes}p
                             </strong>{' '}
                             +{' '}
-                            <strong className="text-[#2F6F64]">
+                            <strong className="text-brand-600">
                               {activeCandidate.criteria.projectedAssignedMinutes -
                                 activeCandidate.criteria.assignedMinutes}
                               p
@@ -676,9 +682,9 @@ export const RecommendationsPage: React.FC<RecommendationsPageProps> = ({
                           </span>
                         </div>
                         {/* 2-Color Stacked Bar */}
-                        <div className="w-full h-2.5 bg-[#E1E9E6] rounded-full overflow-hidden flex">
+                        <div className="w-full h-2.5 bg-line rounded-full overflow-hidden flex">
                           <div
-                            className="h-full bg-[#2F6F64]"
+                            className="h-full bg-brand-600"
                             style={{
                               width: `${Math.min(
                                 100,
@@ -692,7 +698,7 @@ export const RecommendationsPage: React.FC<RecommendationsPageProps> = ({
                             title={`Đã gán trong ngày: ${activeCandidate.criteria.assignedMinutes} phút`}
                           />
                           <div
-                            className="h-full bg-[#7BB6A6]"
+                            className="h-full bg-brand-300"
                             style={{
                               width: `${Math.min(
                                 100,
@@ -717,15 +723,15 @@ export const RecommendationsPage: React.FC<RecommendationsPageProps> = ({
 
                 {/* SECTION 3: Why this candidate? (3 concise items + collapsible View DSS Criteria) */}
                 {activeCandidate && (
-                  <div className="space-y-2.5 pb-4 border-b border-[#E1E9E6]">
+                  <div className="space-y-2.5 pb-4 border-b border-line">
                     <div className="flex items-center justify-between">
-                      <span className="text-[12px] font-semibold text-[#687A78] uppercase tracking-wider">
+                      <span className="text-[12px] font-semibold text-muted uppercase tracking-wider">
                         3. Giải trình Lý do Đề xuất
                       </span>
                       <button
                         type="button"
                         onClick={() => setShowDssCriteria((prev) => !prev)}
-                        className="inline-flex items-center gap-1 text-[12px] font-medium text-[#2F6F64] hover:text-[#255A51] cursor-pointer"
+                        className="inline-flex items-center gap-1 text-[12px] font-medium text-brand-600 hover:text-brand-700 cursor-pointer"
                       >
                         {showDssCriteria ? 'Thu gọn 5 tiêu chí DSS' : 'Xem 5 tiêu chí DSS'}
                         {showDssCriteria ? (
@@ -738,23 +744,23 @@ export const RecommendationsPage: React.FC<RecommendationsPageProps> = ({
 
                     {/* 3 Concise Explanation Items */}
                     <div className="grid grid-cols-1 gap-1.5 text-[12px]">
-                      <div className="flex items-center justify-between px-3 py-2 rounded bg-[#F7FAF9] border border-[#E1E9E6]">
-                        <span className="text-[#687A78]">Độ khớp kỹ năng</span>
-                        <span className="font-medium text-[#253438]">
+                      <div className="flex items-center justify-between px-3 py-2 rounded bg-canvas border border-line">
+                        <span className="text-muted">Độ khớp kỹ năng</span>
+                        <span className="font-medium text-ink">
                           {activeCandidate.criteria.matchedSkills.join(', ') || 'Đủ chứng chỉ'} (
                           {activeCandidate.criteria.skillFitScore}%)
                         </span>
                       </div>
-                      <div className="flex items-center justify-between px-3 py-2 rounded bg-[#F7FAF9] border border-[#E1E9E6]">
-                        <span className="text-[#687A78]">Độ khít khung giờ</span>
-                        <span className="font-medium text-[#253438] tabular-nums">
+                      <div className="flex items-center justify-between px-3 py-2 rounded bg-canvas border border-line">
+                        <span className="text-muted">Độ khít khung giờ</span>
+                        <span className="font-medium text-ink tabular-nums">
                           {activeCandidate.criteria.availableGapText} (
                           {activeCandidate.criteria.timeFitScore}%)
                         </span>
                       </div>
-                      <div className="flex items-center justify-between px-3 py-2 rounded bg-[#F7FAF9] border border-[#E1E9E6]">
-                        <span className="text-[#687A78]">Khoảng cách & Cân bằng tải</span>
-                        <span className="font-medium text-[#253438] tabular-nums">
+                      <div className="flex items-center justify-between px-3 py-2 rounded bg-canvas border border-line">
+                        <span className="text-muted">Khoảng cách & Cân bằng tải</span>
+                        <span className="font-medium text-ink tabular-nums">
                           {activeCandidate.criteria.distanceKm} km (~
                           {activeCandidate.criteria.travelMinutes}p) ·{' '}
                           {activeCandidate.criteria.projectedWorkloadPct}% trần
@@ -764,15 +770,15 @@ export const RecommendationsPage: React.FC<RecommendationsPageProps> = ({
 
                     {/* Collapsible 5-Component Weighted DSS Breakdown */}
                     {showDssCriteria && (
-                      <div className="mt-2 p-3 rounded-lg bg-[#F7FAF9] border border-[#E1E9E6] space-y-2.5">
+                      <div className="mt-2 p-3 rounded-lg bg-canvas border border-line space-y-2.5">
                         <div className="flex items-center justify-between">
-                          <span className="text-[11px] font-semibold uppercase tracking-wider text-[#253438]">
+                          <span className="text-[11px] font-semibold uppercase tracking-wider text-ink">
                             Giải trình 5 Thành phần Trọng số DSS
                           </span>
                           <button
                             type="button"
                             onClick={() => setShowWeightsTuner((v) => !v)}
-                            className="inline-flex items-center gap-1 text-[11px] text-[#2F6F64] font-medium cursor-pointer"
+                            className="inline-flex items-center gap-1 text-[11px] text-brand-600 font-medium cursor-pointer"
                           >
                             <Sliders className="w-3 h-3" />
                             {showWeightsTuner ? 'Ẩn trọng số' : 'Điều chỉnh trọng số'}
@@ -813,17 +819,17 @@ export const RecommendationsPage: React.FC<RecommendationsPageProps> = ({
                         ].map((factor) => (
                           <div key={factor.label} className="space-y-1">
                             <div className="flex items-center justify-between text-[11px]">
-                              <span className="font-medium text-[#253438]">
+                              <span className="font-medium text-ink">
                                 {factor.label}{' '}
-                                <span className="text-[#687A78]">({factor.weightPct}%)</span>
+                                <span className="text-muted">({factor.weightPct}%)</span>
                               </span>
-                              <span className="font-mono-num font-semibold text-[#2F6F64]">
+                              <span className="font-mono-num font-semibold text-brand-600">
                                 {factor.score}/100
                               </span>
                             </div>
-                            <div className="w-full h-1.5 bg-[#E1E9E6] rounded-full overflow-hidden">
+                            <div className="w-full h-1.5 bg-line rounded-full overflow-hidden">
                               <div
-                                className="h-full bg-[#2F6F64] rounded-full"
+                                className="h-full bg-brand-600 rounded-full"
                                 style={{ width: `${factor.score}%` }}
                               />
                             </div>
@@ -831,8 +837,8 @@ export const RecommendationsPage: React.FC<RecommendationsPageProps> = ({
                         ))}
 
                         {showWeightsTuner && (
-                          <div className="pt-2 border-t border-[#E1E9E6] space-y-2">
-                            <div className="text-[11px] text-[#687A78]">
+                          <div className="pt-2 border-t border-line space-y-2">
+                            <div className="text-[11px] text-muted">
                               Chọn cấu hình trọng số DSS (tự động chuẩn hóa tổng = 100%):
                             </div>
                             <div className="flex items-center gap-2">
@@ -847,7 +853,7 @@ export const RecommendationsPage: React.FC<RecommendationsPageProps> = ({
                                     continuity: 0.1,
                                   })
                                 }
-                                className="px-2 py-1 rounded bg-white border border-[#E1E9E6] text-[11px] text-[#253438] hover:border-[#2F6F64] cursor-pointer"
+                                className="px-2 py-1 rounded bg-white border border-line text-[11px] text-ink hover:border-brand-600 cursor-pointer"
                               >
                                 Mặc định (30/25/20/15/10)
                               </button>
@@ -862,7 +868,7 @@ export const RecommendationsPage: React.FC<RecommendationsPageProps> = ({
                                     continuity: 0.1,
                                   })
                                 }
-                                className="px-2 py-1 rounded bg-white border border-[#E1E9E6] text-[11px] text-[#253438] hover:border-[#2F6F64] cursor-pointer"
+                                className="px-2 py-1 rounded bg-white border border-line text-[11px] text-ink hover:border-brand-600 cursor-pointer"
                               >
                                 Ưu tiên Khoảng cách (35%)
                               </button>
@@ -875,22 +881,22 @@ export const RecommendationsPage: React.FC<RecommendationsPageProps> = ({
                 )}
 
                 {/* SECTION 4: Alternative Candidates (up to 2 compact rows + Compare/Disqualified drawer trigger) */}
-                <div className="space-y-2 pb-4 border-b border-[#E1E9E6]">
+                <div className="space-y-2 pb-4 border-b border-line">
                   <div className="flex items-center justify-between">
-                    <span className="text-[12px] font-semibold text-[#687A78] uppercase tracking-wider">
+                    <span className="text-[12px] font-semibold text-muted uppercase tracking-wider">
                       4. Ứng viên Thay thế Khả thi
                     </span>
                     <button
                       type="button"
                       onClick={() => setCompareDrawerOpen(true)}
-                      className="text-[12px] font-medium text-[#2F6F64] hover:text-[#255A51] cursor-pointer"
+                      className="text-[12px] font-medium text-brand-600 hover:text-brand-700 cursor-pointer"
                     >
                       Tất cả & Nhân sự bị loại ({activeRequest.aiCandidates.length})
                     </button>
                   </div>
 
                   {alternativeCandidates.length === 0 ? (
-                    <div className="text-[12px] text-[#687A78] bg-[#F7FAF9] p-2.5 rounded border border-[#E1E9E6]">
+                    <div className="text-[12px] text-muted bg-canvas p-2.5 rounded border border-line">
                       Không còn ứng viên nào khác vượt qua cả 6 ràng buộc cứng. Nhấn "Tất cả & Nhân sự bị loại" để xem chi tiết.
                     </div>
                   ) : (
@@ -898,18 +904,18 @@ export const RecommendationsPage: React.FC<RecommendationsPageProps> = ({
                       {alternativeCandidates.map((alt) => (
                         <div
                           key={alt.staffId}
-                          className="px-3 py-2 rounded-lg border border-[#E1E9E6] bg-[#F7FAF9] flex items-center justify-between gap-2"
+                          className="px-3 py-2 rounded-lg border border-line bg-canvas flex items-center justify-between gap-2"
                         >
                           <div className="min-w-0">
                             <div className="flex items-center gap-1.5">
-                              <span className="text-[11px] font-semibold px-1.5 py-0.5 rounded bg-white border border-[#E1E9E6] text-[#687A78]">
+                              <span className="text-[11px] font-semibold px-1.5 py-0.5 rounded bg-white border border-line text-muted">
                                 {alt.rankLabel}
                               </span>
-                              <span className="text-[13px] font-semibold text-[#253438] truncate">
+                              <span className="text-[13px] font-semibold text-ink truncate">
                                 {alt.staffName}
                               </span>
                             </div>
-                            <div className="text-[11px] text-[#687A78] mt-0.5 tabular-nums">
+                            <div className="text-[11px] text-muted mt-0.5 tabular-nums">
                               {alt.criteria.distanceKm} km · Tải dự kiến {alt.criteria.projectedWorkloadPct}%
                             </div>
                           </div>
@@ -918,7 +924,7 @@ export const RecommendationsPage: React.FC<RecommendationsPageProps> = ({
                             <button
                               type="button"
                               onClick={() => setPreviewCandidateId(alt.staffId)}
-                              className="px-2 py-1 rounded border border-[#E1E9E6] bg-white text-[11px] font-medium text-[#2F6F64] hover:border-[#2F6F64] cursor-pointer"
+                              className="px-2 py-1 rounded border border-line bg-white text-[11px] font-medium text-brand-600 hover:border-brand-600 cursor-pointer"
                             >
                               Xem thử
                             </button>
@@ -930,15 +936,15 @@ export const RecommendationsPage: React.FC<RecommendationsPageProps> = ({
                 </div>
 
                 {/* SECTION 5: Constraint Validation (Collapsible Summary Badge) */}
-                <div className="space-y-2 pb-3 border-b border-[#E1E9E6]">
+                <div className="space-y-2 pb-3 border-b border-line">
                   <div className="flex items-center justify-between">
-                    <span className="text-[11px] font-bold text-[#687A78] uppercase tracking-wider">
+                    <span className="text-[11px] font-bold text-muted uppercase tracking-wider">
                       Ràng buộc Vận hành & Lâm sàng (Hard Constraints)
                     </span>
                     <button
                       type="button"
                       onClick={() => setShowConstraintDetails((prev) => !prev)}
-                      className="text-[12px] font-semibold text-[#2F6F64] hover:underline flex items-center gap-1 cursor-pointer"
+                      className="text-[12px] font-semibold text-brand-600 hover:underline flex items-center gap-1 cursor-pointer"
                     >
                       <span>{showConstraintDetails ? 'Thu gọn' : 'Xem chi tiết 6 điều kiện'}</span>
                       {showConstraintDetails ? (
@@ -950,33 +956,33 @@ export const RecommendationsPage: React.FC<RecommendationsPageProps> = ({
                   </div>
 
                   {allHardConstraintsPass ? (
-                    <div className="p-3 rounded-xl bg-[#E5F1EC]/80 border border-[#A8D3C6] flex items-center justify-between transition-all">
+                    <div className="p-3 rounded-xl bg-brand-100/80 border border-brand-200 flex items-center justify-between transition-all">
                       <div className="flex items-center gap-2.5">
-                        <span className="w-6 h-6 rounded-full bg-[#2F6F64] text-white flex items-center justify-center text-[12px] font-bold shrink-0">
+                        <span className="w-6 h-6 rounded-full bg-brand-600 text-white flex items-center justify-center text-[12px] font-bold shrink-0">
                           ✓
                         </span>
                         <div>
-                          <div className="text-[13px] font-bold text-[#253438]">
+                          <div className="text-[13px] font-bold text-ink">
                             Thỏa mãn 6/6 Ràng buộc Cứng (H1 – H6)
                           </div>
-                          <div className="text-[11px] text-[#557670]">
+                          <div className="text-[11px] text-muted">
                             Khớp kỹ năng, khung giờ hẹn, ca trực, không trùng lịch, đệm OSRM & trần 480p
                           </div>
                         </div>
                       </div>
-                      <span className="px-2.5 py-1 rounded-md text-[11px] font-bold bg-[#2F6F64] text-white shrink-0">
+                      <span className="px-2.5 py-1 rounded-md text-[11px] font-bold bg-brand-600 text-white shrink-0">
                         100% Hợp lệ
                       </span>
                     </div>
                   ) : (
-                    <div className="p-3 rounded-xl bg-[#FDF2F3] border border-[#F2C6CB] flex items-center justify-between">
+                    <div className="p-3 rounded-xl bg-urgent-tint border border-urgent-line flex items-center justify-between">
                       <div className="flex items-center gap-2.5">
-                        <AlertTriangle className="w-5 h-5 text-[#C03A47] shrink-0" />
+                        <AlertTriangle className="w-5 h-5 text-urgent shrink-0" />
                         <div>
-                          <div className="text-[13px] font-bold text-[#C03A47]">
+                          <div className="text-[13px] font-bold text-urgent">
                             Vi phạm Ràng buộc ({hardConstraintChecks.filter((c) => !c.passed).length} điều kiện không đạt)
                           </div>
-                          <div className="text-[11px] text-[#A32935]">
+                          <div className="text-[11px] text-urgent-ink">
                             Ứng viên hiện tại chưa đủ điều kiện xếp lịch trực tiếp
                           </div>
                         </div>
@@ -984,7 +990,7 @@ export const RecommendationsPage: React.FC<RecommendationsPageProps> = ({
                       <button
                         type="button"
                         onClick={() => setShowConstraintDetails(true)}
-                        className="text-[11px] font-bold text-[#C03A47] underline cursor-pointer"
+                        className="text-[11px] font-bold text-urgent underline cursor-pointer"
                       >
                         Xem lỗi
                       </button>
@@ -992,7 +998,7 @@ export const RecommendationsPage: React.FC<RecommendationsPageProps> = ({
                   )}
 
                   {showConstraintDetails && (
-                    <div className="mt-2 pt-2 border-t border-[#E1E9E6]">
+                    <div className="mt-2 pt-2 border-t border-line">
                       <ConstraintCheckList checks={hardConstraintChecks} compact />
                     </div>
                   )}
@@ -1000,12 +1006,12 @@ export const RecommendationsPage: React.FC<RecommendationsPageProps> = ({
 
                 {/* SECTION 6: Primary Actions (Accept Recommendation, Change Assignment, Reject Suggestion) */}
                 <div className="space-y-2.5">
-                  <div className="text-[12px] font-semibold text-[#687A78] uppercase tracking-wider">
+                  <div className="text-[12px] font-semibold text-muted uppercase tracking-wider">
                     6. Quyết định của Điều phối viên
                   </div>
 
                   {!allHardConstraintsPass && (
-                    <div className="p-2.5 rounded-lg bg-[#FDF2F3] border border-[#F2C6CB] text-[12px] text-[#C03A47] flex items-center gap-2">
+                    <div className="p-2.5 rounded-lg bg-urgent-tint border border-urgent-line text-[12px] text-urgent flex items-center gap-2">
                       <AlertTriangle className="w-4 h-4 shrink-0" />
                       <span>
                         Chặn xác nhận: Ứng viên đang chọn vi phạm ràng buộc cứng. Vui lòng chọn ứng viên hợp lệ.
@@ -1020,8 +1026,8 @@ export const RecommendationsPage: React.FC<RecommendationsPageProps> = ({
                       onClick={() => setConfirmModalOpen(true)}
                       className={`h-12 inline-flex items-center justify-center gap-2 px-5 rounded-xl text-[14px] font-bold shadow-xs transition-all ${
                         allHardConstraintsPass && activeCandidate
-                          ? 'bg-[#2F6F64] text-white hover:bg-[#255A51] hover:shadow-md cursor-pointer'
-                          : 'bg-[#E1E9E6] text-[#687A78] cursor-not-allowed'
+                          ? 'bg-brand-600 text-white hover:bg-brand-700 hover:shadow-md cursor-pointer'
+                          : 'bg-line text-muted cursor-not-allowed'
                       }`}
                     >
                       <UserCheck className="w-5 h-5" />
@@ -1031,7 +1037,7 @@ export const RecommendationsPage: React.FC<RecommendationsPageProps> = ({
                     <button
                       type="button"
                       onClick={() => handleOpenChangeModal()}
-                      className="h-12 inline-flex items-center justify-center gap-2 px-4 rounded-xl border-2 border-[#D97706]/40 bg-[#FFFBEB] text-[#B45309] hover:bg-[#FEF3C7] hover:border-[#D97706] text-[13px] font-bold transition-all cursor-pointer"
+                      className="h-12 inline-flex items-center justify-center gap-2 px-4 rounded-xl border-2 border-high/40 bg-sun-50 text-high-ink hover:bg-sun-100 hover:border-high text-[13px] font-bold transition-all cursor-pointer"
                     >
                       <span>Can thiệp / Đổi ứng viên (Override)</span>
                     </button>
@@ -1042,12 +1048,12 @@ export const RecommendationsPage: React.FC<RecommendationsPageProps> = ({
                       <button
                         type="button"
                         onClick={() => setPreviewCandidateId(null)}
-                        className="text-[12px] text-[#2F6F64] hover:underline cursor-pointer"
+                        className="text-[12px] text-brand-600 hover:underline cursor-pointer"
                       >
                         Quay về Top 1 ({top1Candidate?.staffName})
                       </button>
                     ) : (
-                      <span className="text-[11px] text-[#687A78]">
+                      <span className="text-[11px] text-muted">
                         Bắt buộc xác nhận bởi Điều phối viên (Human-in-the-loop)
                       </span>
                     )}
@@ -1055,7 +1061,7 @@ export const RecommendationsPage: React.FC<RecommendationsPageProps> = ({
                     <button
                       type="button"
                       onClick={() => setRejectModalOpen(true)}
-                      className="text-[12px] font-medium text-[#D85D68] hover:underline cursor-pointer"
+                      className="text-[12px] font-medium text-urgent hover:underline cursor-pointer"
                     >
                       Từ chối / Tạm hoãn
                     </button>
@@ -1071,46 +1077,46 @@ export const RecommendationsPage: React.FC<RecommendationsPageProps> = ({
           MODAL 1: ACCEPT RECOMMENDATION CONFIRMATION DIALOG
           ===================================================================== */}
       {confirmModalOpen && activeRequest && activeCandidate && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#253438]/30 p-4">
-          <div className="bg-white rounded-[12px] border border-[#E1E9E6] max-w-md w-full p-6 shadow-xl space-y-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/30 p-4">
+          <div className="bg-white rounded-[12px] border border-line max-w-md w-full p-6 shadow-xl space-y-4">
             <div className="flex items-center gap-2.5">
-              <div className="w-9 h-9 rounded-full bg-[#E5F1EC] text-[#2F6F64] flex items-center justify-center">
+              <div className="w-9 h-9 rounded-full bg-brand-100 text-brand-600 flex items-center justify-center">
                 <ShieldCheck className="w-5 h-5" />
               </div>
               <div>
-                <h3 className="text-[16px] font-semibold text-[#253438] m-0">
+                <h3 className="text-[16px] font-semibold text-ink m-0">
                   Xác nhận Phân công Nhân sự
                 </h3>
-                <p className="text-[12px] text-[#687A78] m-0">
+                <p className="text-[12px] text-muted m-0">
                   Ứng viên đã vượt qua đầy đủ 6 ràng buộc cứng vận hành
                 </p>
               </div>
             </div>
 
-            <div className="p-3.5 rounded-lg bg-[#F7FAF9] border border-[#E1E9E6] space-y-1.5 text-[13px]">
+            <div className="p-3.5 rounded-lg bg-canvas border border-line space-y-1.5 text-[13px]">
               <div className="flex justify-between">
-                <span className="text-[#687A78]">Mã yêu cầu:</span>
-                <span className="font-semibold text-[#253438]">
+                <span className="text-muted">Mã yêu cầu:</span>
+                <span className="font-semibold text-ink">
                   {activeRequest.id} ({activeRequest.patientName})
                 </span>
               </div>
               <div className="flex justify-between">
-                <span className="text-[#687A78]">Dịch vụ:</span>
-                <span className="font-medium text-[#253438]">{activeRequest.serviceName}</span>
+                <span className="text-muted">Dịch vụ:</span>
+                <span className="font-medium text-ink">{activeRequest.serviceName}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-[#687A78]">Nhân sự phân công:</span>
-                <span className="font-semibold text-[#2F6F64]">{activeCandidate.staffName}</span>
+                <span className="text-muted">Nhân sự phân công:</span>
+                <span className="font-semibold text-brand-600">{activeCandidate.staffName}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-[#687A78]">Điểm DSS tổng hợp:</span>
-                <span className="font-mono-num font-semibold text-[#253438]">
+                <span className="text-muted">Điểm DSS tổng hợp:</span>
+                <span className="font-mono-num font-semibold text-ink">
                   {activeCandidate.totalScore}% ({activeCandidate.dssScoreNormalized})
                 </span>
               </div>
               <div className="flex justify-between">
-                <span className="text-[#687A78]">Khung giờ dự kiến:</span>
-                <span className="tabular-nums font-medium text-[#253438]">
+                <span className="text-muted">Khung giờ dự kiến:</span>
+                <span className="tabular-nums font-medium text-ink">
                   {activeRequest.suggestedStartTime} ({activeRequest.predictedDurationMin} phút)
                 </span>
               </div>
@@ -1120,7 +1126,7 @@ export const RecommendationsPage: React.FC<RecommendationsPageProps> = ({
               <button
                 type="button"
                 onClick={() => setConfirmModalOpen(false)}
-                className="px-4 py-2 rounded-lg border border-[#E1E9E6] bg-white text-[13px] font-medium text-[#253438] cursor-pointer"
+                className="px-4 py-2 rounded-lg border border-line bg-white text-[13px] font-medium text-ink cursor-pointer"
               >
                 Hủy
               </button>
@@ -1128,7 +1134,7 @@ export const RecommendationsPage: React.FC<RecommendationsPageProps> = ({
                 type="button"
                 disabled={isSubmitting}
                 onClick={handleAcceptConfirmed}
-                className="px-4 py-2 rounded-lg bg-[#2F6F64] text-white text-[13px] font-semibold hover:bg-[#255A51] cursor-pointer"
+                className="px-4 py-2 rounded-lg bg-brand-600 text-white text-[13px] font-semibold hover:bg-brand-700 cursor-pointer"
               >
                 {isSubmitting ? 'Đang lưu...' : 'Xác nhận Phân công'}
               </button>
@@ -1141,24 +1147,24 @@ export const RecommendationsPage: React.FC<RecommendationsPageProps> = ({
           MODAL 2: CHANGE ASSIGNMENT (HUMAN-IN-THE-LOOP OVERRIDE)
           ===================================================================== */}
       {changeModalOpen && activeRequest && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#253438]/30 p-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/30 p-4">
           <form
             onSubmit={handleOverrideConfirmed}
-            className="bg-white rounded-[12px] border border-[#E1E9E6] max-w-lg w-full p-6 shadow-xl space-y-4"
+            className="bg-white rounded-[12px] border border-line max-w-lg w-full p-6 shadow-xl space-y-4"
           >
-            <div className="flex items-center justify-between border-b border-[#E1E9E6] pb-3">
+            <div className="flex items-center justify-between border-b border-line pb-3">
               <div>
-                <h3 className="text-[16px] font-semibold text-[#253438] m-0">
+                <h3 className="text-[16px] font-semibold text-ink m-0">
                   Can thiệp Phân công (Human-in-the-loop Override)
                 </h3>
-                <p className="text-[12px] text-[#687A78] m-0">
+                <p className="text-[12px] text-muted m-0">
                   Chọn nhân viên đủ điều kiện và ghi nhận lý do can thiệp vào nhật ký kiểm toán
                 </p>
               </div>
               <button
                 type="button"
                 onClick={() => setChangeModalOpen(false)}
-                className="text-[12px] text-[#687A78] hover:text-[#253438] cursor-pointer"
+                className="text-[12px] text-muted hover:text-ink cursor-pointer"
               >
                 Đóng
               </button>
@@ -1166,13 +1172,13 @@ export const RecommendationsPage: React.FC<RecommendationsPageProps> = ({
 
             <div className="space-y-3">
               <div>
-                <label className="block text-[12px] font-medium text-[#253438] mb-1">
+                <label className="block text-[12px] font-medium text-ink mb-1">
                   Chọn Nhân sự Thay thế (Đạt 6 Ràng buộc cứng) *
                 </label>
                 <select
                   value={overrideStaffId}
                   onChange={(e) => setOverrideStaffId(e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg border border-[#E1E9E6] bg-white text-[13px] text-[#253438]"
+                  className="w-full px-3 py-2 rounded-lg border border-line bg-white text-[13px] text-ink"
                 >
                   {eligibleCandidates.map((cand) => (
                     <option key={cand.staffId} value={cand.staffId}>
@@ -1184,13 +1190,13 @@ export const RecommendationsPage: React.FC<RecommendationsPageProps> = ({
               </div>
 
               <div>
-                <label className="block text-[12px] font-medium text-[#253438] mb-1">
+                <label className="block text-[12px] font-medium text-ink mb-1">
                   Lý do Can thiệp Chuẩn hóa *
                 </label>
                 <select
                   value={overrideReasonCode}
                   onChange={(e) => setOverrideReasonCode(e.target.value as OverrideReasonCode)}
-                  className="w-full px-3 py-2 rounded-lg border border-[#E1E9E6] bg-white text-[13px] text-[#253438]"
+                  className="w-full px-3 py-2 rounded-lg border border-line bg-white text-[13px] text-ink"
                 >
                   {OVERRIDE_REASONS.map((r) => (
                     <option key={r.code} value={r.code}>
@@ -1201,7 +1207,7 @@ export const RecommendationsPage: React.FC<RecommendationsPageProps> = ({
               </div>
 
               <div>
-                <label className="block text-[12px] font-medium text-[#253438] mb-1">
+                <label className="block text-[12px] font-medium text-ink mb-1">
                   Ghi chú Giải trình Bắt buộc (override_notes) *
                 </label>
                 <textarea
@@ -1210,23 +1216,23 @@ export const RecommendationsPage: React.FC<RecommendationsPageProps> = ({
                   placeholder="Nhập giải trình chi tiết lý do chọn nhân sự này..."
                   value={overrideNotes}
                   onChange={(e) => setOverrideNotes(e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg border border-[#E1E9E6] bg-white text-[13px] text-[#253438]"
+                  className="w-full px-3 py-2 rounded-lg border border-line bg-white text-[13px] text-ink"
                 />
               </div>
             </div>
 
-            <div className="flex items-center justify-end gap-2.5 pt-2 border-t border-[#E1E9E6]">
+            <div className="flex items-center justify-end gap-2.5 pt-2 border-t border-line">
               <button
                 type="button"
                 onClick={() => setChangeModalOpen(false)}
-                className="px-4 py-2 rounded-lg border border-[#E1E9E6] bg-white text-[13px] font-medium text-[#253438] cursor-pointer"
+                className="px-4 py-2 rounded-lg border border-line bg-white text-[13px] font-medium text-ink cursor-pointer"
               >
                 Hủy
               </button>
               <button
                 type="submit"
                 disabled={isSubmitting || !overrideStaffId || !overrideNotes.trim()}
-                className="px-4 py-2 rounded-lg bg-[#2F6F64] text-white text-[13px] font-semibold hover:bg-[#255A51] disabled:opacity-50 cursor-pointer"
+                className="px-4 py-2 rounded-lg bg-brand-600 text-white text-[13px] font-semibold hover:bg-brand-700 disabled:opacity-50 cursor-pointer"
               >
                 {isSubmitting ? 'Đang lưu...' : 'Xác nhận Can thiệp Phân công'}
               </button>
@@ -1239,15 +1245,15 @@ export const RecommendationsPage: React.FC<RecommendationsPageProps> = ({
           MODAL 3: REJECT SUGGESTION / DEFER REQUEST
           ===================================================================== */}
       {rejectModalOpen && activeRequest && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#253438]/30 p-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/30 p-4">
           <form
             onSubmit={handleRejectConfirmed}
-            className="bg-white rounded-[12px] border border-[#E1E9E6] max-w-md w-full p-6 shadow-xl space-y-4"
+            className="bg-white rounded-[12px] border border-line max-w-md w-full p-6 shadow-xl space-y-4"
           >
-            <h3 className="text-[16px] font-semibold text-[#253438] m-0">
+            <h3 className="text-[16px] font-semibold text-ink m-0">
               Từ chối / Tạm hoãn Đề xuất AI ({activeRequest.id})
             </h3>
-            <p className="text-[12px] text-[#687A78] m-0">
+            <p className="text-[12px] text-muted m-0">
               Ghi nhận lý do từ chối gợi ý hiện tại hoặc chuyển sang điều phối thủ công.
             </p>
             <textarea
@@ -1255,19 +1261,19 @@ export const RecommendationsPage: React.FC<RecommendationsPageProps> = ({
               required
               value={rejectNotes}
               onChange={(e) => setRejectNotes(e.target.value)}
-              className="w-full px-3 py-2 rounded-lg border border-[#E1E9E6] text-[13px] text-[#253438]"
+              className="w-full px-3 py-2 rounded-lg border border-line text-[13px] text-ink"
             />
             <div className="flex items-center justify-end gap-2">
               <button
                 type="button"
                 onClick={() => setRejectModalOpen(false)}
-                className="px-3.5 py-1.5 rounded-lg border border-[#E1E9E6] text-[13px] text-[#253438] cursor-pointer"
+                className="px-3.5 py-1.5 rounded-lg border border-line text-[13px] text-ink cursor-pointer"
               >
                 Hủy
               </button>
               <button
                 type="submit"
-                className="px-3.5 py-1.5 rounded-lg bg-[#D85D68] text-white text-[13px] font-semibold cursor-pointer"
+                className="px-3.5 py-1.5 rounded-lg bg-urgent text-white text-[13px] font-semibold cursor-pointer"
               >
                 Xác nhận Từ chối
               </button>
@@ -1280,21 +1286,21 @@ export const RecommendationsPage: React.FC<RecommendationsPageProps> = ({
           DRAWER 4: COMPARE ALL & DISQUALIFIED CANDIDATES (HARD CONSTRAINTS)
           ===================================================================== */}
       {compareDrawerOpen && activeRequest && (
-        <div className="fixed inset-0 z-50 flex justify-end bg-[#253438]/30">
-          <div className="w-full max-w-[620px] bg-white h-full shadow-xl border-l border-[#E1E9E6] flex flex-col">
-            <div className="px-6 py-4 border-b border-[#E1E9E6] bg-[#F7FAF9] flex items-center justify-between">
+        <div className="fixed inset-0 z-50 flex justify-end bg-ink/30">
+          <div className="w-full max-w-[620px] bg-white h-full shadow-xl border-l border-line flex flex-col">
+            <div className="px-6 py-4 border-b border-line bg-canvas flex items-center justify-between">
               <div>
-                <h3 className="text-[16px] font-semibold text-[#253438] m-0">
+                <h3 className="text-[16px] font-semibold text-ink m-0">
                   So sánh Ứng viên & Danh sách Không khả thi ({activeRequest.id})
                 </h3>
-                <p className="text-[12px] text-[#687A78] m-0">
+                <p className="text-[12px] text-muted m-0">
                   {eligibleCandidates.length} ứng viên khả thi · {disqualifiedCandidates.length} nhân sự bị loại do vi phạm ràng buộc cứng
                 </p>
               </div>
               <button
                 type="button"
                 onClick={() => setCompareDrawerOpen(false)}
-                className="px-3 py-1 rounded border border-[#E1E9E6] bg-white text-[12px] text-[#253438] cursor-pointer"
+                className="px-3 py-1 rounded border border-line bg-white text-[12px] text-ink cursor-pointer"
               >
                 Đóng
               </button>
@@ -1303,25 +1309,25 @@ export const RecommendationsPage: React.FC<RecommendationsPageProps> = ({
             <div className="flex-1 overflow-y-auto p-6 space-y-6">
               {/* Eligible Section */}
               <div className="space-y-3">
-                <div className="text-[12px] font-semibold uppercase tracking-wider text-[#2F6F64]">
+                <div className="text-[12px] font-semibold uppercase tracking-wider text-brand-600">
                   Ứng viên Khả thi ({eligibleCandidates.length})
                 </div>
                 {eligibleCandidates.map((cand) => (
                   <div
                     key={cand.staffId}
-                    className="p-3.5 rounded-lg border border-[#C6DFD7] bg-[#F7FAF9] flex items-center justify-between gap-3"
+                    className="p-3.5 rounded-lg border border-brand-200 bg-canvas flex items-center justify-between gap-3"
                   >
                     <div>
                       <div className="flex items-center gap-2">
-                        <span className="text-[11px] font-semibold px-2 py-0.5 rounded bg-[#E5F1EC] text-[#2F6F64]">
+                        <span className="text-[11px] font-semibold px-2 py-0.5 rounded bg-brand-100 text-brand-600">
                           {cand.rankLabel}
                         </span>
-                        <span className="text-[14px] font-semibold text-[#253438]">
+                        <span className="text-[14px] font-semibold text-ink">
                           {cand.staffName}
                         </span>
-                        <span className="text-[12px] text-[#687A78]">({cand.staffRole})</span>
+                        <span className="text-[12px] text-muted">({cand.staffRole})</span>
                       </div>
-                      <div className="text-[12px] text-[#687A78] mt-1 tabular-nums">
+                      <div className="text-[12px] text-muted mt-1 tabular-nums">
                         Kỹ năng: {cand.criteria.skillFitScore}% · Thời gian: {cand.criteria.timeFitScore}% · Khoảng cách: {cand.criteria.distanceKm} km · Tải: {cand.criteria.projectedAssignedMinutes}/480p
                       </div>
                     </div>
@@ -1333,7 +1339,7 @@ export const RecommendationsPage: React.FC<RecommendationsPageProps> = ({
                           setPreviewCandidateId(cand.staffId);
                           setCompareDrawerOpen(false);
                         }}
-                        className="px-2.5 py-1 rounded bg-[#2F6F64] text-white text-[12px] font-medium cursor-pointer"
+                        className="px-2.5 py-1 rounded bg-brand-600 text-white text-[12px] font-medium cursor-pointer"
                       >
                         Chọn xem
                       </button>
@@ -1344,24 +1350,24 @@ export const RecommendationsPage: React.FC<RecommendationsPageProps> = ({
 
               {/* Disqualified Section (6 Hard Constraints Violations) */}
               <div className="space-y-3">
-                <div className="text-[12px] font-semibold uppercase tracking-wider text-[#C03A47]">
+                <div className="text-[12px] font-semibold uppercase tracking-wider text-urgent">
                   Ứng viên Không khả thi — Vi phạm Ràng buộc cứng ({disqualifiedCandidates.length})
                 </div>
                 {disqualifiedCandidates.map((cand) => (
                   <div
                     key={cand.staffId}
-                    className="p-3.5 rounded-lg border border-[#F2C6CB] bg-[#FDF2F3]/50 space-y-2"
+                    className="p-3.5 rounded-lg border border-urgent-line bg-urgent-tint/50 space-y-2"
                   >
                     <div className="flex items-center justify-between">
                       <div>
-                        <span className="text-[14px] font-semibold text-[#253438]">
+                        <span className="text-[14px] font-semibold text-ink">
                           {cand.staffName}
                         </span>
-                        <span className="text-[12px] text-[#687A78] ml-2">
+                        <span className="text-[12px] text-muted ml-2">
                           ({cand.staffRole} · {cand.zone})
                         </span>
                       </div>
-                      <span className="px-2 py-0.5 rounded text-[11px] font-semibold bg-[#FDF2F3] text-[#C03A47] border border-[#F2C6CB]">
+                      <span className="px-2 py-0.5 rounded text-[11px] font-semibold bg-urgent-tint text-urgent border border-urgent-line">
                         Không hợp lệ (Vi phạm ràng buộc cứng)
                       </span>
                     </div>
@@ -1372,7 +1378,7 @@ export const RecommendationsPage: React.FC<RecommendationsPageProps> = ({
                       ).map((reason, idx) => (
                         <div
                           key={idx}
-                          className="flex items-center gap-1.5 text-[12px] text-[#C03A47]"
+                          className="flex items-center gap-1.5 text-[12px] text-urgent"
                         >
                           <XCircle className="w-3.5 h-3.5 shrink-0" />
                           <span>{reason}</span>

@@ -34,16 +34,16 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
   actions,
   badge,
 }) => (
-  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-5 mb-6 border-b border-[#E1E9E6]">
+  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-5 mb-6 border-b border-line">
     <div>
       <div className="flex items-center gap-3">
-        <h1 className="text-[24px] leading-[32px] font-semibold text-[#253438] tracking-tight m-0">
+        <h1 className="font-display text-[28px] leading-[36px] font-semibold text-brand-800 tracking-tight m-0">
           {title}
         </h1>
         {badge}
       </div>
       {subtitle && (
-        <p className="text-[14px] text-[#687A78] mt-1 mb-0">{subtitle}</p>
+        <p className="text-[14px] text-muted mt-1 mb-0">{subtitle}</p>
       )}
     </div>
     {actions && <div className="flex items-center gap-2.5 flex-wrap">{actions}</div>}
@@ -54,7 +54,7 @@ export interface KpiCardProps {
   label: string;
   value: string | number;
   sublabel?: string;
-  tone?: 'default' | 'teal' | 'warning' | 'danger' | 'success';
+  tone?: 'default' | 'teal' | 'ai' | 'sun' | 'warning' | 'danger' | 'success';
   icon?: React.ReactNode;
   onClick?: () => void;
 }
@@ -67,31 +67,49 @@ export const KpiCard: React.FC<KpiCardProps> = ({
   icon,
   onClick,
 }) => {
-  const toneStyles: Record<string, { border: string; valueColor: string; iconBg: string }> = {
+  // Mỗi tone là một ô màu riêng để hàng KPI không đơn điệu
+  const toneStyles: Record<string, { card: string; valueColor: string; iconBg: string; label: string }> = {
     default: {
-      border: 'border-[#E1E9E6]',
-      valueColor: 'text-[#253438]',
-      iconBg: 'bg-[#F7FAF9] text-[#687A78]',
+      card: 'bg-white border-line',
+      valueColor: 'text-ink',
+      iconBg: 'bg-brand-50 text-brand-600',
+      label: 'text-muted',
     },
     teal: {
-      border: 'border-[#C6DFD7]',
-      valueColor: 'text-[#2F6F64]',
-      iconBg: 'bg-[#E5F1EC] text-[#2F6F64]',
+      card: 'bg-gradient-to-br from-brand-100 to-brand-50 border-brand-200',
+      valueColor: 'text-brand-700',
+      iconBg: 'bg-white text-brand-600',
+      label: 'text-brand-700',
+    },
+    ai: {
+      card: 'bg-gradient-to-br from-lav-100 to-lav-50 border-lav-200',
+      valueColor: 'text-lav-700',
+      iconBg: 'bg-white text-lav-700',
+      label: 'text-lav-700',
+    },
+    sun: {
+      card: 'bg-gradient-to-br from-sun-100 to-sun-50 border-sun-300',
+      valueColor: 'text-sun-700',
+      iconBg: 'bg-white text-sun-700',
+      label: 'text-sun-700',
     },
     warning: {
-      border: 'border-[#F3D9B1]',
-      valueColor: 'text-[#B87514]',
-      iconBg: 'bg-[#FDF6EC] text-[#E6A64B]',
+      card: 'bg-high-tint border-high-line',
+      valueColor: 'text-high-ink',
+      iconBg: 'bg-white text-high',
+      label: 'text-high-ink',
     },
     danger: {
-      border: 'border-[#F2C6CB]',
-      valueColor: 'text-[#C03A47]',
-      iconBg: 'bg-[#FDF2F3] text-[#D85D68]',
+      card: 'bg-white border-2 border-urgent',
+      valueColor: 'text-urgent',
+      iconBg: 'bg-urgent-tint text-urgent',
+      label: 'text-urgent-ink',
     },
     success: {
-      border: 'border-[#C5E2D7]',
-      valueColor: 'text-[#2E755D]',
-      iconBg: 'bg-[#EBF6F1] text-[#4D947B]',
+      card: 'bg-ok-tint border-ok-line',
+      valueColor: 'text-ok',
+      iconBg: 'bg-white text-ok',
+      label: 'text-ok',
     },
   };
 
@@ -100,25 +118,25 @@ export const KpiCard: React.FC<KpiCardProps> = ({
   return (
     <div
       onClick={onClick}
-      className={`bg-white rounded-[10px] border ${st.border} p-4 transition-colors ${
-        onClick ? 'cursor-pointer hover:border-[#2F6F64]' : ''
+      className={`h-full rounded-2xl border ${st.card} p-4 transition-transform ${
+        onClick ? 'cursor-pointer hover:-translate-y-0.5' : ''
       }`}
     >
       <div className="flex items-start justify-between gap-2">
-        <span className="text-[12px] font-medium text-[#687A78] uppercase tracking-wider">
+        <span className={`text-[12px] font-bold uppercase tracking-wider ${st.label}`}>
           {label}
         </span>
         {icon && (
-          <div className={`w-7 h-7 rounded-md flex items-center justify-center ${st.iconBg}`}>
+          <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${st.iconBg}`}>
             {icon}
           </div>
         )}
       </div>
-      <div className={`text-[28px] leading-[34px] font-semibold mt-2 tabular-nums ${st.valueColor}`}>
+      <div className={`font-display text-[30px] leading-[36px] font-semibold mt-2 tabular-nums ${st.valueColor}`}>
         {value}
       </div>
       {sublabel && (
-        <div className="text-[12px] text-[#687A78] mt-1.5 flex items-center gap-1.5">
+        <div className={`text-[12px] mt-1.5 flex items-center gap-1.5 ${st.label}`}>
           {sublabel}
         </div>
       )}
@@ -139,43 +157,67 @@ export const formatPriorityLabel = (priority: string): {
   return { label: 'Tiêu chuẩn', tone: 'standard' };
 };
 
-export const UrgentCountdownBadge: React.FC<{
-  seedId?: string;
-  initialSeconds?: number;
-  labelPrefix?: string;
-}> = ({ seedId = 'default', initialSeconds, labelPrefix = 'SLA' }) => {
-  const computeInitialSeconds = () => {
-    if (typeof initialSeconds === 'number') return initialSeconds;
-    let hash = 0;
-    for (let i = 0; i < seedId.length; i++) {
-      hash = (hash * 31 + seedId.charCodeAt(i)) % 600;
-    }
-    // Between 6 minutes (360s) and 15 minutes (900s)
-    return 420 + (hash % 480);
-  };
+/**
+ * Lấy giờ hẹn (HH:MM đầu tiên) từ chuỗi như '17:00 - 19:00' hoặc '09:15'.
+ */
+const parseDeadlineSeconds = (deadline?: string): number | null => {
+  if (!deadline) return null;
+  const m = deadline.match(/(\d{1,2}):(\d{2})/);
+  if (!m) return null;
+  return Number(m[1]) * 3600 + Number(m[2]) * 60;
+};
 
-  const [secondsLeft, setSecondsLeft] = useState<number>(computeInitialSeconds);
+const formatDuration = (totalSeconds: number): string => {
+  const t = Math.abs(totalSeconds);
+  const h = Math.floor(t / 3600);
+  const m = Math.floor((t % 3600) / 60);
+  const sec = t % 60;
+  const mmss = `${String(m).padStart(2, '0')}:${String(sec).padStart(2, '0')}`;
+  return h > 0 ? `${h}:${mmss}` : mmss;
+};
+
+/**
+ * Đồng hồ SLA thật: đếm thời gian còn lại tới giờ bắt đầu khung hẹn của ca
+ * (so với giờ hiện tại trong ngày). Đổi màu theo mức độ:
+ *  > 30 phút: xanh · 10–30 phút: vàng nắng · < 10 phút: đỏ · quá giờ: đỏ đậm nhấp nháy.
+ */
+export const UrgentCountdownBadge: React.FC<{
+  deadline?: string;
+  labelPrefix?: string;
+}> = ({ deadline, labelPrefix = 'Còn' }) => {
+  const deadlineSec = parseDeadlineSeconds(deadline);
+  const nowSeconds = () => {
+    const d = new Date();
+    return d.getHours() * 3600 + d.getMinutes() * 60 + d.getSeconds();
+  };
+  const [now, setNow] = useState<number>(nowSeconds);
 
   useEffect(() => {
-    const timer = setInterval(() => {
-      setSecondsLeft((prev) => (prev > 0 ? prev - 1 : 300));
-    }, 1000);
+    const timer = setInterval(() => setNow(nowSeconds()), 1000);
     return () => clearInterval(timer);
   }, []);
 
-  const mins = Math.floor(secondsLeft / 60);
-  const secs = secondsLeft % 60;
-  const formatted = `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+  if (deadlineSec === null) return null;
+  const left = deadlineSec - now;
+
+  let cls = 'bg-ok-tint text-ok border-ok-line';
+  let text = `${labelPrefix} ${formatDuration(left)}`;
+  if (left <= 0) {
+    cls = 'bg-urgent-deep text-white border-urgent-deep animate-pulse';
+    text = `Quá giờ hẹn +${formatDuration(left)}`;
+  } else if (left < 10 * 60) {
+    cls = 'bg-urgent text-white border-urgent';
+  } else if (left < 30 * 60) {
+    cls = 'bg-sun-100 text-sun-700 border-sun-400';
+  }
 
   return (
     <span
-      className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-bold bg-[#C03A47] text-white border border-[#A32935] tabular-nums shadow-xs"
-      title="Thời gian đếm ngược SLA cần xử lý phân công khẩn cấp"
+      className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold border tabular-nums font-mono-num ${cls}`}
+      title={`Thời gian còn lại tới giờ hẹn ${deadline}`}
     >
-      <Timer className="w-3 h-3 animate-pulse shrink-0" />
-      <span>
-        {labelPrefix}: {formatted}
-      </span>
+      <Timer className="w-3 h-3 shrink-0" />
+      <span>{text}</span>
     </span>
   );
 };
@@ -183,31 +225,34 @@ export const UrgentCountdownBadge: React.FC<{
 export const PriorityBadge: React.FC<{
   priority: string;
   showCountdown?: boolean;
-  seedId?: string;
-}> = ({ priority, showCountdown = false, seedId }) => {
+  deadline?: string;
+}> = ({ priority, showCountdown = false, deadline }) => {
   const { label, tone } = formatPriorityLabel(priority);
   if (tone === 'urgent') {
     return (
       <span className="inline-flex items-center gap-1.5 flex-wrap">
-        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-bold uppercase tracking-wide bg-[#FDF2F3] text-[#C03A47] border border-[#D85D68]">
-          <span className="w-2 h-2 rounded-full bg-[#D85D68] animate-ping" />
-          <Flame className="w-3 h-3 text-[#C03A47] shrink-0" />
+        <span className="inline-flex items-center gap-1.5 pl-1.5 pr-2.5 py-0.5 rounded-full text-[11px] font-extrabold uppercase tracking-wide bg-urgent text-white shadow-urgent">
+          <span className="relative flex w-2 h-2">
+            <span className="absolute inset-0 rounded-full bg-white animate-ping" />
+            <span className="relative w-2 h-2 rounded-full bg-white" />
+          </span>
+          <Flame className="w-3 h-3 shrink-0" />
           {label}
         </span>
-        {showCountdown && <UrgentCountdownBadge seedId={seedId || priority} />}
+        {showCountdown && <UrgentCountdownBadge deadline={deadline} />}
       </span>
     );
   }
   if (tone === 'high') {
     return (
-      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-semibold bg-[#FDF6EC] text-[#C27D1A] border border-[#F3D9B1]">
-        <span className="w-1.5 h-1.5 rounded-full bg-[#E6A64B]" />
+      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-high-tint text-high-ink border border-high">
+        <span className="w-1.5 h-1.5 rounded-full bg-high" />
         {label}
       </span>
     );
   }
   return (
-    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium bg-[#F7FAF9] text-[#687A78] border border-[#E1E9E6]">
+    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-brand-50 text-muted border border-line">
       {label}
     </span>
   );
@@ -221,7 +266,7 @@ export const StatusBadge: React.FC<{ status: string }> = ({ status }) => {
         ? 'Hoàn thành'
         : 'Đã xác nhận';
     return (
-      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium bg-[#EBF6F1] text-[#2E755D] border border-[#C5E2D7]">
+      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium bg-ok-tint text-ok border border-brand-200">
         <CheckCircle2 className="w-3 h-3" />
         {label}
       </span>
@@ -229,7 +274,7 @@ export const StatusBadge: React.FC<{ status: string }> = ({ status }) => {
   }
   if (normalized === 'in-progress' || normalized === 'đang thực hiện') {
     return (
-      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium bg-[#E5F1EC] text-[#2F6F64] border border-[#B8D9CE]">
+      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium bg-brand-100 text-brand-600 border border-brand-200">
         <Clock className="w-3 h-3" />
         Đang thực hiện
       </span>
@@ -243,7 +288,7 @@ export const StatusBadge: React.FC<{ status: string }> = ({ status }) => {
         ? 'Cần theo dõi tải'
         : status;
     return (
-      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium bg-[#FDF6EC] text-[#B87514] border border-[#F3D9B1]">
+      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium bg-high-tint text-high-ink border border-high-line">
         {label}
       </span>
     );
@@ -263,15 +308,20 @@ export const StatusBadge: React.FC<{ status: string }> = ({ status }) => {
         : normalized === 'manual review'
         ? 'Cần xử lý thủ công'
         : status;
+    // Xung đột: hồng đậm; thủ công/từ chối: cam. Đỏ chỉ dành cho ca Khẩn cấp.
+    const cls =
+      normalized === 'conflict' || normalized === 'xung đột'
+        ? 'bg-conflict-tint text-conflict border-conflict/40'
+        : 'bg-high-tint text-high-ink border-high-line';
     return (
-      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium bg-[#FDF2F3] text-[#C03A47] border border-[#F2C6CB]">
+      <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold border ${cls}`}>
         <AlertTriangle className="w-3 h-3" />
         {label}
       </span>
     );
   }
   return (
-    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium bg-[#F7FAF9] text-[#687A78] border border-[#E1E9E6]">
+    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium bg-canvas text-muted border border-line">
       {status === 'Unassigned' || status === 'Pending Assignment'
         ? 'Chờ phân công'
         : status}
@@ -288,10 +338,10 @@ export const SuitabilityScoreBadge: React.FC<{
   const isMid = score >= 65 && score < 80;
 
   const colorClasses = isHigh
-    ? 'bg-[#E5F1EC] text-[#2F6F64] border-[#B8D9CE]'
+    ? 'bg-lav-100 text-lav-700 border-lav-200'
     : isMid
-    ? 'bg-[#FDF6EC] text-[#B87514] border-[#F3D9B1]'
-    : 'bg-[#FDF2F3] text-[#C03A47] border-[#F2C6CB]';
+    ? 'bg-sun-100 text-sun-700 border-sun-300'
+    : 'bg-canvas text-muted border-line-strong';
 
   if (size === 'lg') {
     return (
@@ -420,21 +470,21 @@ export const ConstraintCheckList: React.FC<{
   const allPassed = checks.length > 0 && checks.every((c) => c.passed);
 
   return (
-    <div className="rounded-lg border border-[#E1E9E6] bg-[#F7FAF9] p-3">
-      <div className="flex items-center justify-between mb-2.5 pb-2 border-b border-[#E1E9E6]">
-        <div className="flex items-center gap-1.5 text-[12px] font-semibold text-[#253438]">
+    <div className="rounded-lg border border-line bg-canvas p-3">
+      <div className="flex items-center justify-between mb-2.5 pb-2 border-b border-line">
+        <div className="flex items-center gap-1.5 text-[12px] font-semibold text-ink">
           {allPassed ? (
-            <ShieldCheck className="w-4 h-4 text-[#4D947B]" />
+            <ShieldCheck className="w-4 h-4 text-ok" />
           ) : (
-            <ShieldAlert className="w-4 h-4 text-[#D85D68]" />
+            <ShieldAlert className="w-4 h-4 text-urgent" />
           )}
           <span>Kiểm tra Ràng buộc cứng (6/6 Quy tắc)</span>
         </div>
         <span
           className={`text-[11px] font-semibold px-2 py-0.5 rounded ${
             allPassed
-              ? 'bg-[#EBF6F1] text-[#2E755D]'
-              : 'bg-[#FDF2F3] text-[#C03A47]'
+              ? 'bg-ok-tint text-ok'
+              : 'bg-urgent-tint text-urgent'
           }`}
         >
           {allPassed
@@ -449,24 +499,24 @@ export const ConstraintCheckList: React.FC<{
             key={item.key}
             className={`flex items-start gap-2 p-2 rounded border text-[12px] ${
               item.passed
-                ? 'bg-white border-[#E1E9E6]'
-                : 'bg-[#FDF2F3] border-[#F2C6CB]'
+                ? 'bg-white border-line'
+                : 'bg-urgent-tint border-urgent-line'
             }`}
           >
             {item.passed ? (
-              <CheckCircle2 className="w-3.5 h-3.5 text-[#4D947B] shrink-0 mt-0.5" />
+              <CheckCircle2 className="w-3.5 h-3.5 text-ok shrink-0 mt-0.5" />
             ) : (
-              <XCircle className="w-3.5 h-3.5 text-[#D85D68] shrink-0 mt-0.5" />
+              <XCircle className="w-3.5 h-3.5 text-urgent shrink-0 mt-0.5" />
             )}
             <div className="min-w-0 flex-1">
               <div
                 className={`font-medium leading-tight ${
-                  item.passed ? 'text-[#253438]' : 'text-[#C03A47]'
+                  item.passed ? 'text-ink' : 'text-urgent'
                 }`}
               >
                 {item.label}
               </div>
-              <div className="text-[11px] text-[#687A78] truncate mt-0.5 tabular-nums">
+              <div className="text-[11px] text-muted truncate mt-0.5 tabular-nums">
                 {item.detail}
               </div>
             </div>
@@ -483,17 +533,17 @@ export const EmptyStateCard: React.FC<{
   actionLabel?: string;
   onAction?: () => void;
 }> = ({ title, description, actionLabel, onAction }) => (
-  <div className="bg-white rounded-[10px] border border-[#E1E9E6] p-8 text-center flex flex-col items-center justify-center">
-    <div className="w-10 h-10 rounded-full bg-[#E5F1EC] text-[#2F6F64] flex items-center justify-center mb-3">
+  <div className="bg-white rounded-[10px] border border-line p-8 text-center flex flex-col items-center justify-center">
+    <div className="w-10 h-10 rounded-full bg-brand-100 text-brand-600 flex items-center justify-center mb-3">
       <Inbox className="w-5 h-5" />
     </div>
-    <h3 className="text-[15px] font-semibold text-[#253438] m-0">{title}</h3>
-    <p className="text-[13px] text-[#687A78] max-w-md mt-1 mb-0">{description}</p>
+    <h3 className="text-[15px] font-semibold text-ink m-0">{title}</h3>
+    <p className="text-[13px] text-muted max-w-md mt-1 mb-0">{description}</p>
     {actionLabel && onAction && (
       <button
         type="button"
         onClick={onAction}
-        className="mt-4 px-3.5 py-1.5 rounded-lg bg-[#2F6F64] text-white text-[13px] font-medium hover:bg-[#255A51] transition-colors cursor-pointer"
+        className="mt-4 px-3.5 py-1.5 rounded-lg bg-brand-600 text-white text-[13px] font-medium hover:bg-brand-700 transition-colors cursor-pointer"
       >
         {actionLabel}
       </button>
