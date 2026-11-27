@@ -2,7 +2,7 @@
 Module: evaluation.py
 Mục đích:
 - Thực hiện thiết kế thực nghiệm đánh giá giải thuật lập lịch và đo lường đóng góp định lượng của AI
-  theo đúng hướng dẫn của GVHD TS. Trịnh Thị Ngọc Thúy:
+  theo đúng hướng dẫn của GVHD:
   1. Mở rộng Benchmark & Stress Test:
      - 4 mức tải: Nhỏ (10), Trung bình (25), Lớn (50), Rất lớn (100) yêu cầu/ngày.
      - Đánh giá trên ít nhất 5 random seeds (báo cáo mean ± std).

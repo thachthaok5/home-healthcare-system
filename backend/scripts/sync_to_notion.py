@@ -44,7 +44,7 @@ def get_task_details(task_name: str, desc: str, ref: str) -> list:
             "object": "block",
             "type": "heading_2",
             "heading_2": {
-                "rich_text": [{"type": "text", "text": {"content": "📋 Căn cứ Feedback GVHD (TS. Trịnh Thị Ngọc Thúy)"}}]
+                "rich_text": [{"type": "text", "text": {"content": "📋 Căn cứ Feedback GVHD"}}]
             }
         },
         {

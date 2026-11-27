@@ -2,7 +2,7 @@
 Script: run_ai_robustness_test.py
 Mục đích:
 - Thực hiện bài kiểm tra độ bền vững (Robustness Test) cho mô hình dự đoán thời lượng AI
-  theo đúng góp ý của GVHD TS. Trịnh Thị Ngọc Thúy (Feedback 7).
+  theo đúng góp ý của GVHD (Feedback 7).
 - Đánh giá khả năng thích ứng của mô hình Random Forest đã huấn luyện (duration_model_v1.joblib)
   trên các phân phối dữ liệu bị biến dạng (Distribution Shifts & Perturbations):
   1. R0: Phân phối gốc (Baseline: sigma=4.5p)
