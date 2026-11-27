@@ -11,6 +11,8 @@ import {
   ShieldCheck,
   Stethoscope,
   Sparkles,
+  ClipboardList,
+  X,
 } from 'lucide-react';
 import {
   AICandidate,
@@ -576,74 +578,90 @@ export const RecommendationsPage: React.FC<RecommendationsPageProps> = ({
               </div>
 
               <div className="p-5 space-y-5 flex-1 overflow-y-auto overscroll-contain">
-                {/* SECTION 1: Request Summary */}
-                <div className="space-y-2 pb-4 border-b border-line">
-                  <div className="text-[12px] font-semibold text-muted uppercase tracking-wider">
-                    1. Tóm tắt Yêu cầu Chăm sóc
+                {/* SECTION 1: Yêu cầu chăm sóc */}
+                <div className="space-y-2.5 pb-4 border-b border-line">
+                  <div className="flex items-center gap-2 text-[14px] font-bold text-ink">
+                    <ClipboardList className="w-4 h-4 text-brand-600 shrink-0" />
+                    <span>Yêu cầu chăm sóc</span>
                   </div>
-                  <div className="text-[14px] font-semibold text-ink">
+
+                  <div className="text-[15px] font-bold text-ink leading-snug">
                     {activeRequest.serviceName}
                   </div>
-                  <div className="grid grid-cols-2 gap-2 text-[12px]">
-                    <div className="bg-canvas p-2 rounded border border-line">
-                      <span className="text-muted block text-[11px]">Khung giờ yêu cầu</span>
-                      <span className="font-semibold text-ink tabular-nums">
-                        {activeRequest.requestedWindow} (Ưu tiên: {activeRequest.preferredStart})
-                      </span>
-                    </div>
-                    <div className="bg-canvas p-2 rounded border border-line">
-                      <span className="text-muted block text-[11px]">
-                        Thời lượng (Định mức vs AI)
-                      </span>
-                      <span className="font-semibold text-brand-600 tabular-nums">
-                        {activeRequest.predictedDurationMin} phút{' '}
-                        <span className="text-muted font-normal">
-                          (Chuẩn {activeRequest.standardDurationMin}p)
-                        </span>
-                      </span>
-                    </div>
-                  </div>
-                  <div className="flex items-center justify-between text-[12px] text-muted pt-1 flex-wrap gap-2">
-                    <span className="inline-flex items-center gap-1">
-                      <MapPin className="w-3.5 h-3.5 text-brand-600" />
-                      {activeRequest.address}
+
+                  <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-[12.5px] text-ink">
+                    <span className="inline-flex items-center gap-1.5 font-medium tabular-nums whitespace-nowrap">
+                      <Clock className="w-3.5 h-3.5 text-brand-600 shrink-0" />
+                      {activeRequest.requestedWindow}
                     </span>
-                    <div className="flex items-center gap-1 flex-wrap">
-                      {activeRequest.requiredSkills.map((sk) => (
-                        <span
-                          key={sk}
-                          className="px-2 py-0.5 rounded bg-brand-100 text-brand-600 text-[11px] font-medium"
-                        >
-                          {sk}
-                        </span>
-                      ))}
-                    </div>
+                    <span className="inline-flex items-center gap-1.5 tabular-nums whitespace-nowrap">
+                      <span
+                        className={`font-semibold ${
+                          activeRequest.predictedDurationMin !== activeRequest.standardDurationMin
+                            ? 'text-sun-700 bg-sun-100 px-1.5 py-0.5 rounded'
+                            : 'text-ink'
+                        }`}
+                      >
+                        {activeRequest.predictedDurationMin} phút
+                      </span>
+                      <span className="text-muted text-[11.5px]">
+                        · chuẩn {activeRequest.standardDurationMin}
+                      </span>
+                    </span>
+                    <span className="inline-flex items-center gap-1 text-muted">
+                      <MapPin className="w-3.5 h-3.5 text-brand-600 shrink-0" />
+                      <span>{activeRequest.address}</span>
+                    </span>
+                  </div>
+
+                  <div className="flex items-center gap-1.5 flex-wrap pt-0.5">
+                    {activeRequest.requiredSkills.map((sk) => (
+                      <span
+                        key={sk}
+                        className="px-2.5 py-0.5 rounded-full bg-brand-50 border border-brand-200 text-brand-700 text-[11.5px] font-medium"
+                      >
+                        {sk}
+                      </span>
+                    ))}
                   </div>
                 </div>
 
-                {/* SECTION 2: Recommended Staff Member */}
+                {/* SECTION 2: Nhân sự đề xuất */}
                 {activeCandidate ? (
                   <div className="space-y-3 pb-4 border-b border-line">
-                    <div className="flex items-center justify-between">
-                      <span className="text-[12px] font-semibold text-muted uppercase tracking-wider">
-                        2. Nhân sự Y tế Đề xuất
-                      </span>
-                      <span className="text-[11px] font-semibold px-2 py-0.5 rounded bg-brand-100 text-brand-600">
-                        {activeCandidate.rankLabel}
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2 text-[14px] font-bold text-ink">
+                        <UserCheck className="w-4 h-4 text-brand-600 shrink-0" />
+                        <span>Nhân sự đề xuất</span>
+                      </div>
+                      <span
+                        className={`text-[11px] font-semibold px-2.5 py-0.5 rounded-full whitespace-nowrap shrink-0 ${
+                          activeCandidate.isEligible
+                            ? 'bg-lav-100 text-lav-700 border border-lav-200'
+                            : 'bg-high-tint text-high-ink border border-high-line'
+                        }`}
+                      >
+                        {activeCandidate.isEligible ? activeCandidate.rankLabel : 'Không khả thi'}
                       </span>
                     </div>
 
-                    <div className="p-3.5 rounded-lg border border-brand-200 bg-brand-100/35 space-y-3">
+                    <div
+                      className={`p-3.5 rounded-lg border space-y-3 ${
+                        activeCandidate.isEligible
+                          ? 'border-lav-200 bg-lav-50/60'
+                          : 'border-high-line bg-sun-50/70'
+                      }`}
+                    >
                       <div className="flex items-start justify-between gap-3">
-                        <div className="flex items-center gap-2.5">
+                        <div className="flex items-center gap-2.5 min-w-0">
                           <div
                             className="w-9 h-9 rounded-full flex items-center justify-center text-white font-semibold text-[13px] shrink-0"
                             style={{ backgroundColor: activeCandidate.avatarColor || '#1A73A0' }}
                           >
                             {activeCandidate.staffName.slice(-2).toUpperCase()}
                           </div>
-                          <div>
-                            <div className="text-[15px] font-semibold text-ink">
+                          <div className="min-w-0">
+                            <div className="text-[15px] font-semibold text-ink truncate">
                               {activeCandidate.staffName}
                             </div>
                             <div className="text-[12px] text-muted">
@@ -652,37 +670,70 @@ export const RecommendationsPage: React.FC<RecommendationsPageProps> = ({
                           </div>
                         </div>
 
-                        <div className="text-right">
-                          <div className="text-[10px] uppercase tracking-wider text-muted mb-0.5">
-                            Điểm Phù hợp (DSS)
-                          </div>
-                          <SuitabilityScoreBadge score={activeCandidate.totalScore} size="md" />
+                        <div className="text-right shrink-0">
+                          {activeCandidate.isEligible ? (
+                            <>
+                              <div className="text-[11px] text-muted mb-0.5 whitespace-nowrap">
+                                Điểm phù hợp
+                              </div>
+                              <span className="inline-flex items-center px-2.5 py-1 rounded-lg text-[14px] font-bold font-mono-num bg-lav-100 text-lav-700 border border-lav-200 whitespace-nowrap">
+                                {Math.round(activeCandidate.totalScore)}%
+                              </span>
+                            </>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[12px] font-semibold bg-high-tint text-high-ink border border-high-line whitespace-nowrap">
+                              <XCircle className="w-3.5 h-3.5 shrink-0" />
+                              Không khả thi
+                            </span>
+                          )}
                         </div>
                       </div>
 
-                      {/* Availability + Stacked Workload Progress Bar (Current + Projected out of 480m) */}
-                      <div className="space-y-1.5 pt-1">
-                        <div className="flex items-center justify-between text-[12px]">
-                          <span className="text-muted inline-flex items-center gap-1">
-                            <Clock className="w-3.5 h-3.5 text-brand-600" />
-                            Lịch trống: <strong className="text-ink tabular-nums">{activeCandidate.criteria.availableGapText}</strong>
+                      {/* Lý do ngắn nếu ứng viên không khả thi */}
+                      {!activeCandidate.isEligible && (
+                        <div className="px-2.5 py-2 rounded bg-white/80 border border-high-line text-[12px] text-high-ink flex items-start gap-2">
+                          <AlertTriangle className="w-3.5 h-3.5 shrink-0 mt-0.5" />
+                          <span>
+                            {activeCandidate.constraintViolations?.[0] ||
+                              activeCandidate.hardConstraintDetails?.[0]?.detail ||
+                              'Chưa đáp ứng đủ 6 ràng buộc cứng.'}
                           </span>
-                          <span className="text-[11px] text-muted tabular-nums">
-                            Tải công việc:{' '}
-                            <strong className="text-ink">
-                              {activeCandidate.criteria.assignedMinutes}p
-                            </strong>{' '}
-                            +{' '}
-                            <strong className="text-brand-600">
-                              {activeCandidate.criteria.projectedAssignedMinutes -
-                                activeCandidate.criteria.assignedMinutes}
-                              p
-                            </strong>{' '}
-                            / {activeCandidate.criteria.maxDailyMinutes}p
+                        </div>
+                      )}
+
+                      {/* Availability + Stacked Workload Progress Bar */}
+                      <div className="space-y-1.5 pt-1">
+                        <div className="flex items-center justify-between gap-2 text-[12px] flex-wrap">
+                          <span className="text-muted inline-flex items-center gap-1">
+                            <Clock className="w-3.5 h-3.5 text-brand-600 shrink-0" />
+                            Lịch trống:{' '}
+                            <strong className="text-ink tabular-nums">
+                              {activeCandidate.criteria.availableGapText}
+                            </strong>
+                          </span>
+                          <span
+                            className="text-[12px] font-medium text-ink tabular-nums whitespace-nowrap"
+                            title={`Đã gán: ${activeCandidate.criteria.assignedMinutes} phút · Ca này: +${Math.max(
+                              0,
+                              activeCandidate.criteria.projectedAssignedMinutes -
+                                activeCandidate.criteria.assignedMinutes
+                            )} phút`}
+                          >
+                            Tải: {activeCandidate.criteria.projectedAssignedMinutes}/
+                            {activeCandidate.criteria.maxDailyMinutes} phút
                           </span>
                         </div>
                         {/* 2-Color Stacked Bar */}
-                        <div className="w-full h-2.5 bg-line rounded-full overflow-hidden flex">
+                        <div
+                          className={`w-full h-2.5 bg-line rounded-full overflow-hidden flex ${
+                            !activeCandidate.isEligible ? 'opacity-45' : ''
+                          }`}
+                          title={`Xanh đậm: đã gán (${activeCandidate.criteria.assignedMinutes} phút) · Xanh nhạt: tăng thêm (+${Math.max(
+                            0,
+                            activeCandidate.criteria.projectedAssignedMinutes -
+                              activeCandidate.criteria.assignedMinutes
+                          )} phút)`}
+                        >
                           <div
                             className="h-full bg-brand-600"
                             style={{
@@ -695,7 +746,6 @@ export const RecommendationsPage: React.FC<RecommendationsPageProps> = ({
                                 )
                               )}%`,
                             }}
-                            title={`Đã gán trong ngày: ${activeCandidate.criteria.assignedMinutes} phút`}
                           />
                           <div
                             className="h-full bg-brand-300"
@@ -703,17 +753,16 @@ export const RecommendationsPage: React.FC<RecommendationsPageProps> = ({
                               width: `${Math.min(
                                 100,
                                 Math.round(
-                                  ((activeCandidate.criteria.projectedAssignedMinutes -
-                                    activeCandidate.criteria.assignedMinutes) /
+                                  (Math.max(
+                                    0,
+                                    activeCandidate.criteria.projectedAssignedMinutes -
+                                      activeCandidate.criteria.assignedMinutes
+                                  ) /
                                     activeCandidate.criteria.maxDailyMinutes) *
                                     100
                                 )
                               )}%`,
                             }}
-                            title={`Tăng thêm nếu nhận ca này: +${
-                              activeCandidate.criteria.projectedAssignedMinutes -
-                              activeCandidate.criteria.assignedMinutes
-                            } phút`}
                           />
                         </div>
                       </div>
@@ -721,17 +770,18 @@ export const RecommendationsPage: React.FC<RecommendationsPageProps> = ({
                   </div>
                 ) : null}
 
-                {/* SECTION 3: Why this candidate? (3 concise items + collapsible View DSS Criteria) */}
+                {/* SECTION 3: Lý do đề xuất */}
                 {activeCandidate && (
                   <div className="space-y-2.5 pb-4 border-b border-line">
-                    <div className="flex items-center justify-between">
-                      <span className="text-[12px] font-semibold text-muted uppercase tracking-wider">
-                        3. Giải trình Lý do Đề xuất
-                      </span>
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2 text-[14px] font-bold text-ink">
+                        <Sparkles className="w-4 h-4 text-lav-700 shrink-0" />
+                        <span>Lý do đề xuất</span>
+                      </div>
                       <button
                         type="button"
                         onClick={() => setShowDssCriteria((prev) => !prev)}
-                        className="inline-flex items-center gap-1 text-[12px] font-medium text-brand-600 hover:text-brand-700 cursor-pointer"
+                        className="inline-flex items-center gap-1 text-[12px] font-medium text-lav-700 hover:text-lav-500 cursor-pointer whitespace-nowrap"
                       >
                         {showDssCriteria ? 'Thu gọn 5 tiêu chí DSS' : 'Xem 5 tiêu chí DSS'}
                         {showDssCriteria ? (
@@ -742,43 +792,74 @@ export const RecommendationsPage: React.FC<RecommendationsPageProps> = ({
                       </button>
                     </div>
 
-                    {/* 3 Concise Explanation Items */}
-                    <div className="grid grid-cols-1 gap-1.5 text-[12px]">
-                      <div className="flex items-center justify-between px-3 py-2 rounded bg-canvas border border-line">
-                        <span className="text-muted">Độ khớp kỹ năng</span>
-                        <span className="font-medium text-ink">
-                          {activeCandidate.criteria.matchedSkills.join(', ') || 'Đủ chứng chỉ'} (
-                          {activeCandidate.criteria.skillFitScore}%)
-                        </span>
+                    {/* 3 hàng lưới 2 cột (nhãn trái cố định, giá trị phải xuống dòng đúng) */}
+                    <div className="space-y-1.5 text-[12px]">
+                      <div className="grid grid-cols-[128px_1fr] items-start gap-2.5 px-3 py-2 rounded bg-canvas border border-line">
+                        <span className="text-muted font-medium">Độ khớp kỹ năng</span>
+                        <div className="flex items-center justify-between gap-2 flex-wrap min-w-0">
+                          <div className="flex items-center gap-1 flex-wrap min-w-0">
+                            {activeCandidate.criteria.matchedSkills.length > 0 ? (
+                              activeCandidate.criteria.matchedSkills.map((sk) => (
+                                <span
+                                  key={sk}
+                                  className="px-2 py-0.5 rounded-full bg-brand-50 border border-brand-200 text-brand-700 text-[11px] font-medium"
+                                >
+                                  {sk}
+                                </span>
+                              ))
+                            ) : (
+                              <span className="text-muted">Chưa khớp</span>
+                            )}
+                            {activeCandidate.criteria.missingSkills.map((sk) => (
+                              <span
+                                key={`missing-${sk}`}
+                                className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full bg-white border border-line-strong text-muted text-[11px]"
+                                title="Kỹ năng còn thiếu"
+                              >
+                                <X className="w-3 h-3 shrink-0" />
+                                {sk}
+                              </span>
+                            ))}
+                          </div>
+                          <span className="font-mono-num font-semibold text-ink whitespace-nowrap ml-auto">
+                            {activeCandidate.criteria.skillFitScore}%
+                          </span>
+                        </div>
                       </div>
-                      <div className="flex items-center justify-between px-3 py-2 rounded bg-canvas border border-line">
-                        <span className="text-muted">Độ khít khung giờ</span>
-                        <span className="font-medium text-ink tabular-nums">
-                          {activeCandidate.criteria.availableGapText} (
-                          {activeCandidate.criteria.timeFitScore}%)
-                        </span>
+
+                      <div className="grid grid-cols-[128px_1fr] items-start gap-2.5 px-3 py-2 rounded bg-canvas border border-line">
+                        <span className="text-muted font-medium">Độ khít khung giờ</span>
+                        <div className="flex items-center justify-between gap-2 min-w-0">
+                          <span className="font-medium text-ink tabular-nums break-words">
+                            {activeCandidate.criteria.availableGapText}
+                          </span>
+                          <span className="font-mono-num font-semibold text-ink whitespace-nowrap shrink-0">
+                            {activeCandidate.criteria.timeFitScore}%
+                          </span>
+                        </div>
                       </div>
-                      <div className="flex items-center justify-between px-3 py-2 rounded bg-canvas border border-line">
-                        <span className="text-muted">Khoảng cách & Cân bằng tải</span>
-                        <span className="font-medium text-ink tabular-nums">
+
+                      <div className="grid grid-cols-[128px_1fr] items-start gap-2.5 px-3 py-2 rounded bg-canvas border border-line">
+                        <span className="text-muted font-medium">Khoảng cách & tải</span>
+                        <div className="font-medium text-ink tabular-nums">
                           {activeCandidate.criteria.distanceKm} km (~
-                          {activeCandidate.criteria.travelMinutes}p) ·{' '}
-                          {activeCandidate.criteria.projectedWorkloadPct}% trần
-                        </span>
+                          {activeCandidate.criteria.travelMinutes} phút) ·{' '}
+                          {activeCandidate.criteria.projectedWorkloadPct}% trần ngày
+                        </div>
                       </div>
                     </div>
 
                     {/* Collapsible 5-Component Weighted DSS Breakdown */}
                     {showDssCriteria && (
-                      <div className="mt-2 p-3 rounded-lg bg-canvas border border-line space-y-2.5">
-                        <div className="flex items-center justify-between">
-                          <span className="text-[11px] font-semibold uppercase tracking-wider text-ink">
-                            Giải trình 5 Thành phần Trọng số DSS
+                      <div className="mt-2 p-3 rounded-lg bg-lav-50/70 border border-lav-200 space-y-2.5">
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="text-[12px] font-bold text-ink">
+                            Chi tiết 5 tiêu chí trọng số
                           </span>
                           <button
                             type="button"
                             onClick={() => setShowWeightsTuner((v) => !v)}
-                            className="inline-flex items-center gap-1 text-[11px] text-brand-600 font-medium cursor-pointer"
+                            className="inline-flex items-center gap-1 text-[11.5px] text-lav-700 font-medium cursor-pointer whitespace-nowrap"
                           >
                             <Sliders className="w-3 h-3" />
                             {showWeightsTuner ? 'Ẩn trọng số' : 'Điều chỉnh trọng số'}
@@ -787,49 +868,44 @@ export const RecommendationsPage: React.FC<RecommendationsPageProps> = ({
 
                         {[
                           {
-                            label: 'SkillFit (Độ khớp kỹ năng)',
+                            label: 'Độ khớp kỹ năng',
                             weightPct: Math.round(dssWeights.skillFit * 100),
                             score: activeCandidate.criteria.skillFitScore,
-                            detail: activeCandidate.criteria.skillFitNote,
                           },
                           {
-                            label: 'TimeFit (Độ khít thời gian)',
+                            label: 'Độ khít thời gian',
                             weightPct: Math.round(dssWeights.timeFit * 100),
                             score: activeCandidate.criteria.timeFitScore,
-                            detail: activeCandidate.criteria.timeFitNote,
                           },
                           {
-                            label: 'Distance (Khoảng cách di chuyển)',
+                            label: 'Khoảng cách di chuyển',
                             weightPct: Math.round(dssWeights.distance * 100),
                             score: activeCandidate.criteria.distanceScore,
-                            detail: `${activeCandidate.criteria.distanceKm} km (~${activeCandidate.criteria.travelMinutes} phút)`,
                           },
                           {
-                            label: 'Workload (Cân bằng tải công việc)',
+                            label: 'Cân bằng tải công việc',
                             weightPct: Math.round(dssWeights.workload * 100),
                             score: activeCandidate.criteria.workloadScore,
-                            detail: `${activeCandidate.criteria.projectedAssignedMinutes}/480 phút`,
                           },
                           {
-                            label: 'Continuity (Tính liên tục chăm sóc)',
+                            label: 'Tính liên tục chăm sóc',
                             weightPct: Math.round(dssWeights.continuity * 100),
                             score: activeCandidate.criteria.continuityScore,
-                            detail: `${activeCandidate.criteria.previousVisitsCount} lần khám trước`,
                           },
                         ].map((factor) => (
                           <div key={factor.label} className="space-y-1">
-                            <div className="flex items-center justify-between text-[11px]">
+                            <div className="flex items-center justify-between text-[11.5px]">
                               <span className="font-medium text-ink">
                                 {factor.label}{' '}
                                 <span className="text-muted">({factor.weightPct}%)</span>
                               </span>
-                              <span className="font-mono-num font-semibold text-brand-600">
-                                {factor.score}/100
+                              <span className="font-mono-num font-semibold text-lav-700">
+                                {factor.score}%
                               </span>
                             </div>
                             <div className="w-full h-1.5 bg-line rounded-full overflow-hidden">
                               <div
-                                className="h-full bg-brand-600 rounded-full"
+                                className="h-full bg-lav-500 rounded-full"
                                 style={{ width: `${factor.score}%` }}
                               />
                             </div>
@@ -837,11 +913,11 @@ export const RecommendationsPage: React.FC<RecommendationsPageProps> = ({
                         ))}
 
                         {showWeightsTuner && (
-                          <div className="pt-2 border-t border-line space-y-2">
+                          <div className="pt-2 border-t border-lav-200 space-y-2">
                             <div className="text-[11px] text-muted">
-                              Chọn cấu hình trọng số DSS (tự động chuẩn hóa tổng = 100%):
+                              Chọn cấu hình trọng số (tự động chuẩn hóa tổng = 100%):
                             </div>
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-2 flex-wrap">
                               <button
                                 type="button"
                                 onClick={() =>
@@ -853,7 +929,7 @@ export const RecommendationsPage: React.FC<RecommendationsPageProps> = ({
                                     continuity: 0.1,
                                   })
                                 }
-                                className="px-2 py-1 rounded bg-white border border-line text-[11px] text-ink hover:border-brand-600 cursor-pointer"
+                                className="px-2.5 py-1 rounded bg-white border border-line text-[11px] text-ink hover:border-brand-600 cursor-pointer"
                               >
                                 Mặc định (30/25/20/15/10)
                               </button>
@@ -868,9 +944,9 @@ export const RecommendationsPage: React.FC<RecommendationsPageProps> = ({
                                     continuity: 0.1,
                                   })
                                 }
-                                className="px-2 py-1 rounded bg-white border border-line text-[11px] text-ink hover:border-brand-600 cursor-pointer"
+                                className="px-2.5 py-1 rounded bg-white border border-line text-[11px] text-ink hover:border-brand-600 cursor-pointer"
                               >
-                                Ưu tiên Khoảng cách (35%)
+                                Ưu tiên khoảng cách (35%)
                               </button>
                             </div>
                           </div>

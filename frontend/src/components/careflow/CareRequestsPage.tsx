@@ -17,7 +17,9 @@ import {
   ExternalLink,
   ClipboardList,
   ShieldCheck,
-  ShieldAlert,
+  User,
+  ChevronDown,
+  ChevronUp,
 } from 'lucide-react';
 import {
   DispatchAssignment,
@@ -97,31 +99,38 @@ const SUPPORTED_ZONES = [
   'Phường Phương Sài',
 ];
 
+const formatDateVi = (isoDate: string): string => {
+  if (!isoDate) return '';
+  const m = isoDate.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (m) return `${m[3]}/${m[2]}/${m[1]}`;
+  return isoDate;
+};
+
 const renderCareRequestStatusBadge = (status: CareRequestOperationalStatus) => {
   switch (status) {
     case 'Ready for AI':
       return (
-        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-semibold bg-brand-100 text-brand-600 border border-brand-200">
+        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-semibold bg-brand-100 text-brand-600 border border-brand-200 whitespace-nowrap shrink-0">
           <Sparkles className="w-3 h-3" />
           Sẵn sàng AI
         </span>
       );
     case 'Needs Review':
       return (
-        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-semibold bg-high-tint text-high-ink border border-high-line">
+        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-semibold bg-high-tint text-high-ink border border-high-line whitespace-nowrap shrink-0">
           <AlertTriangle className="w-3 h-3" />
           Cần rà soát
         </span>
       );
     case 'New':
       return (
-        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium bg-canvas text-ink border border-line-strong">
+        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium bg-canvas text-ink border border-line-strong whitespace-nowrap shrink-0">
           Mới tiếp nhận
         </span>
       );
     case 'Assigned':
       return (
-        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium bg-ok-tint text-ok border border-brand-200">
+        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium bg-ok-tint text-ok border border-brand-200 whitespace-nowrap shrink-0">
           <CheckCircle2 className="w-3 h-3" />
           Đã phân công
         </span>
@@ -130,7 +139,7 @@ const renderCareRequestStatusBadge = (status: CareRequestOperationalStatus) => {
       return <StatusBadge status="Completed" />;
     case 'Cancelled':
       return (
-        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium bg-urgent-tint text-urgent border border-urgent-line">
+        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium bg-urgent-tint text-urgent border border-urgent-line whitespace-nowrap shrink-0">
           Đã hủy
         </span>
       );
@@ -155,6 +164,7 @@ export const CareRequestsPage: React.FC<CareRequestsPageProps> = ({
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [selectedRequestId, setSelectedRequestId] = useState<string | null>(null);
   const [editingRequest, setEditingRequest] = useState<Partial<UnassignedRequest> | null>(null);
+  const [showReadinessDetails, setShowReadinessDetails] = useState<boolean>(false);
 
   const pageSize = 8;
 
@@ -786,262 +796,350 @@ export const CareRequestsPage: React.FC<CareRequestsPageProps> = ({
         </div>
       )}
 
-      {/* 2.5 Request Detail Drawer (Right-Side, 420px–480px) */}
-      {selectedDetail && (
-        <div className="fixed inset-0 z-50 flex justify-end bg-ink/30 backdrop-blur-[1px]">
-          <div
-            className={`w-full max-w-[460px] bg-white h-full shadow-xl flex flex-col ${
-              selectedDetail.priority === 'Khẩn cấp'
-                ? 'border-l-4 border-l-urgent'
-                : 'border-l border-line'
-            }`}
-          >
-            {/* Drawer Header */}
+      {/* 2.5 Request Detail Drawer */}
+      {selectedDetail && (() => {
+        const failedChecks = selectedDetail.readinessChecks.filter((c) => !c.passed);
+        const passedCount = selectedDetail.readinessChecks.length - failedChecks.length;
+        const totalChecks = selectedDetail.readinessChecks.length;
+        const sortedChecks = [...selectedDetail.readinessChecks].sort(
+          (a, b) => Number(a.passed) - Number(b.passed)
+        );
+        const isDurationAdjusted =
+          selectedDetail.predictedDurationMin !== selectedDetail.standardDurationMin;
+        const shortWard = selectedDetail.district
+          .replace(/^Phường\s+/i, '')
+          .replace(/^Xã\s+/i, '');
+        const createdTimeOnly = selectedDetail.createdAtText.includes('·')
+          ? selectedDetail.createdAtText.split('·')[1]?.trim()
+          : '07:15';
+
+        const summaryStripClass =
+          selectedDetail.priority === 'Khẩn cấp'
+            ? 'bg-urgent-tint border-urgent-line text-ink'
+            : selectedDetail.priority === 'Cao'
+            ? 'bg-high-tint border-high-line text-ink'
+            : 'bg-brand-50 border-brand-200 text-ink';
+
+        return (
+          <div className="fixed inset-0 z-50 flex justify-end bg-ink/30 backdrop-blur-[1px]">
             <div
-              className={`px-6 py-4 border-b flex items-center justify-between shrink-0 ${
+              className={`w-full max-w-[560px] bg-white h-full shadow-xl flex flex-col ${
                 selectedDetail.priority === 'Khẩn cấp'
-                  ? 'bg-urgent-tint border-urgent-line'
-                  : 'bg-canvas border-line'
+                  ? 'border-l-4 border-l-urgent'
+                  : 'border-l border-line'
               }`}
             >
-              <div>
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span
-                    className={`font-mono-num text-[12px] font-semibold px-2 py-0.5 rounded ${
-                      selectedDetail.priority === 'Khẩn cấp'
-                        ? 'bg-urgent text-white'
-                        : 'text-brand-600 bg-brand-100'
-                    }`}
+              {/* Drawer Header */}
+              <div className="px-6 py-4 border-b border-line bg-white shrink-0 space-y-3">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span
+                        className={`font-mono-num text-[12px] font-semibold px-2 py-0.5 rounded whitespace-nowrap ${
+                          selectedDetail.priority === 'Khẩn cấp'
+                            ? 'bg-urgent text-white'
+                            : 'text-brand-600 bg-brand-100'
+                        }`}
+                      >
+                        {selectedDetail.id}
+                      </span>
+                      <PriorityBadge
+                        priority={selectedDetail.priority}
+                        showCountdown={selectedDetail.priority === 'Khẩn cấp'}
+                        deadline={selectedDetail.windowStart}
+                      />
+                      {renderCareRequestStatusBadge(selectedDetail.operationalStatus)}
+                    </div>
+                    <h3 className="text-[18px] font-bold text-ink m-0 mt-2 leading-snug">
+                      {selectedDetail.serviceName}
+                    </h3>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedRequestId(null);
+                      setShowReadinessDetails(false);
+                    }}
+                    className="p-1.5 rounded-lg text-muted hover:text-ink hover:bg-canvas cursor-pointer shrink-0"
+                    aria-label="Đóng chi tiết yêu cầu"
                   >
-                    {selectedDetail.id}
-                  </span>
-                  <PriorityBadge
-                    priority={selectedDetail.priority}
-                    showCountdown={selectedDetail.priority === 'Khẩn cấp'}
-                    deadline={selectedDetail.windowStart}
-                  />
-                  {renderCareRequestStatusBadge(selectedDetail.operationalStatus)}
+                    <X className="w-5 h-5" />
+                  </button>
                 </div>
-                <h3 className="text-[16px] font-semibold text-ink m-0 mt-1.5">
-                  {selectedDetail.serviceName}
-                </h3>
-              </div>
-              <button
-                type="button"
-                onClick={() => setSelectedRequestId(null)}
-                className="p-1.5 rounded-lg text-muted hover:text-ink cursor-pointer"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
 
-            {/* Drawer Content: Sections A, B, C */}
-            <div className="flex-1 overflow-y-auto p-6 space-y-5">
-              {/* SECTION A — Request Overview */}
-              <div className="space-y-2">
-                <div className="text-[11px] font-semibold uppercase tracking-wider text-muted">
-                  A. Tổng quan Yêu cầu (Request Overview)
+                {/* Dải thông tin chính: Ngày giờ, Thời lượng, Phường/xã */}
+                <div
+                  className={`px-3.5 py-2.5 rounded-lg border flex flex-wrap items-center gap-x-4 gap-y-1.5 text-[12.5px] ${summaryStripClass}`}
+                >
+                  <span className="inline-flex items-center gap-1.5 font-semibold tabular-nums whitespace-nowrap">
+                    <Calendar className="w-3.5 h-3.5 text-brand-600 shrink-0" />
+                    {formatDateVi(selectedDetail.requestedDate)} · {selectedDetail.windowStart}–
+                    {selectedDetail.windowEnd}
+                  </span>
+                  <span className="inline-flex items-center gap-1.5 tabular-nums whitespace-nowrap">
+                    <Clock className="w-3.5 h-3.5 text-brand-600 shrink-0" />
+                    <span
+                      className={`font-semibold ${
+                        isDurationAdjusted
+                          ? 'text-sun-700 bg-sun-100 px-1.5 py-0.5 rounded'
+                          : 'text-ink'
+                      }`}
+                    >
+                      {selectedDetail.predictedDurationMin} phút
+                    </span>
+                    <span className="text-[11px] text-muted">
+                      chuẩn {selectedDetail.standardDurationMin}
+                    </span>
+                  </span>
+                  <span className="inline-flex items-center gap-1 font-medium text-ink whitespace-nowrap">
+                    <MapPin className="w-3.5 h-3.5 text-brand-600 shrink-0" />
+                    {shortWard}
+                  </span>
                 </div>
-                <div className="p-3.5 rounded-lg bg-canvas border border-line space-y-2 text-[13px]">
-                  <div className="flex justify-between">
-                    <span className="text-muted">Mã yêu cầu & Thời điểm tạo:</span>
-                    <span className="font-mono-num font-semibold text-ink">
-                      {selectedDetail.id} ({selectedDetail.createdAtText})
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted">Người nhận chăm sóc:</span>
-                    <span className="font-semibold text-ink">
-                      {selectedDetail.patientName} ({selectedDetail.patientAge} tuổi)
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted">Nhóm dịch vụ:</span>
-                    <span className="font-medium text-ink">
-                      {selectedDetail.serviceCategory}
-                    </span>
-                  </div>
-                  {selectedDetail.assignedStaffName && (
-                    <div className="flex justify-between pt-1.5 border-t border-line">
-                      <span className="text-muted">Nhân sự đã phân công:</span>
-                      <span className="font-semibold text-brand-600">
-                        {selectedDetail.assignedStaffName}
+              </div>
+
+              {/* Drawer Content */}
+              <div className="flex-1 overflow-y-auto p-6 space-y-5">
+                {/* Hộp cảnh báo vàng khi chưa sẵn sàng */}
+                {!selectedDetail.isReadyForAI && (
+                  <div className="p-3.5 rounded-lg bg-sun-50 border border-sun-300 text-sun-700 space-y-1.5">
+                    <div className="flex items-center gap-2 text-[13px] font-semibold">
+                      <AlertTriangle className="w-4 h-4 shrink-0" />
+                      <span>
+                        Còn thiếu {failedChecks.length}/{totalChecks} điều kiện
                       </span>
                     </div>
-                  )}
-                  <div className="pt-2 border-t border-line">
-                    <span className="text-[11px] text-muted block mb-0.5">
-                      Ghi chú vận hành (Operational Notes):
-                    </span>
-                    <p className="text-[12px] text-ink m-0 leading-relaxed">
-                      {selectedDetail.clinicalNotes}
-                    </p>
+                    <ul className="m-0 pl-5 space-y-0.5 text-[12px]">
+                      {failedChecks.map((fc) => (
+                        <li key={fc.key}>{fc.label}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {/* Mục 1: Bệnh nhân & dịch vụ */}
+                <div className="space-y-2.5">
+                  <div className="flex items-center gap-2 text-[14px] font-bold text-ink">
+                    <User className="w-4 h-4 text-brand-600 shrink-0" />
+                    <span>Bệnh nhân & dịch vụ</span>
+                  </div>
+                  <div className="p-3.5 rounded-lg bg-canvas border border-line space-y-2 text-[13px]">
+                    <div className="font-semibold text-[14px] text-ink">
+                      {selectedDetail.patientName} · {selectedDetail.patientAge} tuổi
+                      {selectedDetail.patientPhone && (
+                        <span className="ml-2 text-[12px] font-normal text-muted font-mono-num">
+                          {selectedDetail.patientPhone}
+                        </span>
+                      )}
+                    </div>
+
+                    {selectedDetail.serviceCategory &&
+                      selectedDetail.serviceCategory !== selectedDetail.serviceName && (
+                        <div className="text-[12.5px] text-ink-soft">
+                          <span className="text-muted">Nhóm dịch vụ: </span>
+                          <span className="font-medium text-ink">
+                            {selectedDetail.serviceCategory}
+                          </span>
+                        </div>
+                      )}
+
+                    {selectedDetail.assignedStaffName && (
+                      <div className="text-[12.5px] text-ink-soft pt-1 border-t border-line">
+                        <span className="text-muted">Nhân sự phụ trách: </span>
+                        <span className="font-semibold text-brand-600">
+                          {selectedDetail.assignedStaffName}
+                        </span>
+                      </div>
+                    )}
+
+                    {selectedDetail.clinicalNotes && selectedDetail.clinicalNotes.trim() && (
+                      <div className="pt-2 border-t border-line">
+                        <span className="text-[11px] font-medium text-muted block mb-0.5">
+                          Ghi chú
+                        </span>
+                        <p className="text-[12.5px] text-ink m-0 leading-relaxed">
+                          {selectedDetail.clinicalNotes}
+                        </p>
+                      </div>
+                    )}
                   </div>
                 </div>
-              </div>
 
-              {/* SECTION B — Scheduling Requirements */}
-              <div className="space-y-2">
-                <div className="text-[11px] font-semibold uppercase tracking-wider text-muted">
-                  B. Yêu cầu Lịch trình & Kỹ năng (Scheduling Requirements)
-                </div>
-                <div className="p-3.5 rounded-lg bg-canvas border border-line space-y-2.5 text-[13px]">
-                  <div>
-                    <span className="text-[11px] text-muted block mb-1">
-                      Kỹ năng / Chứng chỉ bắt buộc:
-                    </span>
+                {/* Mục 2: Kỹ năng & địa điểm */}
+                <div className="space-y-2.5">
+                  <div className="flex items-center gap-2 text-[14px] font-bold text-ink">
+                    <Stethoscope className="w-4 h-4 text-brand-600 shrink-0" />
+                    <span>Kỹ năng & địa điểm</span>
+                  </div>
+                  <div className="p-3.5 rounded-lg bg-canvas border border-line space-y-3 text-[13px]">
                     <div className="flex items-center gap-1.5 flex-wrap">
-                      <Stethoscope className="w-4 h-4 text-brand-600" />
                       {selectedDetail.requiredSkills.map((sk) => (
                         <span
                           key={sk}
-                          className="px-2 py-0.5 rounded bg-white border border-line text-[12px] font-medium text-ink"
+                          className="px-2.5 py-0.5 rounded-full bg-white border border-line text-[12px] font-medium text-ink"
                         >
                           {sk}
                         </span>
                       ))}
                     </div>
-                  </div>
 
-                  <div className="grid grid-cols-2 gap-2 pt-2 border-t border-line text-[12px]">
-                    <div>
-                      <span className="text-muted block text-[11px]">Ngày & Khung giờ hẹn</span>
-                      <span className="font-semibold text-ink tabular-nums inline-flex items-center gap-1 mt-0.5">
-                        <Clock className="w-3.5 h-3.5 text-brand-600" />
-                        {selectedDetail.requestedTime}
-                      </span>
-                    </div>
-                    <div>
-                      <span className="text-muted block text-[11px]">Thời lượng dự kiến</span>
-                      <span className="font-semibold text-brand-600 tabular-nums block mt-0.5">
-                        {selectedDetail.predictedDurationMin} phút{' '}
-                        <span className="text-muted font-normal">
-                          (Chuẩn {selectedDetail.standardDurationMin}p)
-                        </span>
+                    <div className="pt-2.5 border-t border-line flex items-start gap-2 text-[12.5px]">
+                      <MapPin className="w-4 h-4 text-brand-600 shrink-0 mt-0.5" />
+                      <span className="text-ink leading-snug line-clamp-2">
+                        <strong className="font-semibold">{selectedDetail.district}</strong> ·{' '}
+                        {selectedDetail.address}
                       </span>
                     </div>
                   </div>
+                </div>
 
-                  <div className="pt-2 border-t border-line flex items-start gap-2 text-[12px]">
-                    <MapPin className="w-4 h-4 text-brand-600 shrink-0 mt-0.5" />
-                    <div>
-                      <div className="font-semibold text-ink">{selectedDetail.district}</div>
-                      <div className="text-muted">{selectedDetail.address}</div>
+                {/* Mục 3: Sẵn sàng điều phối */}
+                <div className="space-y-2.5">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2 text-[14px] font-bold text-ink">
+                      <ShieldCheck className="w-4 h-4 text-brand-600 shrink-0" />
+                      <span>Sẵn sàng điều phối</span>
                     </div>
+                    <span
+                      className={`text-[11px] font-semibold px-2.5 py-0.5 rounded-full whitespace-nowrap shrink-0 ${
+                        selectedDetail.isReadyForAI
+                          ? 'bg-ok-tint text-ok'
+                          : 'bg-sun-100 text-sun-700 border border-sun-300'
+                      }`}
+                    >
+                      Đạt {passedCount}/{totalChecks}
+                    </span>
                   </div>
+
+                  {selectedDetail.isReadyForAI && !showReadinessDetails ? (
+                    <button
+                      type="button"
+                      onClick={() => setShowReadinessDetails(true)}
+                      className="w-full px-3.5 py-2.5 rounded-lg bg-ok-tint/60 border border-ok-line flex items-center justify-between text-[12.5px] font-medium text-ok hover:bg-ok-tint cursor-pointer"
+                    >
+                      <span className="inline-flex items-center gap-2">
+                        <CheckCircle2 className="w-4 h-4 shrink-0" />
+                        Đã đủ 5/5 điều kiện
+                      </span>
+                      <ChevronDown className="w-4 h-4 shrink-0" />
+                    </button>
+                  ) : (
+                    <div className="p-3 rounded-lg bg-canvas border border-line space-y-1.5">
+                      {selectedDetail.isReadyForAI && (
+                        <button
+                          type="button"
+                          onClick={() => setShowReadinessDetails(false)}
+                          className="w-full flex items-center justify-between text-[12px] font-medium text-ok pb-1.5 mb-1 border-b border-line cursor-pointer"
+                        >
+                          <span>Thu gọn danh sách điều kiện</span>
+                          <ChevronUp className="w-4 h-4 shrink-0" />
+                        </button>
+                      )}
+
+                      {sortedChecks.map((chk) => (
+                        <div
+                          key={chk.key}
+                          className={`px-2.5 py-2 rounded border flex items-start gap-2 text-[12px] ${
+                            chk.passed
+                              ? 'bg-white border-line'
+                              : 'bg-sun-50 border-sun-300'
+                          }`}
+                        >
+                          {chk.passed ? (
+                            <CheckCircle2 className="w-4 h-4 text-ok shrink-0 mt-0.5" />
+                          ) : (
+                            <XCircle className="w-4 h-4 text-high-ink shrink-0 mt-0.5" />
+                          )}
+                          <div className="min-w-0 flex-1">
+                            <div
+                              className={`font-medium ${
+                                chk.passed ? 'text-ink' : 'text-sun-700'
+                              }`}
+                            >
+                              {chk.label}
+                            </div>
+                            {!chk.passed && (
+                              <div className="text-[11px] text-sun-700/90 mt-0.5">
+                                {chk.detail}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Thời điểm tạo ở cuối drawer */}
+                <div className="text-[11px] text-subtle pt-1">
+                  Tạo lúc {createdTimeOnly} · {formatDateVi(selectedDetail.requestedDate)}
                 </div>
               </div>
 
-              {/* SECTION C — Readiness and Validation */}
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-[11px] font-semibold uppercase tracking-wider text-muted">
-                    C. Kiểm tra Sẵn sàng Điều phối (Readiness & Validation)
-                  </span>
-                  <span
-                    className={`text-[11px] font-semibold px-2 py-0.5 rounded ${
-                      selectedDetail.isReadyForAI
-                        ? 'bg-ok-tint text-ok'
-                        : 'bg-high-tint text-high-ink'
-                    }`}
+              {/* Footer */}
+              <div className="p-4 border-t border-line bg-canvas space-y-2 shrink-0">
+                {selectedDetail.isUnassigned && !selectedDetail.isReadyForAI && (
+                  <div className="text-[11.5px] text-sun-700 flex items-center gap-1.5">
+                    <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
+                    <span>
+                      Chưa đủ điều kiện nên chưa thể xem đề xuất AI. Hãy chỉnh sửa khung giờ hoặc khu vực.
+                    </span>
+                  </div>
+                )}
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => handleEditSelectedRequest(selectedDetail)}
+                    className="px-3.5 py-2.5 rounded-lg border border-line bg-white text-ink text-[13px] font-medium hover:border-brand-600 hover:text-brand-600 inline-flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap"
                   >
-                    {selectedDetail.isReadyForAI ? 'Đạt 5/5 điều kiện' : 'Cần rà soát'}
-                  </span>
-                </div>
+                    <Edit3 className="w-4 h-4" />
+                    Chỉnh sửa yêu cầu
+                  </button>
 
-                <div className="p-3.5 rounded-lg bg-canvas border border-line space-y-2">
-                  {selectedDetail.readinessChecks.map((chk) => (
-                    <div
-                      key={chk.key}
-                      className={`p-2 rounded border flex items-start justify-between gap-2 text-[12px] ${
-                        chk.passed
-                          ? 'bg-white border-line'
-                          : 'bg-urgent-tint border-urgent-line'
+                  {selectedDetail.isUnassigned ? (
+                    <button
+                      type="button"
+                      disabled={!selectedDetail.isReadyForAI}
+                      title={
+                        !selectedDetail.isReadyForAI
+                          ? `Còn thiếu ${failedChecks.length}/5 điều kiện để chạy đề xuất AI`
+                          : undefined
+                      }
+                      onClick={() => {
+                        const id = selectedDetail.id;
+                        setSelectedRequestId(null);
+                        setShowReadinessDetails(false);
+                        onNavigate('/recommendations', id);
+                      }}
+                      className={`flex-1 py-2.5 px-4 rounded-lg text-[13px] font-semibold inline-flex items-center justify-center gap-2 whitespace-nowrap ${
+                        selectedDetail.isReadyForAI
+                          ? 'bg-brand-600 text-white hover:bg-brand-700 cursor-pointer'
+                          : 'bg-line text-muted cursor-not-allowed'
                       }`}
                     >
-                      <div className="flex items-start gap-2">
-                        {chk.passed ? (
-                          <CheckCircle2 className="w-3.5 h-3.5 text-ok shrink-0 mt-0.5" />
-                        ) : (
-                          <XCircle className="w-3.5 h-3.5 text-urgent shrink-0 mt-0.5" />
-                        )}
-                        <div>
-                          <div
-                            className={`font-medium ${
-                              chk.passed ? 'text-ink' : 'text-urgent'
-                            }`}
-                          >
-                            {chk.label}
-                          </div>
-                          <div className="text-[11px] text-muted tabular-nums">
-                            {chk.detail}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-
-                  {!selectedDetail.isReadyForAI && (
-                    <div className="p-2.5 rounded bg-high-tint border border-high-line text-[12px] text-high-ink flex items-start gap-2 mt-2">
-                      <ShieldAlert className="w-4 h-4 shrink-0 mt-0.5" />
-                      <span>
-                        Chưa thể gửi sang phân công tự động do còn điều kiện chưa đạt. Vui lòng nhấn{' '}
-                        <strong>Chỉnh sửa Yêu cầu</strong> để cập nhật khung giờ hoặc kỹ năng.
-                      </span>
-                    </div>
+                      <Sparkles className="w-4 h-4" />
+                      Xem đề xuất AI
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedRequestId(null);
+                        setShowReadinessDetails(false);
+                        onNavigate('/dispatch');
+                      }}
+                      className="flex-1 py-2.5 px-4 rounded-lg bg-brand-600 text-white text-[13px] font-semibold hover:bg-brand-700 inline-flex items-center justify-center gap-2 cursor-pointer whitespace-nowrap"
+                    >
+                      <ExternalLink className="w-4 h-4" />
+                      Xem phân công trên lịch
+                    </button>
                   )}
                 </div>
               </div>
             </div>
-
-            {/* SECTION D — Actions */}
-            <div className="p-4 border-t border-line bg-canvas space-y-2 shrink-0">
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => handleEditSelectedRequest(selectedDetail)}
-                  className="px-3.5 py-2.5 rounded-lg border border-line bg-white text-ink text-[13px] font-medium hover:border-brand-600 hover:text-brand-600 inline-flex items-center justify-center gap-1.5 cursor-pointer"
-                >
-                  <Edit3 className="w-4 h-4" />
-                  Chỉnh sửa Yêu cầu
-                </button>
-
-                {selectedDetail.isUnassigned ? (
-                  <button
-                    type="button"
-                    disabled={!selectedDetail.isReadyForAI}
-                    onClick={() => {
-                      const id = selectedDetail.id;
-                      setSelectedRequestId(null);
-                      onNavigate('/recommendations', id);
-                    }}
-                    className={`flex-1 py-2.5 px-4 rounded-lg text-[13px] font-semibold inline-flex items-center justify-center gap-2 ${
-                      selectedDetail.isReadyForAI
-                        ? 'bg-brand-600 text-white hover:bg-brand-700 cursor-pointer'
-                        : 'bg-line text-muted cursor-not-allowed'
-                    }`}
-                  >
-                    <Sparkles className="w-4 h-4" />
-                    Xem Đề xuất AI
-                  </button>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setSelectedRequestId(null);
-                      onNavigate('/dispatch');
-                    }}
-                    className="flex-1 py-2.5 px-4 rounded-lg bg-brand-600 text-white text-[13px] font-semibold hover:bg-brand-700 inline-flex items-center justify-center gap-2 cursor-pointer"
-                  >
-                    <ExternalLink className="w-4 h-4" />
-                    Xem Phân công trên Lịch
-                  </button>
-                )}
-              </div>
-            </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       {/* Edit Request Drawer */}
       <NewRequestDrawer
