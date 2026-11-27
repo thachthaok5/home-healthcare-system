@@ -339,7 +339,7 @@ def build_word_report():
     info_data = [
         ("Tên đề tài:", "Nghiên cứu và thiết kế hệ thống thông tin quản lý dịch vụ chăm sóc sức khỏe tại nhà tích hợp AI hỗ trợ lập lịch và điều phối nhân sự y tế"),
         ("Sinh viên thực hiện:", "Nguyễn Thạch Thảo  —  Lớp: 65.TTQL_1 (Chuyên ngành MIS)"),
-        ("Giảng viên hướng dẫn:", "TS. Trần Thị Thúy  —  Khoa Hệ thống Thông tin Quản lý"),
+        ("Giảng viên hướng dẫn:", ""),
         ("Mã nguồn & Repository:", "https://github.com/thachthaok5/home-healthcare-system  (Nhánh: main)")
     ]
     for idx, (label, val) in enumerate(info_data):
@@ -1081,7 +1081,7 @@ def build_word_report():
         f"1. **Tính nhất quán & khả năng tái lập:** Số liệu thực nghiệm được sinh tại commit `{git_sha[:8]}` (ghi trong manifest), mọi con số trong báo cáo được đọc trực tiếp từ CSV; CI kiểm tra manifest khớp commit. Các hạn chế của dữ liệu mô phỏng được nêu rõ.\n"
         f"2. **Giải thuật & hệ thống:** OR-Tools CP-SAT hỗ trợ cửa sổ thời gian linh hoạt và chạy ở chế độ tất định; cự ly dùng mô hình OSRM cache + Haversine fallback (OSRM {vn(cov_pct)}% truy vấn); mô hình AI duy trì ưu thế so với baseline trong các kịch bản synthetic perturbation được khảo sát.\n"
         "3. **Sản phẩm ứng dụng:** 5 màn hình điều phối viên chạy trên kiến trúc React → FastAPI → PostgreSQL → AI/DSS/OR-Tools với dữ liệu seed mô phỏng trong CSDL 23 bảng, phục vụ demo quy trình trước Hội đồng.\n"
-        "Sinh viên xin trân trọng cảm ơn sự hướng dẫn tận tình, nghiêm cẩn và sâu sát về mặt chuyên môn của Giảng viên Hướng dẫn TS. Trần Thị Thúy!"
+        "Sinh viên xin trân trọng cảm ơn sự hướng dẫn tận tình, nghiêm cẩn và sâu sát về mặt chuyên môn của Giảng viên Hướng dẫn!"
     )
 
     # Lưu file
