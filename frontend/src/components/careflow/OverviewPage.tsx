@@ -160,20 +160,18 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({
         }
       />
 
-      {/* 5.2 Top KPI Row: bento, ô cảnh báo rộng gấp đôi và đặt đầu tiên */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-        <div className="sm:col-span-2">
-          <KpiCard
-            label="Cảnh báo Lịch trình"
-            value={schedulingAlertsCount}
-            sublabel={`${conflictAssignments.length} ca trùng lịch · ${
-              unassignedRequests.filter((r) => r.priority === 'Khẩn cấp').length
-            } ca khẩn cấp`}
-            tone={schedulingAlertsCount > 0 ? 'danger' : 'success'}
-            icon={<AlertTriangle className="w-4 h-4" />}
-            onClick={() => onNavigate('/dispatch')}
-          />
-        </div>
+      {/* 5.2 Top KPI Row: 4 card bằng nhau, Cảnh báo đặt đầu tiên */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 items-stretch">
+        <KpiCard
+          label="Cảnh báo Lịch trình"
+          value={schedulingAlertsCount}
+          sublabel={`${conflictAssignments.length} ca trùng lịch · ${
+            unassignedRequests.filter((r) => r.priority === 'Khẩn cấp').length
+          } ca khẩn cấp`}
+          tone={schedulingAlertsCount > 0 ? 'danger' : 'success'}
+          icon={<AlertTriangle className="w-4 h-4" />}
+          onClick={() => onNavigate('/dispatch')}
+        />
         <KpiCard
           label="Ca khám Hôm nay"
           value={visitsTodayCount}
@@ -279,8 +277,8 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({
         </div>
 
         {/* Right Column: Đề xuất AI Chờ Điều phối viên Xét duyệt */}
-        <div className="lg:col-span-7 bg-white rounded-[10px] border border-line overflow-hidden flex flex-col">
-          <div className="px-5 py-4 border-b border-line flex items-center justify-between">
+        <div className="lg:col-span-7 bg-white rounded-2xl border border-line overflow-hidden flex flex-col">
+          <div className="px-5 py-4 border-b border-line flex items-center justify-between gap-3">
             <div className="flex items-center gap-2">
               <div className="w-8 h-8 rounded-xl bg-lav-100 text-lav-700 flex items-center justify-center shrink-0">
                 <Sparkles className="w-4 h-4" />
@@ -290,7 +288,7 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({
                   Đề xuất AI Chờ Điều phối viên Xét duyệt
                 </h2>
                 <p className="text-[12px] text-muted m-0 mt-0.5">
-                  Ứng viên Top 1 phù hợp nhất đang chờ phê duyệt (Human-in-the-loop)
+                  Ca khẩn cấp xếp trước · mỗi thẻ: yêu cầu, nhân sự AI chọn, điểm phù hợp
                 </p>
               </div>
             </div>
@@ -309,32 +307,36 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({
               Tất cả yêu cầu chăm sóc đã được xét duyệt và phân công.
             </div>
           ) : (
-            <div className="p-3 space-y-2.5 flex-1">
+            <div className="p-4 space-y-3 flex-1">
               {topRecommendations.map((req) => {
                 const isUrgent = req.priority === 'Khẩn cấp';
+                const isHigh = req.priority === 'Cao';
                 const top1 = req.aiCandidates.find((c) => c.isEligible) || req.aiCandidates[0];
-                const conciseReason = top1
-                  ? `Khớp kỹ năng (${top1.criteria.matchedSkills[0] || 'Đạt chuẩn'}) + trống lịch (${top1.criteria.distanceKm} km)`
-                  : 'Cần can thiệp thủ công — kiểm tra ràng buộc';
+                const hasEligible = req.aiCandidates.some((c) => c.isEligible);
+                const initials = top1
+                  ? top1.staffName
+                      .split(' ')
+                      .slice(-2)
+                      .map((w) => w[0])
+                      .join('')
+                      .toUpperCase()
+                  : '?';
 
                 return (
-                  <div
+                  <article
                     key={req.id}
-                    className={`p-3.5 rounded-lg flex flex-col sm:flex-row sm:items-center justify-between gap-4 transition-colors ${
+                    className={`rounded-xl bg-white overflow-hidden border-l-[6px] ${
                       isUrgent
-                        ? 'border-2 border-urgent bg-urgent-tint/50 hover:bg-urgent-tint'
-                        : 'border border-line bg-white hover:bg-canvas/70'
+                        ? 'border border-urgent border-l-urgent'
+                        : isHigh
+                        ? 'border border-line border-l-high'
+                        : 'border border-line border-l-brand-300'
                     }`}
                   >
-                    <div className="space-y-1.5 min-w-0 flex-1">
+                    {/* Dòng 1: mã, mức ưu tiên, SLA | khung giờ */}
+                    <div className="px-4 pt-3 flex items-start justify-between gap-3">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <span
-                          className={`font-mono-num text-[12px] font-semibold px-2 py-0.5 rounded ${
-                            isUrgent
-                              ? 'bg-urgent text-white'
-                              : 'text-brand-600 bg-brand-100'
-                          }`}
-                        >
+                        <span className="font-mono-num text-[12px] font-bold text-ink-soft">
                           {req.id}
                         </span>
                         <PriorityBadge
@@ -342,69 +344,87 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({
                           showCountdown={isUrgent}
                           deadline={req.requestedWindow}
                         />
-                        <span className="text-[12px] text-muted tabular-nums">
-                          · Khung giờ: {req.requestedWindow}
-                        </span>
                       </div>
-
-                      <div>
-                        <div
-                          className={`text-[14px] font-semibold truncate ${
-                            isUrgent ? 'text-urgent-ink' : 'text-ink'
-                          }`}
-                        >
-                          {req.serviceName}
-                        </div>
-                        <div className="text-[12px] text-muted flex items-center gap-2 mt-0.5">
-                          <span className="font-medium text-ink">{req.patientName}</span>
-                          <span>·</span>
-                          <span className="inline-flex items-center gap-0.5">
-                            <MapPin className="w-3 h-3" /> {req.district}
-                          </span>
+                      <div className="text-right shrink-0">
+                        <div className="text-[11px] uppercase tracking-wider text-muted">Khung giờ</div>
+                        <div className="font-mono-num text-[14px] font-bold text-ink">
+                          {req.requestedWindow}
                         </div>
                       </div>
                     </div>
 
-                    {top1 && (
-                      <div
-                        className={`sm:w-[260px] shrink-0 p-2.5 rounded-lg space-y-1 border ${
-                          isUrgent
-                            ? 'bg-white border-urgent-line'
-                            : 'bg-canvas border-line'
+                    {/* Dòng 2: dịch vụ, bệnh nhân, khu vực */}
+                    <div className="px-4 pt-1 pb-3">
+                      <h3
+                        className={`text-[15px] font-semibold leading-snug m-0 ${
+                          isUrgent ? 'text-urgent-ink' : 'text-ink'
                         }`}
                       >
-                        <div className="flex items-center justify-between gap-2">
-                          <div className="min-w-0">
-                            <div className="text-[10px] uppercase tracking-wider text-muted">
-                              Nhân sự Đề xuất
+                        {req.serviceName}
+                      </h3>
+                      <div className="text-[13px] text-muted flex items-center gap-x-3 gap-y-0.5 flex-wrap mt-1">
+                        <span>
+                          Bệnh nhân: <span className="font-semibold text-ink">{req.patientName}</span>
+                        </span>
+                        <span className="inline-flex items-center gap-1">
+                          <MapPin className="w-3.5 h-3.5" /> {req.district}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Dòng 3: đề xuất của AI + hành động */}
+                    <div className="px-4 py-3 bg-lav-50 border-t border-lav-200 flex items-center gap-3 flex-wrap">
+                      {top1 && hasEligible ? (
+                        <>
+                          <div className="w-9 h-9 rounded-full bg-lav-200 text-lav-700 text-[12px] font-bold flex items-center justify-center shrink-0">
+                            {initials}
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-lav-700">
+                              <Sparkles className="w-3 h-3" /> AI đề xuất
                             </div>
-                            <div className="text-[13px] font-semibold text-ink truncate">
+                            <div className="text-[14px] font-semibold text-ink truncate">
                               {top1.staffName}
                             </div>
+                            <div className="text-[12px] text-muted truncate">
+                              Khớp kỹ năng: {top1.criteria.matchedSkills[0] || 'Đạt chuẩn'} · cách {top1.criteria.distanceKm} km
+                            </div>
                           </div>
-                          <SuitabilityScoreBadge score={top1.totalScore} size="sm" />
+                          <div className="w-[92px] shrink-0">
+                            <div className="flex items-baseline justify-between">
+                              <span className="text-[11px] text-muted">Phù hợp</span>
+                              <span className="font-display text-[16px] font-semibold text-lav-700 tabular-nums">
+                                {top1.totalScore}%
+                              </span>
+                            </div>
+                            <div className="h-1.5 rounded-full bg-lav-200 overflow-hidden mt-1">
+                              <div
+                                className="h-full rounded-full bg-lav-500"
+                                style={{ width: `${Math.min(100, top1.totalScore)}%` }}
+                              />
+                            </div>
+                          </div>
+                        </>
+                      ) : (
+                        <div className="flex-1 min-w-0 flex items-center gap-2 text-[13px] text-high-ink">
+                          <AlertTriangle className="w-4 h-4 shrink-0" />
+                          <span>Không có nhân sự đạt đủ 6 ràng buộc. Cần điều phối viên xử lý thủ công.</span>
                         </div>
-                        <div className="text-[11px] text-muted leading-snug truncate">
-                          {conciseReason}
-                        </div>
-                      </div>
-                    )}
-
-                    <div className="shrink-0 flex sm:flex-col items-end justify-end">
+                      )}
                       <button
                         type="button"
                         onClick={() => onNavigate('/recommendations', req.id)}
-                        className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-md text-[12px] font-semibold cursor-pointer transition-colors ${
+                        className={`inline-flex items-center gap-1 px-3.5 py-2 rounded-lg text-[13px] font-bold cursor-pointer transition-colors shrink-0 ${
                           isUrgent
-                            ? 'bg-urgent text-white border border-urgent-ink hover:bg-urgent-ink'
-                            : 'border border-line bg-white text-brand-600 hover:bg-brand-100 hover:border-brand-600'
+                            ? 'bg-urgent text-white hover:bg-urgent-ink'
+                            : 'bg-brand-600 text-white hover:bg-brand-700'
                         }`}
                       >
-                        Đánh giá
-                        <ArrowRight className="w-3.5 h-3.5" />
+                        {isUrgent ? 'Duyệt ngay' : 'Xem & duyệt'}
+                        <ArrowRight className="w-4 h-4" />
                       </button>
                     </div>
-                  </div>
+                  </article>
                 );
               })}
             </div>

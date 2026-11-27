@@ -100,10 +100,10 @@ export const KpiCard: React.FC<KpiCardProps> = ({
       label: 'text-high-ink',
     },
     danger: {
-      card: 'bg-urgent text-white border-urgent shadow-urgent',
-      valueColor: 'text-white',
-      iconBg: 'bg-white/20 text-white',
-      label: 'text-white/90',
+      card: 'bg-white border-2 border-urgent',
+      valueColor: 'text-urgent',
+      iconBg: 'bg-urgent-tint text-urgent',
+      label: 'text-urgent-ink',
     },
     success: {
       card: 'bg-ok-tint border-ok-line',
@@ -118,7 +118,7 @@ export const KpiCard: React.FC<KpiCardProps> = ({
   return (
     <div
       onClick={onClick}
-      className={`rounded-2xl border ${st.card} p-4 transition-transform ${
+      className={`h-full rounded-2xl border ${st.card} p-4 transition-transform ${
         onClick ? 'cursor-pointer hover:-translate-y-0.5' : ''
       }`}
     >
