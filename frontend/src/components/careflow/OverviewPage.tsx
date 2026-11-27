@@ -71,6 +71,7 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({
     severity: 'danger' | 'warning';
     targetRoute: CareFlowRoute;
     targetRequestId?: string;
+    deadline?: string;
   }[] = [];
 
   conflictAssignments.forEach((ca) => {
@@ -95,6 +96,7 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({
       severity: req.priority === 'Khẩn cấp' ? 'danger' : 'warning',
       targetRoute: '/recommendations',
       targetRequestId: req.id,
+      deadline: req.requestedWindow,
     });
   });
 
@@ -136,20 +138,20 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({
         subtitle="Tình hình điều phối chăm sóc y tế tại nhà trong ngày"
         actions={
           <>
-            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border border-[#E1E9E6] bg-white text-[13px] text-[#253438]">
-              <Calendar className="w-4 h-4 text-[#2F6F64]" />
-              <span className="text-[#687A78] text-[12px]">Ngày trực:</span>
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border border-line bg-white text-[13px] text-ink">
+              <Calendar className="w-4 h-4 text-brand-600" />
+              <span className="text-muted text-[12px]">Ngày trực:</span>
               <input
                 type="date"
                 value={selectedDate}
                 onChange={(e) => onDateChange(e.target.value)}
-                className="text-[13px] font-medium text-[#253438] bg-transparent border-none outline-none tabular-nums cursor-pointer"
+                className="text-[13px] font-medium text-ink bg-transparent border-none outline-none tabular-nums cursor-pointer"
               />
             </div>
             <button
               type="button"
               onClick={onOpenNewRequest}
-              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-[#2F6F64] text-white text-[13px] font-medium hover:bg-[#255A51] transition-colors cursor-pointer"
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-brand-600 text-white text-[13px] font-medium hover:bg-brand-700 transition-colors cursor-pointer"
             >
               <Plus className="w-4 h-4" />
               Tạo Yêu cầu Chăm sóc
@@ -158,8 +160,20 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({
         }
       />
 
-      {/* 5.2 Top KPI Row (4 Cards Maximum) */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      {/* 5.2 Top KPI Row: bento, ô cảnh báo rộng gấp đôi và đặt đầu tiên */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+        <div className="sm:col-span-2">
+          <KpiCard
+            label="Cảnh báo Lịch trình"
+            value={schedulingAlertsCount}
+            sublabel={`${conflictAssignments.length} ca trùng lịch · ${
+              unassignedRequests.filter((r) => r.priority === 'Khẩn cấp').length
+            } ca khẩn cấp`}
+            tone={schedulingAlertsCount > 0 ? 'danger' : 'success'}
+            icon={<AlertTriangle className="w-4 h-4" />}
+            onClick={() => onNavigate('/dispatch')}
+          />
+        </div>
         <KpiCard
           label="Ca khám Hôm nay"
           value={visitsTodayCount}
@@ -172,7 +186,7 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({
           label="Chờ Phân công"
           value={pendingAssignmentsCount}
           sublabel="Yêu cầu mới đang chờ điều phối"
-          tone={pendingAssignmentsCount > 0 ? 'warning' : 'default'}
+          tone={pendingAssignmentsCount > 0 ? 'sun' : 'default'}
           icon={<ClipboardList className="w-4 h-4" />}
           onClick={() => onNavigate('/recommendations')}
         />
@@ -180,18 +194,8 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({
           label="Chờ Xác nhận"
           value={awaitingConfirmationCount}
           sublabel="Ca đề xuất cần điều phối viên duyệt"
-          tone="default"
+          tone="ai"
           icon={<Clock className="w-4 h-4" />}
-          onClick={() => onNavigate('/dispatch')}
-        />
-        <KpiCard
-          label="Cảnh báo Lịch trình"
-          value={schedulingAlertsCount}
-          sublabel={`${conflictAssignments.length} ca trùng lịch · ${
-            unassignedRequests.filter((r) => r.priority === 'Khẩn cấp').length
-          } ca khẩn cấp`}
-          tone={schedulingAlertsCount > 0 ? 'danger' : 'success'}
-          icon={<AlertTriangle className="w-4 h-4" />}
           onClick={() => onNavigate('/dispatch')}
         />
       </div>
@@ -199,24 +203,24 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({
       {/* 5.3 Top Priority Area (2-Column Layout: Left = Cần Xử lý Ngay, Right = Đề xuất AI) */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
         {/* Left Column: Cần Xử lý Ngay */}
-        <div className="lg:col-span-5 bg-white rounded-[10px] border border-[#E1E9E6] overflow-hidden flex flex-col">
-          <div className="px-5 py-4 border-b border-[#E1E9E6] flex items-center justify-between">
+        <div className="lg:col-span-5 bg-white rounded-[10px] border border-line overflow-hidden flex flex-col">
+          <div className="px-5 py-4 border-b border-line flex items-center justify-between">
             <div>
-              <h2 className="text-[16px] font-semibold text-[#253438] m-0">
+              <h2 className="text-[16px] font-semibold text-ink m-0">
                 Cần Xử lý Ngay
               </h2>
-              <p className="text-[12px] text-[#687A78] m-0 mt-0.5">
+              <p className="text-[12px] text-muted m-0 mt-0.5">
                 Cảnh báo trùng lịch và ca ưu tiên chưa phân công
               </p>
             </div>
-            <span className="px-2 py-0.5 rounded-full text-[11px] font-semibold bg-[#FDF2F3] text-[#D85D68] border border-[#F2C6CB] tabular-nums">
+            <span className="px-2 py-0.5 rounded-full text-[11px] font-semibold bg-urgent-tint text-urgent border border-urgent-line tabular-nums">
               {attentionItems.length}
             </span>
           </div>
 
           <div className="p-3 space-y-2.5 flex-1">
             {attentionItems.length === 0 ? (
-              <div className="p-6 text-center text-[13px] text-[#687A78]">
+              <div className="p-6 text-center text-[13px] text-muted">
                 Hiện không có cảnh báo xung đột lịch trình nào.
               </div>
             ) : (
@@ -227,31 +231,31 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({
                     key={item.id}
                     className={`p-3.5 rounded-lg flex items-start justify-between gap-3 transition-colors ${
                       isUrgent
-                        ? 'border-2 border-[#D85D68] bg-[#FDF2F3]/55 hover:bg-[#FDF2F3]'
-                        : 'border border-[#E1E9E6] bg-white hover:bg-[#F7FAF9]'
+                        ? 'border-2 border-urgent bg-urgent-tint/55 hover:bg-urgent-tint'
+                        : 'border border-line bg-white hover:bg-canvas'
                     }`}
                   >
                     <div className="flex items-start gap-2.5 min-w-0">
                       <span
                         className={`w-2.5 h-2.5 rounded-full mt-1.5 shrink-0 ${
-                          isUrgent ? 'bg-[#C03A47] animate-pulse' : 'bg-[#E6A64B]'
+                          isUrgent ? 'bg-urgent animate-pulse' : 'bg-high'
                         }`}
                       />
                       <div className="min-w-0 space-y-1">
                         {isUrgent && (
                           <div className="flex items-center gap-1.5 flex-wrap">
                             <PriorityBadge priority="Khẩn cấp" />
-                            <UrgentCountdownBadge seedId={item.id} labelPrefix="Đếm ngược" />
+                            <UrgentCountdownBadge deadline={item.deadline} />
                           </div>
                         )}
                         <div
                           className={`text-[13px] font-semibold leading-snug ${
-                            isUrgent ? 'text-[#A32935]' : 'text-[#253438]'
+                            isUrgent ? 'text-urgent-ink' : 'text-ink'
                           }`}
                         >
                           {item.title}
                         </div>
-                        <div className="text-[12px] text-[#687A78] leading-snug">
+                        <div className="text-[12px] text-muted leading-snug">
                           {item.subtitle}
                         </div>
                       </div>
@@ -261,8 +265,8 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({
                       onClick={() => onNavigate(item.targetRoute, item.targetRequestId)}
                       className={`px-2.5 py-1.5 rounded-md text-[12px] font-semibold shrink-0 cursor-pointer transition-colors ${
                         isUrgent
-                          ? 'bg-[#C03A47] text-white border border-[#A32935] hover:bg-[#A32935]'
-                          : 'border border-[#E1E9E6] bg-white text-[#2F6F64] hover:bg-[#E5F1EC] hover:border-[#2F6F64]'
+                          ? 'bg-urgent text-white border border-urgent-ink hover:bg-urgent-ink'
+                          : 'border border-line bg-white text-brand-600 hover:bg-brand-100 hover:border-brand-600'
                       }`}
                     >
                       Xem xét
@@ -275,17 +279,17 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({
         </div>
 
         {/* Right Column: Đề xuất AI Chờ Điều phối viên Xét duyệt */}
-        <div className="lg:col-span-7 bg-white rounded-[10px] border border-[#E1E9E6] overflow-hidden flex flex-col">
-          <div className="px-5 py-4 border-b border-[#E1E9E6] flex items-center justify-between">
+        <div className="lg:col-span-7 bg-white rounded-[10px] border border-line overflow-hidden flex flex-col">
+          <div className="px-5 py-4 border-b border-line flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <div className="w-7 h-7 rounded-md bg-[#E5F1EC] text-[#2F6F64] flex items-center justify-center shrink-0">
+              <div className="w-8 h-8 rounded-xl bg-lav-100 text-lav-700 flex items-center justify-center shrink-0">
                 <Sparkles className="w-4 h-4" />
               </div>
               <div>
-                <h2 className="text-[16px] font-semibold text-[#253438] m-0">
+                <h2 className="text-[16px] font-semibold text-ink m-0">
                   Đề xuất AI Chờ Điều phối viên Xét duyệt
                 </h2>
-                <p className="text-[12px] text-[#687A78] m-0 mt-0.5">
+                <p className="text-[12px] text-muted m-0 mt-0.5">
                   Ứng viên Top 1 phù hợp nhất đang chờ phê duyệt (Human-in-the-loop)
                 </p>
               </div>
@@ -293,7 +297,7 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({
             <button
               type="button"
               onClick={() => onNavigate('/recommendations')}
-              className="inline-flex items-center gap-1.5 text-[13px] font-medium text-[#2F6F64] hover:text-[#255A51] shrink-0 cursor-pointer"
+              className="inline-flex items-center gap-1.5 text-[13px] font-medium text-brand-600 hover:text-brand-700 shrink-0 cursor-pointer"
             >
               Xem tất cả ({unassignedRequests.length})
               <ArrowRight className="w-4 h-4" />
@@ -301,7 +305,7 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({
           </div>
 
           {topRecommendations.length === 0 ? (
-            <div className="p-6 text-center text-[13px] text-[#687A78] flex-1 flex items-center justify-center">
+            <div className="p-6 text-center text-[13px] text-muted flex-1 flex items-center justify-center">
               Tất cả yêu cầu chăm sóc đã được xét duyệt và phân công.
             </div>
           ) : (
@@ -318,8 +322,8 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({
                     key={req.id}
                     className={`p-3.5 rounded-lg flex flex-col sm:flex-row sm:items-center justify-between gap-4 transition-colors ${
                       isUrgent
-                        ? 'border-2 border-[#D85D68] bg-[#FDF2F3]/50 hover:bg-[#FDF2F3]'
-                        : 'border border-[#E1E9E6] bg-white hover:bg-[#F7FAF9]/70'
+                        ? 'border-2 border-urgent bg-urgent-tint/50 hover:bg-urgent-tint'
+                        : 'border border-line bg-white hover:bg-canvas/70'
                     }`}
                   >
                     <div className="space-y-1.5 min-w-0 flex-1">
@@ -327,8 +331,8 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({
                         <span
                           className={`font-mono-num text-[12px] font-semibold px-2 py-0.5 rounded ${
                             isUrgent
-                              ? 'bg-[#C03A47] text-white'
-                              : 'text-[#2F6F64] bg-[#E5F1EC]'
+                              ? 'bg-urgent text-white'
+                              : 'text-brand-600 bg-brand-100'
                           }`}
                         >
                           {req.id}
@@ -336,9 +340,9 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({
                         <PriorityBadge
                           priority={req.priority}
                           showCountdown={isUrgent}
-                          seedId={req.id}
+                          deadline={req.requestedWindow}
                         />
-                        <span className="text-[12px] text-[#687A78] tabular-nums">
+                        <span className="text-[12px] text-muted tabular-nums">
                           · Khung giờ: {req.requestedWindow}
                         </span>
                       </div>
@@ -346,13 +350,13 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({
                       <div>
                         <div
                           className={`text-[14px] font-semibold truncate ${
-                            isUrgent ? 'text-[#A32935]' : 'text-[#253438]'
+                            isUrgent ? 'text-urgent-ink' : 'text-ink'
                           }`}
                         >
                           {req.serviceName}
                         </div>
-                        <div className="text-[12px] text-[#687A78] flex items-center gap-2 mt-0.5">
-                          <span className="font-medium text-[#253438]">{req.patientName}</span>
+                        <div className="text-[12px] text-muted flex items-center gap-2 mt-0.5">
+                          <span className="font-medium text-ink">{req.patientName}</span>
                           <span>·</span>
                           <span className="inline-flex items-center gap-0.5">
                             <MapPin className="w-3 h-3" /> {req.district}
@@ -365,22 +369,22 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({
                       <div
                         className={`sm:w-[260px] shrink-0 p-2.5 rounded-lg space-y-1 border ${
                           isUrgent
-                            ? 'bg-white border-[#F2C6CB]'
-                            : 'bg-[#F7FAF9] border-[#E1E9E6]'
+                            ? 'bg-white border-urgent-line'
+                            : 'bg-canvas border-line'
                         }`}
                       >
                         <div className="flex items-center justify-between gap-2">
                           <div className="min-w-0">
-                            <div className="text-[10px] uppercase tracking-wider text-[#687A78]">
+                            <div className="text-[10px] uppercase tracking-wider text-muted">
                               Nhân sự Đề xuất
                             </div>
-                            <div className="text-[13px] font-semibold text-[#253438] truncate">
+                            <div className="text-[13px] font-semibold text-ink truncate">
                               {top1.staffName}
                             </div>
                           </div>
                           <SuitabilityScoreBadge score={top1.totalScore} size="sm" />
                         </div>
-                        <div className="text-[11px] text-[#687A78] leading-snug truncate">
+                        <div className="text-[11px] text-muted leading-snug truncate">
                           {conciseReason}
                         </div>
                       </div>
@@ -392,8 +396,8 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({
                         onClick={() => onNavigate('/recommendations', req.id)}
                         className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-md text-[12px] font-semibold cursor-pointer transition-colors ${
                           isUrgent
-                            ? 'bg-[#C03A47] text-white border border-[#A32935] hover:bg-[#A32935]'
-                            : 'border border-[#E1E9E6] bg-white text-[#2F6F64] hover:bg-[#E5F1EC] hover:border-[#2F6F64]'
+                            ? 'bg-urgent text-white border border-urgent-ink hover:bg-urgent-ink'
+                            : 'border border-line bg-white text-brand-600 hover:bg-brand-100 hover:border-brand-600'
                         }`}
                       >
                         Đánh giá
@@ -409,20 +413,20 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({
       </div>
 
       {/* 5.4 Bottom Section — Lịch trình Hôm nay */}
-      <div className="bg-white rounded-[10px] border border-[#E1E9E6] overflow-hidden">
-        <div className="px-5 py-4 border-b border-[#E1E9E6] flex items-center justify-between">
+      <div className="bg-white rounded-[10px] border border-line overflow-hidden">
+        <div className="px-5 py-4 border-b border-line flex items-center justify-between">
           <div>
-            <h2 className="text-[16px] font-semibold text-[#253438] m-0">
+            <h2 className="text-[16px] font-semibold text-ink m-0">
               Lịch trình Hôm nay
             </h2>
-            <p className="text-[12px] text-[#687A78] m-0 mt-0.5">
+            <p className="text-[12px] text-muted m-0 mt-0.5">
               Danh sách tóm tắt các ca chăm sóc đang và sắp diễn ra
             </p>
           </div>
           <button
             type="button"
             onClick={() => onNavigate('/dispatch')}
-            className="inline-flex items-center gap-1.5 text-[13px] font-medium text-[#2F6F64] hover:text-[#255A51] cursor-pointer"
+            className="inline-flex items-center gap-1.5 text-[13px] font-medium text-brand-600 hover:text-brand-700 cursor-pointer"
           >
             Mở Bảng Điều phối
             <ArrowRight className="w-4 h-4" />
@@ -438,16 +442,16 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({
                 onClick={() => onNavigate('/dispatch')}
                 className={`px-4 py-3 rounded-lg flex flex-col sm:flex-row sm:items-center justify-between gap-3 transition-colors cursor-pointer ${
                   isUrgentVisit
-                    ? 'border-2 border-[#D85D68] bg-[#FDF2F3]/50 hover:bg-[#FDF2F3]'
-                    : 'border border-[#E1E9E6] bg-white hover:bg-[#F7FAF9]'
+                    ? 'border-2 border-urgent bg-urgent-tint/50 hover:bg-urgent-tint'
+                    : 'border border-line bg-white hover:bg-canvas'
                 }`}
               >
                 <div className="flex items-start gap-3 min-w-0">
                   <div
                     className={`px-2.5 py-1 rounded text-[12px] font-semibold tabular-nums shrink-0 ${
                       isUrgentVisit
-                        ? 'bg-[#C03A47] text-white'
-                        : 'bg-[#E5F1EC] text-[#2F6F64]'
+                        ? 'bg-urgent text-white'
+                        : 'bg-brand-100 text-brand-600'
                     }`}
                   >
                     {visit.startTime} – {visit.endTime}
@@ -456,24 +460,24 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({
                     <div className="flex items-center gap-2 flex-wrap">
                       <span
                         className={`text-[13px] font-semibold ${
-                          isUrgentVisit ? 'text-[#A32935]' : 'text-[#253438]'
+                          isUrgentVisit ? 'text-urgent-ink' : 'text-ink'
                         }`}
                       >
                         {visit.staffName}
                       </span>
-                      <span className="text-[12px] text-[#687A78] font-mono-num">
+                      <span className="text-[12px] text-muted font-mono-num">
                         ({visit.id})
                       </span>
                       {isUrgentVisit && (
                         <>
                           <PriorityBadge priority="Khẩn cấp" />
-                          <UrgentCountdownBadge seedId={visit.id} labelPrefix="Đếm ngược" />
+                          <UrgentCountdownBadge deadline={visit.startTime} />
                         </>
                       )}
                     </div>
-                    <div className="text-[13px] text-[#687A78] truncate mt-0.5">
+                    <div className="text-[13px] text-muted truncate mt-0.5">
                       {visit.serviceName} ·{' '}
-                      <span className="text-[#253438] font-medium">{visit.patientName}</span> (
+                      <span className="text-ink font-medium">{visit.patientName}</span> (
                       {visit.district})
                     </div>
                   </div>

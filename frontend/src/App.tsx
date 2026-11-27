@@ -15,6 +15,9 @@ import {
   CheckCircle2,
   X,
   MapPin,
+  Siren,
+  ArrowRight,
+  Flame,
 } from 'lucide-react';
 import {
   AICandidate,
@@ -42,6 +45,7 @@ interface NavItem {
   label: string;
   icon: React.ReactNode;
   badgeCount?: number;
+  urgentCount?: number;
 }
 
 const resolveInitialRoute = (): CareFlowRoute => {
@@ -189,8 +193,8 @@ export function App() {
   // Update DSS weights via backend
   const handleUpdateWeights = async (newWeights: DSSWeights) => {
     try {
-      const dateQs = selectedDate ? ?target_date= : '';
-      let res = await fetch(/api/v1/coordinator/evaluate-dss, {
+      const dateQs = selectedDate ? `?target_date=${selectedDate}` : '';
+      let res = await fetch(`/api/v1/coordinator/evaluate-dss${dateQs}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -560,6 +564,9 @@ export function App() {
     }
   };
 
+  // Ca Khẩn cấp chưa phân công: hiển thị thanh cảnh báo đỏ + badge đỏ trên sidebar
+  const urgentRequests = unassignedRequests.filter((r) => r.priority === 'Khẩn cấp');
+
   // Navigation items (Section 4.1 — 6 Distinct Pages)
   const navItems: NavItem[] = [
     {
@@ -572,6 +579,7 @@ export function App() {
       label: 'Đề xuất AI (DSS)',
       icon: <Sparkles className="w-4 h-4" />,
       badgeCount: unassignedRequests.length,
+      urgentCount: urgentRequests.length,
     },
     {
       route: '/dispatch',
@@ -588,6 +596,7 @@ export function App() {
       route: '/requests',
       label: 'Yêu cầu Chăm sóc',
       icon: <ClipboardList className="w-4 h-4" />,
+      urgentCount: urgentRequests.length,
     },
     {
       route: '/team',
@@ -633,22 +642,23 @@ export function App() {
   };
 
   return (
-    <div className="min-h-screen bg-[#F7FAF9] text-[#253438] flex">
+    <div className="min-h-screen bg-canvas text-ink flex">
       {/* =====================================================================
           4.1 PERSISTENT LEFT SIDEBAR (236px wide)
           ===================================================================== */}
-      <aside className="w-[236px] shrink-0 bg-white border-r border-[#E1E9E6] flex flex-col justify-between sticky top-0 h-screen z-30">
+      <aside className="w-[248px] shrink-0 bg-gradient-to-b from-brand-100 via-brand-50 to-white border-r border-line flex flex-col justify-between sticky top-0 h-screen z-30">
         {/* Sidebar Top: Brand Identity */}
         <div>
-          <div className="h-16 px-5 border-b border-[#E1E9E6] flex items-center gap-3">
-            <div className="w-9 h-9 rounded-lg bg-[#2F6F64] text-white flex items-center justify-center shrink-0">
+          <div className="h-16 px-5 border-b border-line flex items-center gap-3">
+            <div className="relative w-10 h-10 rounded-2xl bg-gradient-to-br from-brand-400 to-brand-600 text-white flex items-center justify-center shrink-0 shadow-float">
               <HeartPulse className="w-5 h-5" />
+              <span className="absolute -top-0.5 -right-0.5 w-3 h-3 rounded-full bg-sun-400 border-2 border-white" />
             </div>
             <div className="min-w-0">
-              <div className="text-[16px] font-semibold text-[#253438] leading-tight tracking-tight">
+              <div className="font-display text-[18px] font-semibold text-brand-800 leading-tight tracking-tight">
                 CareFlow
               </div>
-              <div className="text-[11px] text-[#687A78] truncate">
+              <div className="text-[11px] text-muted truncate">
                 Điều phối Y tế Tại nhà
               </div>
             </div>
@@ -656,7 +666,7 @@ export function App() {
 
           {/* Primary Navigation Items (6 Distinct Pages) */}
           <nav className="p-3 space-y-1">
-            <div className="px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-[#687A78]">
+            <div className="px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider text-brand-700/70">
               Không gian Điều phối
             </div>
             {navItems.map((item) => {
@@ -666,31 +676,43 @@ export function App() {
                   key={item.route}
                   type="button"
                   onClick={() => handleNavigate(item.route)}
-                  className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-[13px] font-medium transition-colors cursor-pointer ${
+                  className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-[14px] font-semibold transition-colors cursor-pointer ${
                     isActive
-                      ? 'bg-[#E5F1EC] text-[#2F6F64] font-semibold'
-                      : 'text-[#687A78] hover:bg-[#F7FAF9] hover:text-[#253438]'
+                      ? 'bg-brand-600 text-white shadow-float'
+                      : 'text-ink-soft hover:bg-white/80 hover:text-brand-700'
                   }`}
                 >
                   <span className="flex items-center gap-2.5">
-                    <span className={isActive ? 'text-[#2F6F64]' : 'text-[#687A78]'}>
+                    <span className={isActive ? 'text-white' : 'text-brand-600'}>
                       {item.icon}
                     </span>
                     <span>{item.label}</span>
                   </span>
-                  {item.badgeCount !== undefined && item.badgeCount > 0 && (
-                    <span
-                      className={`px-1.5 py-0.5 rounded-full text-[11px] font-semibold tabular-nums ${
-                        item.route === '/dispatch'
-                          ? 'bg-[#FDF2F3] text-[#D85D68]'
-                          : isActive
-                          ? 'bg-[#2F6F64] text-white'
-                          : 'bg-[#E5F1EC] text-[#2F6F64]'
-                      }`}
-                    >
-                      {item.badgeCount}
-                    </span>
-                  )}
+                  <span className="flex items-center gap-1">
+                    {item.urgentCount !== undefined && item.urgentCount > 0 && (
+                      <span
+                        className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[11px] font-bold tabular-nums bg-urgent text-white animate-urgent-pulse"
+                        title={`${item.urgentCount} ca Khẩn cấp chưa phân công`}
+                        aria-label={`${item.urgentCount} ca Khẩn cấp chưa phân công`}
+                      >
+                        <Flame className="w-3 h-3" />
+                        {item.urgentCount}
+                      </span>
+                    )}
+                    {item.badgeCount !== undefined && item.badgeCount > 0 && (
+                      <span
+                        className={`px-1.5 py-0.5 rounded-full text-[11px] font-bold tabular-nums ${
+                          item.route === '/dispatch'
+                            ? 'bg-conflict-tint text-conflict'
+                            : isActive
+                            ? 'bg-white/25 text-white'
+                            : 'bg-lav-100 text-lav-700'
+                        }`}
+                      >
+                        {item.badgeCount}
+                      </span>
+                    )}
+                  </span>
                 </button>
               );
             })}
@@ -698,25 +720,25 @@ export function App() {
         </div>
 
         {/* Sidebar Footer: Settings & Coordinator Profile Summary */}
-        <div className="p-3 border-t border-[#E1E9E6] space-y-2 bg-[#F7FAF9]/50">
+        <div className="p-3 border-t border-line space-y-2">
           <button
             type="button"
             onClick={() => setSettingsModalOpen(true)}
-            className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-[13px] font-medium text-[#687A78] hover:bg-white hover:text-[#253438] transition-colors cursor-pointer"
+            className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-[13px] font-medium text-muted hover:bg-white hover:text-ink transition-colors cursor-pointer"
           >
             <Settings className="w-4 h-4" />
             <span>Cấu hình Hệ thống</span>
           </button>
 
-          <div className="px-3 py-2.5 rounded-lg bg-white border border-[#E1E9E6] flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-full bg-[#2F6F64] text-white text-[12px] font-semibold flex items-center justify-center shrink-0">
+          <div className="px-3 py-2.5 rounded-lg bg-white border border-line flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-full bg-sun-400 text-sun-700 text-[12px] font-bold flex items-center justify-center shrink-0">
               TH
             </div>
             <div className="min-w-0 flex-1">
-              <div className="text-[12px] font-semibold text-[#253438] truncate">
+              <div className="text-[12px] font-semibold text-ink truncate">
                 Trần Thu Hà
               </div>
-              <div className="text-[11px] text-[#687A78] truncate">
+              <div className="text-[11px] text-muted truncate">
                 Điều phối viên Trưởng
               </div>
             </div>
@@ -729,13 +751,13 @@ export function App() {
           ===================================================================== */}
       <div className="flex-1 flex flex-col min-w-0">
         {/* 4.2 Top Header (64px high) */}
-        <header className="h-16 bg-white border-b border-[#E1E9E6] px-6 flex items-center justify-between gap-4 sticky top-0 z-20">
+        <header className="h-16 bg-white/85 backdrop-blur border-b border-line px-6 flex items-center justify-between gap-4 sticky top-0 z-20">
           {/* Left: Current Page Title / Breadcrumb */}
           <div className="flex items-center gap-2 text-[13px]">
-            <span className="text-[#687A78]">CareFlow</span>
-            <span className="text-[#CBD8D3]">/</span>
-            <span className="font-semibold text-[#253438]">{currentPageLabel}</span>
-            <span className="hidden md:inline-flex items-center gap-1 ml-2 px-2 py-0.5 rounded text-[11px] bg-[#F7FAF9] text-[#687A78] border border-[#E1E9E6] font-mono-num">
+            <span className="text-muted">CareFlow</span>
+            <span className="text-line-strong">/</span>
+            <span className="font-semibold text-ink">{currentPageLabel}</span>
+            <span className="hidden md:inline-flex items-center gap-1 ml-2 px-2 py-0.5 rounded text-[11px] bg-canvas text-muted border border-line font-mono-num">
               {currentRoute}
             </span>
           </div>
@@ -743,22 +765,22 @@ export function App() {
           {/* Center/Right: Global Search + Shift/Date Context + Notifications + User Avatar */}
           <div className="flex items-center gap-3">
             <form onSubmit={handleGlobalSearchSubmit} className="relative hidden sm:block w-64">
-              <Search className="w-3.5 h-3.5 text-[#687A78] absolute left-3 top-1/2 -translate-y-1/2" />
+              <Search className="w-3.5 h-3.5 text-muted absolute left-3 top-1/2 -translate-y-1/2" />
               <input
                 type="text"
                 placeholder="Tìm nhanh REQ-ID, bệnh nhân, nhân sự..."
                 value={globalSearch}
                 onChange={(e) => setGlobalSearch(e.target.value)}
-                className="w-full pl-8 pr-3 py-1.5 rounded-lg border border-[#E1E9E6] bg-[#F7FAF9] text-[12px] text-[#253438] focus:bg-white focus:border-[#2F6F64] outline-none"
+                className="w-full pl-8 pr-3 py-1.5 rounded-lg border border-line bg-canvas text-[12px] text-ink focus:bg-white focus:border-brand-600 outline-none"
               />
             </form>
 
             {/* Date / Shift Context Indicator */}
-            <div className="hidden lg:flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#F7FAF9] border border-[#E1E9E6] text-[12px] text-[#253438] tabular-nums">
-              <Calendar className="w-3.5 h-3.5 text-[#2F6F64]" />
+            <div className="hidden lg:flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-canvas border border-line text-[12px] text-ink tabular-nums">
+              <Calendar className="w-3.5 h-3.5 text-brand-600" />
               <span>{selectedDate}</span>
-              <span className="text-[#CBD8D3]">|</span>
-              <span className="text-[#2F6F64] font-medium">Ca ngày (07:00–19:00)</span>
+              <span className="text-line-strong">|</span>
+              <span className="text-brand-600 font-medium">Ca ngày (07:00–19:00)</span>
             </div>
 
             {/* Notification Icon */}
@@ -766,27 +788,27 @@ export function App() {
               <button
                 type="button"
                 onClick={() => setNotificationsOpen((v) => !v)}
-                className="relative p-2 rounded-lg border border-[#E1E9E6] bg-white text-[#687A78] hover:text-[#253438] hover:border-[#2F6F64] cursor-pointer"
+                className="relative p-2 rounded-lg border border-line bg-white text-muted hover:text-ink hover:border-brand-600 cursor-pointer"
                 title="Cảnh báo Vận hành"
               >
                 <Bell className="w-4 h-4" />
                 {alertCount > 0 && (
-                  <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-[#D96F7C] text-white text-[10px] font-bold flex items-center justify-center tabular-nums">
+                  <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-urgent text-white text-[10px] font-bold flex items-center justify-center tabular-nums">
                     {alertCount}
                   </span>
                 )}
               </button>
 
               {notificationsOpen && (
-                <div className="absolute right-0 mt-2 w-80 bg-white rounded-[10px] border border-[#E1E9E6] shadow-lg p-3 z-50 space-y-2">
-                  <div className="flex items-center justify-between pb-2 border-b border-[#E1E9E6]">
-                    <span className="text-[12px] font-semibold text-[#253438]">
+                <div className="absolute right-0 mt-2 w-80 bg-white rounded-[10px] border border-line shadow-lg p-3 z-50 space-y-2">
+                  <div className="flex items-center justify-between pb-2 border-b border-line">
+                    <span className="text-[12px] font-semibold text-ink">
                       Cảnh báo Điều phối ({alertCount})
                     </span>
                     <button
                       type="button"
                       onClick={() => setNotificationsOpen(false)}
-                      className="text-[11px] text-[#687A78] cursor-pointer"
+                      className="text-[11px] text-muted cursor-pointer"
                     >
                       Đóng
                     </button>
@@ -800,12 +822,12 @@ export function App() {
                           setNotificationsOpen(false);
                           handleNavigate('/dispatch');
                         }}
-                        className="p-2 rounded bg-[#FDF2F3] border border-[#F2C6CB] text-[12px] cursor-pointer"
+                        className="p-2 rounded-lg bg-conflict-tint border-l-4 border-conflict text-[12px] cursor-pointer"
                       >
-                        <div className="font-semibold text-[#C03A47]">
+                        <div className="font-bold text-conflict">
                           Trùng lịch: {c.staffName} ({c.id})
                         </div>
-                        <div className="text-[11px] text-[#687A78]">
+                        <div className="text-[11px] text-muted">
                           Trùng {c.conflictDetail?.overlapMinutes} phút lúc {c.startTime}
                         </div>
                       </div>
@@ -819,12 +841,12 @@ export function App() {
                           setNotificationsOpen(false);
                           handleNavigate('/recommendations', u.id);
                         }}
-                        className="p-2 rounded bg-[#FDF6EC] border border-[#F3D9B1] text-[12px] cursor-pointer"
+                        className="p-2 rounded-lg bg-urgent-tint border-l-4 border-urgent text-[12px] cursor-pointer"
                       >
-                        <div className="font-semibold text-[#B87514]">
+                        <div className="font-bold text-urgent-ink">
                           Yêu cầu Khẩn cấp: {u.id} ({u.patientName})
                         </div>
-                        <div className="text-[11px] text-[#687A78]">
+                        <div className="text-[11px] text-muted">
                           {u.serviceName} · Khung giờ {u.requestedWindow}
                         </div>
                       </div>
@@ -837,25 +859,57 @@ export function App() {
             <button
               type="button"
               onClick={fetchSystemState}
-              className="p-2 rounded-lg border border-[#E1E9E6] bg-white text-[#687A78] hover:text-[#2F6F64] cursor-pointer"
+              className="p-2 rounded-lg border border-line bg-white text-muted hover:text-brand-600 cursor-pointer"
               title="Làm mới dữ liệu điều phối"
             >
-              <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin text-[#2F6F64]' : ''}`} />
+              <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin text-brand-600' : ''}`} />
             </button>
           </div>
         </header>
 
         {/* Toast Feedback Banner */}
         {toastMessage && (
-          <div className="fixed bottom-5 right-5 z-50 bg-[#253438] text-white px-4 py-3 rounded-lg shadow-lg border border-[#2F6F64] flex items-center gap-2.5 text-[13px]">
-            <CheckCircle2 className="w-4 h-4 text-[#4D947B] shrink-0" />
+          <div className="fixed bottom-5 right-5 z-50 bg-ink text-white px-4 py-3 rounded-lg shadow-lg border border-brand-600 flex items-center gap-2.5 text-[13px]">
+            <CheckCircle2 className="w-4 h-4 text-ok shrink-0" />
             <span>{toastMessage}</span>
             <button
               type="button"
               onClick={() => setToastMessage(null)}
-              className="text-[#CBD8D3] hover:text-white ml-2 cursor-pointer"
+              className="text-line-strong hover:text-white ml-2 cursor-pointer"
             >
               <X className="w-4 h-4" />
+            </button>
+          </div>
+        )}
+
+        {/* Thanh cảnh báo Khẩn cấp: chỉ hiện khi còn ca Khẩn cấp chưa phân công */}
+        {urgentRequests.length > 0 && (
+          <div
+            role="alert"
+            className="sticky top-16 z-10 bg-urgent text-white px-6 py-2.5 flex flex-wrap items-center gap-x-4 gap-y-2 shadow-urgent"
+          >
+            <span className="relative flex w-8 h-8 items-center justify-center rounded-full bg-white/20 shrink-0">
+              <span className="absolute inset-0 rounded-full bg-white/30 animate-ping" />
+              <Siren className="w-4 h-4 relative" />
+            </span>
+            <div className="flex-1 min-w-[220px]">
+              <div className="font-display text-[15px] font-semibold leading-tight">
+                {urgentRequests.length} ca Khẩn cấp đang chờ phân công
+              </div>
+              <div className="text-[12px] text-white/85 truncate">
+                {urgentRequests
+                  .slice(0, 3)
+                  .map((r) => `${r.id} · ${r.patientName} · ${r.requestedWindow}`)
+                  .join('   |   ')}
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => handleNavigate('/recommendations', urgentRequests[0].id)}
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-white text-urgent-ink text-[13px] font-bold hover:bg-urgent-tint cursor-pointer focus-visible:outline-2 focus-visible:outline-white focus-visible:outline-offset-2"
+            >
+              Phân công ngay
+              <ArrowRight className="w-4 h-4" />
             </button>
           </div>
         )}
@@ -962,44 +1016,44 @@ export function App() {
 
       {/* Settings Modal (DSS Weights & Constraint Configuration) */}
       {settingsModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#253438]/30 p-4">
-          <div className="bg-white rounded-[12px] border border-[#E1E9E6] max-w-md w-full p-6 shadow-xl space-y-4">
-            <div className="flex items-center justify-between border-b border-[#E1E9E6] pb-3">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/30 p-4">
+          <div className="bg-white rounded-[12px] border border-line max-w-md w-full p-6 shadow-xl space-y-4">
+            <div className="flex items-center justify-between border-b border-line pb-3">
               <div>
-                <h3 className="text-[16px] font-semibold text-[#253438] m-0">
+                <h3 className="text-[16px] font-semibold text-ink m-0">
                   Cấu hình Hệ thống Điều phối CareFlow
                 </h3>
-                <p className="text-[12px] text-[#687A78] m-0">
+                <p className="text-[12px] text-muted m-0">
                   Thông số ca trực vận hành và bộ trọng số đánh giá DSS
                 </p>
               </div>
               <button
                 type="button"
                 onClick={() => setSettingsModalOpen(false)}
-                className="text-[#687A78] hover:text-[#253438] cursor-pointer"
+                className="text-muted hover:text-ink cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
             <div className="space-y-2.5 text-[13px]">
-              <div className="p-3 rounded-lg bg-[#F7FAF9] border border-[#E1E9E6] space-y-1.5">
-                <div className="font-semibold text-[#253438]">
+              <div className="p-3 rounded-lg bg-canvas border border-line space-y-1.5">
+                <div className="font-semibold text-ink">
                   Trần Ràng buộc Cứng (Hard Constraints)
                 </div>
-                <div className="text-[12px] text-[#687A78]">
+                <div className="text-[12px] text-muted">
                   Thời lượng làm việc tối đa: <strong>480 phút (8.0 giờ)</strong> / ca trực
                 </div>
-                <div className="text-[12px] text-[#687A78]">
+                <div className="text-[12px] text-muted">
                   Kiểm duyệt con người (Human-in-the-loop): <strong>Bắt buộc cho mọi phân công</strong>
                 </div>
               </div>
 
-              <div className="p-3 rounded-lg bg-[#F7FAF9] border border-[#E1E9E6] space-y-1.5">
-                <div className="font-semibold text-[#253438]">
+              <div className="p-3 rounded-lg bg-canvas border border-line space-y-1.5">
+                <div className="font-semibold text-ink">
                   Trọng số Chấm điểm Mềm DSS Hiện tại
                 </div>
-                <div className="grid grid-cols-2 gap-1 text-[12px] text-[#687A78] tabular-nums">
+                <div className="grid grid-cols-2 gap-1 text-[12px] text-muted tabular-nums">
                   <span>Độ khớp kỹ năng: {Math.round(dssWeights.skillFit * 100)}%</span>
                   <span>Độ khít thời gian: {Math.round(dssWeights.timeFit * 100)}%</span>
                   <span>Khoảng cách: {Math.round(dssWeights.distance * 100)}%</span>
@@ -1013,7 +1067,7 @@ export function App() {
               <button
                 type="button"
                 onClick={() => setSettingsModalOpen(false)}
-                className="px-4 py-2 rounded-lg bg-[#2F6F64] text-white text-[13px] font-semibold cursor-pointer"
+                className="px-4 py-2 rounded-lg bg-brand-600 text-white text-[13px] font-semibold cursor-pointer"
               >
                 Hoàn tất
               </button>

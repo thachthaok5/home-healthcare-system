@@ -275,15 +275,15 @@ export const NewRequestDrawer: React.FC<NewRequestDrawerProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex justify-end bg-[#253438]/30 backdrop-blur-[1px]">
-      <div className="w-full max-w-[540px] bg-white h-full shadow-xl border-l border-[#E1E9E6] flex flex-col">
+    <div className="fixed inset-0 z-50 flex justify-end bg-ink/30 backdrop-blur-[1px]">
+      <div className="w-full max-w-[540px] bg-white h-full shadow-xl border-l border-line flex flex-col">
         {/* Header */}
-        <div className="px-6 py-4 border-b border-[#E1E9E6] flex items-center justify-between bg-[#F7FAF9] shrink-0">
+        <div className="px-6 py-4 border-b border-line flex items-center justify-between bg-canvas shrink-0">
           <div>
-            <h2 className="text-[18px] font-semibold text-[#253438] m-0">
+            <h2 className="text-[18px] font-semibold text-ink m-0">
               {isEditing ? `Chỉnh sửa Yêu cầu ${initialRequest?.id}` : 'Tạo Yêu cầu Chăm sóc Mới'}
             </h2>
-            <p className="text-[12px] text-[#687A78] m-0 mt-0.5">
+            <p className="text-[12px] text-muted m-0 mt-0.5">
               {isEditing
                 ? 'Cập nhật thông tin dịch vụ, khung giờ và điều kiện sẵn sàng trước khi gửi AI'
                 : 'Tiếp nhận yêu cầu chăm sóc tại nhà và kiểm tra điều kiện sẵn sàng điều phối'}
@@ -292,7 +292,7 @@ export const NewRequestDrawer: React.FC<NewRequestDrawerProps> = ({
           <button
             type="button"
             onClick={onClose}
-            className="p-1.5 rounded-lg text-[#687A78] hover:text-[#253438] hover:bg-[#E1E9E6]/50 cursor-pointer"
+            className="p-1.5 rounded-lg text-muted hover:text-ink hover:bg-line/50 cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>
@@ -302,21 +302,21 @@ export const NewRequestDrawer: React.FC<NewRequestDrawerProps> = ({
         <form onSubmit={handleSaveOnly} className="flex-1 overflow-y-auto p-6 space-y-6">
           {/* SECTION A: Basic Information */}
           <div className="space-y-3">
-            <div className="flex items-center gap-2 text-[13px] font-semibold text-[#2F6F64] uppercase tracking-wider">
-              <span className="w-5 h-5 rounded-full bg-[#E5F1EC] text-[#2F6F64] inline-flex items-center justify-center text-[11px]">
+            <div className="flex items-center gap-2 text-[13px] font-semibold text-brand-600 uppercase tracking-wider">
+              <span className="w-5 h-5 rounded-full bg-brand-100 text-brand-600 inline-flex items-center justify-center text-[11px]">
                 A
               </span>
               Thông tin Cơ bản (Basic Information)
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 bg-[#F7FAF9] p-4 rounded-lg border border-[#E1E9E6]">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 bg-canvas p-4 rounded-lg border border-line">
               <div className="sm:col-span-3">
-                <label className="block text-[12px] font-medium text-[#253438] mb-1">
+                <label className="block text-[12px] font-medium text-ink mb-1">
                   Loại dịch vụ chăm sóc (Service Type) *
                 </label>
                 <select
                   value={serviceName}
                   onChange={(e) => handleServicePresetChange(e.target.value)}
-                  className="w-full px-3 py-2 rounded-md border border-[#E1E9E6] bg-white text-[13px] text-[#253438]"
+                  className="w-full px-3 py-2 rounded-md border border-line bg-white text-[13px] text-ink"
                 >
                   {SERVICE_OPTIONS.map((srv) => (
                     <option key={srv.name} value={srv.name}>
@@ -327,7 +327,7 @@ export const NewRequestDrawer: React.FC<NewRequestDrawerProps> = ({
               </div>
 
               <div className="sm:col-span-2">
-                <label className="block text-[12px] font-medium text-[#253438] mb-1">
+                <label className="block text-[12px] font-medium text-ink mb-1">
                   Người nhận chăm sóc / Bệnh nhân *
                 </label>
                 <input
@@ -335,12 +335,12 @@ export const NewRequestDrawer: React.FC<NewRequestDrawerProps> = ({
                   required
                   value={patientName}
                   onChange={(e) => setPatientName(e.target.value)}
-                  className="w-full px-3 py-1.5 rounded-md border border-[#E1E9E6] bg-white text-[13px] text-[#253438]"
+                  className="w-full px-3 py-1.5 rounded-md border border-line bg-white text-[13px] text-ink"
                 />
               </div>
 
               <div>
-                <label className="block text-[12px] font-medium text-[#253438] mb-1">
+                <label className="block text-[12px] font-medium text-ink mb-1">
                   Tuổi
                 </label>
                 <input
@@ -349,12 +349,12 @@ export const NewRequestDrawer: React.FC<NewRequestDrawerProps> = ({
                   max={120}
                   value={patientAge}
                   onChange={(e) => setPatientAge(Number(e.target.value))}
-                  className="w-full px-3 py-1.5 rounded-md border border-[#E1E9E6] bg-white text-[13px] text-[#253438] tabular-nums"
+                  className="w-full px-3 py-1.5 rounded-md border border-line bg-white text-[13px] text-ink tabular-nums"
                 />
               </div>
 
               <div className="sm:col-span-3">
-                <label className="block text-[12px] font-medium text-[#253438] mb-1">
+                <label className="block text-[12px] font-medium text-ink mb-1">
                   Mức độ ưu tiên (Priority) *
                 </label>
                 <div className="grid grid-cols-3 gap-2">
@@ -372,9 +372,9 @@ export const NewRequestDrawer: React.FC<NewRequestDrawerProps> = ({
                       className={`py-1.5 px-2.5 rounded-md text-[12px] font-medium border transition-colors cursor-pointer ${
                         priority === opt.value
                           ? opt.value === 'Khẩn cấp'
-                            ? 'bg-[#FDF2F3] border-[#D85D68] text-[#C03A47] font-semibold'
-                            : 'bg-[#E5F1EC] border-[#2F6F64] text-[#2F6F64] font-semibold'
-                          : 'bg-white border-[#E1E9E6] text-[#687A78]'
+                            ? 'bg-urgent-tint border-urgent text-urgent font-semibold'
+                            : 'bg-brand-100 border-brand-600 text-brand-600 font-semibold'
+                          : 'bg-white border-line text-muted'
                       }`}
                     >
                       {opt.label}
@@ -384,13 +384,13 @@ export const NewRequestDrawer: React.FC<NewRequestDrawerProps> = ({
               </div>
 
               <div>
-                <label className="block text-[12px] font-medium text-[#253438] mb-1">
+                <label className="block text-[12px] font-medium text-ink mb-1">
                   Khu vực / Phường (Service Area) *
                 </label>
                 <select
                   value={district}
                   onChange={(e) => setDistrict(e.target.value)}
-                  className="w-full px-3 py-1.5 rounded-md border border-[#E1E9E6] bg-white text-[13px] text-[#253438]"
+                  className="w-full px-3 py-1.5 rounded-md border border-line bg-white text-[13px] text-ink"
                 >
                   {DISTRICT_OPTIONS.map((d) => (
                     <option key={d} value={d}>
@@ -401,7 +401,7 @@ export const NewRequestDrawer: React.FC<NewRequestDrawerProps> = ({
               </div>
 
               <div className="sm:col-span-2">
-                <label className="block text-[12px] font-medium text-[#253438] mb-1">
+                <label className="block text-[12px] font-medium text-ink mb-1">
                   Địa chỉ ngắn gọn & SĐT liên hệ
                 </label>
                 <div className="grid grid-cols-3 gap-2">
@@ -410,20 +410,20 @@ export const NewRequestDrawer: React.FC<NewRequestDrawerProps> = ({
                     value={address}
                     onChange={(e) => setAddress(e.target.value)}
                     placeholder="Số nhà, tên đường"
-                    className="col-span-2 px-3 py-1.5 rounded-md border border-[#E1E9E6] bg-white text-[13px] text-[#253438]"
+                    className="col-span-2 px-3 py-1.5 rounded-md border border-line bg-white text-[13px] text-ink"
                   />
                   <input
                     type="text"
                     value={patientPhone}
                     onChange={(e) => setPatientPhone(e.target.value)}
                     placeholder="SĐT"
-                    className="px-2.5 py-1.5 rounded-md border border-[#E1E9E6] bg-white text-[12px] text-[#253438] tabular-nums"
+                    className="px-2.5 py-1.5 rounded-md border border-line bg-white text-[12px] text-ink tabular-nums"
                   />
                 </div>
               </div>
 
               <div className="sm:col-span-3">
-                <label className="block text-[12px] font-medium text-[#253438] mb-1">
+                <label className="block text-[12px] font-medium text-ink mb-1">
                   Ghi chú vận hành ngắn gọn (Operational Note)
                 </label>
                 <textarea
@@ -431,7 +431,7 @@ export const NewRequestDrawer: React.FC<NewRequestDrawerProps> = ({
                   value={clinicalNotes}
                   onChange={(e) => setClinicalNotes(e.target.value)}
                   placeholder="Ghi chú hướng dẫn tiếp cận địa điểm hoặc dụng cụ cần mang theo..."
-                  className="w-full px-3 py-1.5 rounded-md border border-[#E1E9E6] bg-white text-[13px] text-[#253438]"
+                  className="w-full px-3 py-1.5 rounded-md border border-line bg-white text-[13px] text-ink"
                 />
               </div>
             </div>
@@ -439,27 +439,27 @@ export const NewRequestDrawer: React.FC<NewRequestDrawerProps> = ({
 
           {/* SECTION B: Scheduling Information */}
           <div className="space-y-3">
-            <div className="flex items-center gap-2 text-[13px] font-semibold text-[#2F6F64] uppercase tracking-wider">
-              <span className="w-5 h-5 rounded-full bg-[#E5F1EC] text-[#2F6F64] inline-flex items-center justify-center text-[11px]">
+            <div className="flex items-center gap-2 text-[13px] font-semibold text-brand-600 uppercase tracking-wider">
+              <span className="w-5 h-5 rounded-full bg-brand-100 text-brand-600 inline-flex items-center justify-center text-[11px]">
                 B
               </span>
               Thông tin Lịch hẹn & Kỹ năng (Scheduling Information)
             </div>
-            <div className="bg-[#F7FAF9] p-4 rounded-lg border border-[#E1E9E6] space-y-3.5">
+            <div className="bg-canvas p-4 rounded-lg border border-line space-y-3.5">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-[12px] font-medium text-[#253438] mb-1">
+                  <label className="block text-[12px] font-medium text-ink mb-1">
                     Ngày yêu cầu (Requested Date) *
                   </label>
                   <input
                     type="date"
                     value={requestedDate}
                     onChange={(e) => setRequestedDate(e.target.value)}
-                    className="w-full px-3 py-1.5 rounded-md border border-[#E1E9E6] bg-white text-[13px] text-[#253438] tabular-nums"
+                    className="w-full px-3 py-1.5 rounded-md border border-line bg-white text-[13px] text-ink tabular-nums"
                   />
                 </div>
                 <div>
-                  <label className="block text-[12px] font-medium text-[#253438] mb-1">
+                  <label className="block text-[12px] font-medium text-ink mb-1">
                     Thời lượng dự kiến (phút, tối đa 480p) *
                   </label>
                   <input
@@ -468,40 +468,40 @@ export const NewRequestDrawer: React.FC<NewRequestDrawerProps> = ({
                     max={480}
                     value={estimatedDurationMin}
                     onChange={(e) => setEstimatedDurationMin(Number(e.target.value))}
-                    className="w-full px-3 py-1.5 rounded-md border border-[#E1E9E6] bg-white text-[13px] text-[#253438] tabular-nums"
+                    className="w-full px-3 py-1.5 rounded-md border border-line bg-white text-[13px] text-ink tabular-nums"
                   />
                 </div>
                 <div>
-                  <label className="block text-[12px] font-medium text-[#253438] mb-1">
+                  <label className="block text-[12px] font-medium text-ink mb-1">
                     Giờ bắt đầu mong muốn (Start Time) *
                   </label>
                   <input
                     type="time"
                     value={windowStart}
                     onChange={(e) => setWindowStart(e.target.value)}
-                    className="w-full px-3 py-1.5 rounded-md border border-[#E1E9E6] bg-white text-[13px] text-[#253438] tabular-nums"
+                    className="w-full px-3 py-1.5 rounded-md border border-line bg-white text-[13px] text-ink tabular-nums"
                   />
                 </div>
                 <div>
-                  <label className="block text-[12px] font-medium text-[#253438] mb-1">
+                  <label className="block text-[12px] font-medium text-ink mb-1">
                     Giờ kết thúc khung hẹn (End Time) *
                   </label>
                   <input
                     type="time"
                     value={windowEnd}
                     onChange={(e) => setWindowEnd(e.target.value)}
-                    className="w-full px-3 py-1.5 rounded-md border border-[#E1E9E6] bg-white text-[13px] text-[#253438] tabular-nums"
+                    className="w-full px-3 py-1.5 rounded-md border border-line bg-white text-[13px] text-ink tabular-nums"
                   />
                 </div>
               </div>
 
               <div>
                 <div className="flex items-center justify-between mb-1.5">
-                  <label className="text-[12px] font-medium text-[#253438] flex items-center gap-1.5">
-                    <Stethoscope className="w-3.5 h-3.5 text-[#2F6F64]" />
+                  <label className="text-[12px] font-medium text-ink flex items-center gap-1.5">
+                    <Stethoscope className="w-3.5 h-3.5 text-brand-600" />
                     Kỹ năng chuyên môn bắt buộc (Required Skills) *
                   </label>
-                  <span className="text-[11px] text-[#687A78]">
+                  <span className="text-[11px] text-muted">
                     Đã chọn: {selectedSkills.length} kỹ năng
                   </span>
                 </div>
@@ -515,8 +515,8 @@ export const NewRequestDrawer: React.FC<NewRequestDrawerProps> = ({
                         onClick={() => toggleSkill(sk)}
                         className={`px-2.5 py-1 rounded-md text-[12px] font-medium border transition-colors cursor-pointer ${
                           active
-                            ? 'bg-[#2F6F64] text-white border-[#2F6F64]'
-                            : 'bg-white text-[#687A78] border-[#E1E9E6] hover:border-[#2F6F64]'
+                            ? 'bg-brand-600 text-white border-brand-600'
+                            : 'bg-white text-muted border-line hover:border-brand-600'
                         }`}
                       >
                         {sk}
@@ -530,15 +530,15 @@ export const NewRequestDrawer: React.FC<NewRequestDrawerProps> = ({
 
           {/* SECTION C: Review & Validation */}
           <div className="space-y-2.5">
-            <div className="flex items-center gap-2 text-[13px] font-semibold text-[#2F6F64] uppercase tracking-wider">
-              <span className="w-5 h-5 rounded-full bg-[#E5F1EC] text-[#2F6F64] inline-flex items-center justify-center text-[11px]">
+            <div className="flex items-center gap-2 text-[13px] font-semibold text-brand-600 uppercase tracking-wider">
+              <span className="w-5 h-5 rounded-full bg-brand-100 text-brand-600 inline-flex items-center justify-center text-[11px]">
                 C
               </span>
               Kiểm tra Điều kiện Sẵn sàng (Readiness Validation)
             </div>
 
             {validationState.errors.length > 0 ? (
-              <div className="p-3.5 rounded-lg bg-[#FDF2F3] border border-[#F2C6CB] text-[12px] text-[#C03A47] space-y-1">
+              <div className="p-3.5 rounded-lg bg-urgent-tint border border-urgent-line text-[12px] text-urgent space-y-1">
                 <div className="font-semibold flex items-center gap-1.5">
                   <AlertTriangle className="w-4 h-4 shrink-0" />
                   Vui lòng hoàn thiện các điều kiện bắt buộc:
@@ -550,23 +550,23 @@ export const NewRequestDrawer: React.FC<NewRequestDrawerProps> = ({
                 </ul>
               </div>
             ) : (
-              <div className="p-3.5 rounded-lg bg-[#E5F1EC]/50 border border-[#C6DFD7] text-[12px] text-[#253438] space-y-2">
+              <div className="p-3.5 rounded-lg bg-brand-100/50 border border-brand-200 text-[12px] text-ink space-y-2">
                 <div className="flex items-center justify-between font-semibold">
                   <span>
                     {serviceName} · {patientName}
                   </span>
-                  <span className="text-[#2F6F64] tabular-nums">
+                  <span className="text-brand-600 tabular-nums">
                     {requestedDate} ({windowStart} – {windowEnd})
                   </span>
                 </div>
-                <div className="text-[#687A78] flex items-center gap-3 flex-wrap">
+                <div className="text-muted flex items-center gap-3 flex-wrap">
                   <span className="inline-flex items-center gap-1">
-                    <MapPin className="w-3.5 h-3.5 text-[#2F6F64]" /> {district}
+                    <MapPin className="w-3.5 h-3.5 text-brand-600" /> {district}
                   </span>
                   <span className="inline-flex items-center gap-1 tabular-nums">
-                    <Clock className="w-3.5 h-3.5 text-[#2F6F64]" /> Thời lượng: {estimatedDurationMin} phút
+                    <Clock className="w-3.5 h-3.5 text-brand-600" /> Thời lượng: {estimatedDurationMin} phút
                   </span>
-                  <span className="inline-flex items-center gap-1 text-[#2E755D] font-medium">
+                  <span className="inline-flex items-center gap-1 text-ok font-medium">
                     <CheckCircle2 className="w-3.5 h-3.5" /> Đạt chuẩn gửi sang Đề xuất AI
                   </span>
                 </div>
@@ -575,18 +575,18 @@ export const NewRequestDrawer: React.FC<NewRequestDrawerProps> = ({
           </div>
 
           {/* Footer Actions */}
-          <div className="pt-3 border-t border-[#E1E9E6] flex flex-wrap items-center justify-end gap-2.5">
+          <div className="pt-3 border-t border-line flex flex-wrap items-center justify-end gap-2.5">
             <button
               type="button"
               onClick={onClose}
-              className="px-3.5 py-2 rounded-lg border border-[#E1E9E6] bg-white text-[#253438] text-[13px] font-medium hover:bg-[#F7FAF9] cursor-pointer"
+              className="px-3.5 py-2 rounded-lg border border-line bg-white text-ink text-[13px] font-medium hover:bg-canvas cursor-pointer"
             >
               Hủy
             </button>
             <button
               type="submit"
               disabled={!validationState.isValid}
-              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg border border-[#2F6F64] bg-white text-[#2F6F64] text-[13px] font-semibold hover:bg-[#E5F1EC] disabled:opacity-40 cursor-pointer"
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg border border-brand-600 bg-white text-brand-600 text-[13px] font-semibold hover:bg-brand-100 disabled:opacity-40 cursor-pointer"
             >
               <Save className="w-4 h-4" />
               {isEditing ? 'Lưu Thay đổi' : 'Lưu Yêu cầu'}
@@ -595,7 +595,7 @@ export const NewRequestDrawer: React.FC<NewRequestDrawerProps> = ({
               type="button"
               disabled={!validationState.isValid}
               onClick={handleSaveAndSendToAI}
-              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-[#2F6F64] text-white text-[13px] font-semibold hover:bg-[#255A51] disabled:opacity-40 cursor-pointer"
+              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-brand-600 text-white text-[13px] font-semibold hover:bg-brand-700 disabled:opacity-40 cursor-pointer"
             >
               <Sparkles className="w-4 h-4" />
               Lưu & Gửi sang Đề xuất AI

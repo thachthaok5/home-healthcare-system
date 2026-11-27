@@ -101,27 +101,27 @@ const renderCareRequestStatusBadge = (status: CareRequestOperationalStatus) => {
   switch (status) {
     case 'Ready for AI':
       return (
-        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-semibold bg-[#E5F1EC] text-[#2F6F64] border border-[#B8D9CE]">
+        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-semibold bg-brand-100 text-brand-600 border border-brand-200">
           <Sparkles className="w-3 h-3" />
           Sẵn sàng AI
         </span>
       );
     case 'Needs Review':
       return (
-        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-semibold bg-[#FDF6EC] text-[#B87514] border border-[#F3D9B1]">
+        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-semibold bg-high-tint text-high-ink border border-high-line">
           <AlertTriangle className="w-3 h-3" />
           Cần rà soát
         </span>
       );
     case 'New':
       return (
-        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium bg-[#F7FAF9] text-[#253438] border border-[#CBD8D3]">
+        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium bg-canvas text-ink border border-line-strong">
           Mới tiếp nhận
         </span>
       );
     case 'Assigned':
       return (
-        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium bg-[#EBF6F1] text-[#2E755D] border border-[#C5E2D7]">
+        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium bg-ok-tint text-ok border border-brand-200">
           <CheckCircle2 className="w-3 h-3" />
           Đã phân công
         </span>
@@ -130,7 +130,7 @@ const renderCareRequestStatusBadge = (status: CareRequestOperationalStatus) => {
       return <StatusBadge status="Completed" />;
     case 'Cancelled':
       return (
-        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium bg-[#FDF2F3] text-[#C03A47] border border-[#F2C6CB]">
+        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium bg-urgent-tint text-urgent border border-urgent-line">
           Đã hủy
         </span>
       );
@@ -150,7 +150,7 @@ export const CareRequestsPage: React.FC<CareRequestsPageProps> = ({
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
   const [priorityFilter, setPriorityFilter] = useState<string>('ALL');
   const [serviceFilter, setServiceFilter] = useState<string>('ALL');
-  const [sortField, setSortField] = useState<'id' | 'requestedTime' | 'priority'>('requestedTime');
+  const [sortField, setSortField] = useState<'id' | 'requestedTime' | 'priority'>('priority');
   const [sortAsc, setSortAsc] = useState<boolean>(true);
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [selectedRequestId, setSelectedRequestId] = useState<string | null>(null);
@@ -440,7 +440,7 @@ export const CareRequestsPage: React.FC<CareRequestsPageProps> = ({
           <button
             type="button"
             onClick={onOpenNewRequest}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-[#2F6F64] text-white text-[13px] font-medium hover:bg-[#255A51] transition-colors cursor-pointer"
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-brand-600 text-white text-[13px] font-medium hover:bg-brand-700 transition-colors cursor-pointer"
           >
             <Plus className="w-4 h-4" />
             + Tạo Yêu cầu Mới
@@ -454,7 +454,7 @@ export const CareRequestsPage: React.FC<CareRequestsPageProps> = ({
           label="Tổng Yêu cầu (Total Requests)"
           value={totalRequestsCount}
           sublabel={`Ngày vận hành ${selectedDate} · Tất cả ca trong ngày`}
-          tone="default"
+          tone="sun"
           icon={<ClipboardList className="w-4 h-4" />}
           onClick={() => {
             setStatusFilter('ALL');
@@ -467,7 +467,7 @@ export const CareRequestsPage: React.FC<CareRequestsPageProps> = ({
           sublabel={`${
             unifiedList.filter((r) => r.operationalStatus === 'Ready for AI').length
           } yêu cầu sẵn sàng gửi sang Đề xuất AI`}
-          tone="teal"
+          tone="ai"
           icon={<Sparkles className="w-4 h-4" />}
           onClick={() => {
             setStatusFilter('Ready for AI');
@@ -488,9 +488,9 @@ export const CareRequestsPage: React.FC<CareRequestsPageProps> = ({
       </div>
 
       {/* 2.3 Search and Filters Toolbar */}
-      <div className="bg-white rounded-[10px] border border-[#E1E9E6] p-3.5 flex flex-wrap items-center justify-between gap-3">
+      <div className="bg-white rounded-[10px] border border-line p-3.5 flex flex-wrap items-center justify-between gap-3">
         <div className="relative flex-1 min-w-[230px] max-w-sm">
-          <Search className="w-4 h-4 text-[#687A78] absolute left-3 top-1/2 -translate-y-1/2" />
+          <Search className="w-4 h-4 text-muted absolute left-3 top-1/2 -translate-y-1/2" />
           <input
             type="text"
             placeholder="Tìm theo Mã REQ, dịch vụ, bệnh nhân hoặc phường..."
@@ -499,7 +499,7 @@ export const CareRequestsPage: React.FC<CareRequestsPageProps> = ({
               setSearchQuery(e.target.value);
               setCurrentPage(1);
             }}
-            className="w-full pl-9 pr-3 py-1.5 rounded-lg border border-[#E1E9E6] bg-[#F7FAF9] text-[13px] text-[#253438] focus:bg-white focus:border-[#2F6F64] outline-none"
+            className="w-full pl-9 pr-3 py-1.5 rounded-lg border border-line bg-canvas text-[13px] text-ink focus:bg-white focus:border-brand-600 outline-none"
           />
         </div>
 
@@ -511,7 +511,7 @@ export const CareRequestsPage: React.FC<CareRequestsPageProps> = ({
               setStatusFilter(e.target.value);
               setCurrentPage(1);
             }}
-            className="px-2.5 py-1.5 rounded-lg border border-[#E1E9E6] bg-white text-[12px] text-[#253438]"
+            className="px-2.5 py-1.5 rounded-lg border border-line bg-white text-[12px] text-ink"
           >
             <option value="ALL">Tất cả Trạng thái</option>
             <option value="New">Mới tiếp nhận (New)</option>
@@ -529,7 +529,7 @@ export const CareRequestsPage: React.FC<CareRequestsPageProps> = ({
               setPriorityFilter(e.target.value);
               setCurrentPage(1);
             }}
-            className="px-2.5 py-1.5 rounded-lg border border-[#E1E9E6] bg-white text-[12px] text-[#253438]"
+            className="px-2.5 py-1.5 rounded-lg border border-line bg-white text-[12px] text-ink"
           >
             <option value="ALL">Tất cả Mức ưu tiên</option>
             <option value="Urgent">Khẩn cấp (Urgent)</option>
@@ -544,7 +544,7 @@ export const CareRequestsPage: React.FC<CareRequestsPageProps> = ({
               setServiceFilter(e.target.value);
               setCurrentPage(1);
             }}
-            className="px-2.5 py-1.5 rounded-lg border border-[#E1E9E6] bg-white text-[12px] text-[#253438]"
+            className="px-2.5 py-1.5 rounded-lg border border-line bg-white text-[12px] text-ink"
           >
             <option value="ALL">Tất cả Loại dịch vụ</option>
             {serviceCategories.map((cat) => (
@@ -555,8 +555,8 @@ export const CareRequestsPage: React.FC<CareRequestsPageProps> = ({
           </select>
 
           {/* Requested date filter */}
-          <div className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-[#E1E9E6] bg-white text-[12px] text-[#253438]">
-            <Calendar className="w-3.5 h-3.5 text-[#2F6F64]" />
+          <div className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-line bg-white text-[12px] text-ink">
+            <Calendar className="w-3.5 h-3.5 text-brand-600" />
             <input
               type="date"
               value={selectedDate}
@@ -570,7 +570,7 @@ export const CareRequestsPage: React.FC<CareRequestsPageProps> = ({
             <button
               type="button"
               onClick={handleResetFilters}
-              className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-[#E1E9E6] bg-[#F7FAF9] text-[12px] font-medium text-[#687A78] hover:text-[#253438] hover:border-[#2F6F64] cursor-pointer"
+              className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-line bg-canvas text-[12px] font-medium text-muted hover:text-ink hover:border-brand-600 cursor-pointer"
             >
               <RotateCcw className="w-3.5 h-3.5" />
               Đặt lại bộ lọc
@@ -588,16 +588,16 @@ export const CareRequestsPage: React.FC<CareRequestsPageProps> = ({
           onAction={handleResetFilters}
         />
       ) : (
-        <div className="bg-white rounded-[10px] border border-[#E1E9E6] overflow-hidden">
+        <div className="bg-white rounded-[10px] border border-line overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
               <thead>
-                <tr className="border-b border-[#E1E9E6] bg-[#F7FAF9] text-[12px] font-semibold text-[#687A78]">
+                <tr className="border-b border-line bg-canvas text-[12px] font-semibold text-muted">
                   <th className="py-3 px-4">
                     <button
                       type="button"
                       onClick={() => toggleSort('id')}
-                      className="inline-flex items-center gap-1 hover:text-[#253438] cursor-pointer"
+                      className="inline-flex items-center gap-1 hover:text-ink cursor-pointer"
                     >
                       Mã Yêu cầu
                       <ArrowUpDown className="w-3.5 h-3.5" />
@@ -608,7 +608,7 @@ export const CareRequestsPage: React.FC<CareRequestsPageProps> = ({
                     <button
                       type="button"
                       onClick={() => toggleSort('requestedTime')}
-                      className="inline-flex items-center gap-1 hover:text-[#253438] cursor-pointer"
+                      className="inline-flex items-center gap-1 hover:text-ink cursor-pointer"
                     >
                       Khung giờ Yêu cầu
                       <ArrowUpDown className="w-3.5 h-3.5" />
@@ -619,7 +619,7 @@ export const CareRequestsPage: React.FC<CareRequestsPageProps> = ({
                     <button
                       type="button"
                       onClick={() => toggleSort('priority')}
-                      className="inline-flex items-center gap-1 hover:text-[#253438] cursor-pointer"
+                      className="inline-flex items-center gap-1 hover:text-ink cursor-pointer"
                     >
                       Mức Ưu tiên
                       <ArrowUpDown className="w-3.5 h-3.5" />
@@ -629,7 +629,7 @@ export const CareRequestsPage: React.FC<CareRequestsPageProps> = ({
                   <th className="py-3 px-4 text-right">Thao tác</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-[#E1E9E6] text-[13px]">
+              <tbody className="divide-y divide-line text-[13px]">
                 {paginatedRows.map((row) => {
                   const isSelected = selectedRequestId === row.id;
                   const isUrgent = row.priority === 'Khẩn cấp';
@@ -640,11 +640,11 @@ export const CareRequestsPage: React.FC<CareRequestsPageProps> = ({
                       className={`transition-colors cursor-pointer ${
                         isUrgent
                           ? isSelected
-                            ? 'bg-[#FDF2F3] outline outline-2 -outline-offset-2 outline-[#C03A47]'
-                            : 'bg-[#FDF2F3]/55 outline outline-2 -outline-offset-2 outline-[#D85D68] hover:bg-[#FDF2F3]'
+                            ? 'bg-urgent-tint outline outline-2 -outline-offset-2 outline-urgent'
+                            : 'bg-urgent-tint/55 outline outline-2 -outline-offset-2 outline-urgent hover:bg-urgent-tint'
                           : isSelected
-                          ? 'bg-[#E5F1EC]/60'
-                          : 'hover:bg-[#F7FAF9]'
+                          ? 'bg-brand-100/60'
+                          : 'hover:bg-canvas'
                       }`}
                     >
                       {/* 1. Request ID */}
@@ -652,13 +652,13 @@ export const CareRequestsPage: React.FC<CareRequestsPageProps> = ({
                         <span
                           className={`font-mono-num font-semibold ${
                             isUrgent
-                              ? 'px-2 py-0.5 rounded bg-[#C03A47] text-white'
-                              : 'text-[#2F6F64]'
+                              ? 'px-2 py-0.5 rounded bg-urgent text-white'
+                              : 'text-brand-600'
                           }`}
                         >
                           {row.id}
                         </span>
-                        <div className="text-[11px] text-[#687A78] mt-0.5 tabular-nums">
+                        <div className="text-[11px] text-muted mt-0.5 tabular-nums">
                           {row.createdAtText}
                         </div>
                       </td>
@@ -667,28 +667,28 @@ export const CareRequestsPage: React.FC<CareRequestsPageProps> = ({
                       <td className="py-3.5 px-4 max-w-[270px]">
                         <div
                           className={`font-semibold truncate ${
-                            isUrgent ? 'text-[#A32935]' : 'text-[#253438]'
+                            isUrgent ? 'text-urgent-ink' : 'text-ink'
                           }`}
                         >
                           {row.serviceName}
                         </div>
-                        <div className="text-[12px] text-[#687A78] truncate">
+                        <div className="text-[12px] text-muted truncate">
                           {row.patientName} ({row.patientAge}t) · {row.serviceCategory}
                         </div>
                       </td>
 
                       {/* 3. Requested Time */}
                       <td className="py-3.5 px-4 tabular-nums">
-                        <div className="font-medium text-[#253438]">{row.requestedTime}</div>
-                        <div className="text-[11px] text-[#687A78]">
+                        <div className="font-medium text-ink">{row.requestedTime}</div>
+                        <div className="text-[11px] text-muted">
                           {row.requestedDate} · Dự kiến {row.predictedDurationMin} phút
                         </div>
                       </td>
 
                       {/* 4. Service Area */}
                       <td className="py-3.5 px-4 max-w-[190px]">
-                        <div className="font-medium text-[#253438]">{row.district}</div>
-                        <div className="text-[11px] text-[#687A78] truncate">{row.address}</div>
+                        <div className="font-medium text-ink">{row.district}</div>
+                        <div className="text-[11px] text-muted truncate">{row.address}</div>
                       </td>
 
                       {/* 5. Priority */}
@@ -696,7 +696,7 @@ export const CareRequestsPage: React.FC<CareRequestsPageProps> = ({
                         <PriorityBadge
                           priority={row.priority}
                           showCountdown={isUrgent}
-                          seedId={row.id}
+                          deadline={row.windowStart}
                         />
                       </td>
 
@@ -714,7 +714,7 @@ export const CareRequestsPage: React.FC<CareRequestsPageProps> = ({
                           <button
                             type="button"
                             onClick={() => setSelectedRequestId(row.id)}
-                            className="px-2.5 py-1 rounded border border-[#E1E9E6] bg-white text-[12px] font-medium text-[#253438] hover:border-[#2F6F64] hover:text-[#2F6F64] cursor-pointer"
+                            className="px-2.5 py-1 rounded border border-line bg-white text-[12px] font-medium text-ink hover:border-brand-600 hover:text-brand-600 cursor-pointer"
                           >
                             Chi tiết
                           </button>
@@ -730,8 +730,8 @@ export const CareRequestsPage: React.FC<CareRequestsPageProps> = ({
                               }
                               className={`px-2.5 py-1 rounded text-[12px] font-semibold inline-flex items-center gap-1 ${
                                 row.isReadyForAI
-                                  ? 'bg-[#E5F1EC] text-[#2F6F64] hover:bg-[#2F6F64] hover:text-white cursor-pointer'
-                                  : 'bg-[#F7FAF9] text-[#687A78] border border-[#E1E9E6] opacity-60 cursor-not-allowed'
+                                  ? 'bg-brand-100 text-brand-600 hover:bg-brand-600 hover:text-white cursor-pointer'
+                                  : 'bg-canvas text-muted border border-line opacity-60 cursor-not-allowed'
                               }`}
                             >
                               <Sparkles className="w-3 h-3" />
@@ -741,7 +741,7 @@ export const CareRequestsPage: React.FC<CareRequestsPageProps> = ({
                             <button
                               type="button"
                               onClick={() => onNavigate('/dispatch')}
-                              className="px-2.5 py-1 rounded border border-[#E1E9E6] bg-[#F7FAF9] text-[12px] font-medium text-[#2F6F64] hover:border-[#2F6F64] cursor-pointer"
+                              className="px-2.5 py-1 rounded border border-line bg-canvas text-[12px] font-medium text-brand-600 hover:border-brand-600 cursor-pointer"
                             >
                               Xem lịch
                             </button>
@@ -755,7 +755,7 @@ export const CareRequestsPage: React.FC<CareRequestsPageProps> = ({
             </table>
           </div>
 
-          <div className="px-4 py-3 border-t border-[#E1E9E6] bg-[#F7FAF9] flex items-center justify-between text-[12px] text-[#687A78]">
+          <div className="px-4 py-3 border-t border-line bg-canvas flex items-center justify-between text-[12px] text-muted">
             <span className="tabular-nums">
               Hiển thị {(currentPage - 1) * pageSize + 1}–
               {Math.min(currentPage * pageSize, filteredAndSorted.length)} trong tổng số{' '}
@@ -766,18 +766,18 @@ export const CareRequestsPage: React.FC<CareRequestsPageProps> = ({
                 type="button"
                 disabled={currentPage <= 1}
                 onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                className="px-2.5 py-1 rounded border border-[#E1E9E6] bg-white text-[#253438] disabled:opacity-40 cursor-pointer"
+                className="px-2.5 py-1 rounded border border-line bg-white text-ink disabled:opacity-40 cursor-pointer"
               >
                 Trước
               </button>
-              <span className="px-2 font-medium text-[#253438] tabular-nums">
+              <span className="px-2 font-medium text-ink tabular-nums">
                 Trang {currentPage} / {totalPages}
               </span>
               <button
                 type="button"
                 disabled={currentPage >= totalPages}
                 onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-                className="px-2.5 py-1 rounded border border-[#E1E9E6] bg-white text-[#253438] disabled:opacity-40 cursor-pointer"
+                className="px-2.5 py-1 rounded border border-line bg-white text-ink disabled:opacity-40 cursor-pointer"
               >
                 Tiếp
               </button>
@@ -788,20 +788,20 @@ export const CareRequestsPage: React.FC<CareRequestsPageProps> = ({
 
       {/* 2.5 Request Detail Drawer (Right-Side, 420px–480px) */}
       {selectedDetail && (
-        <div className="fixed inset-0 z-50 flex justify-end bg-[#253438]/30 backdrop-blur-[1px]">
+        <div className="fixed inset-0 z-50 flex justify-end bg-ink/30 backdrop-blur-[1px]">
           <div
             className={`w-full max-w-[460px] bg-white h-full shadow-xl flex flex-col ${
               selectedDetail.priority === 'Khẩn cấp'
-                ? 'border-l-4 border-l-[#D85D68]'
-                : 'border-l border-[#E1E9E6]'
+                ? 'border-l-4 border-l-urgent'
+                : 'border-l border-line'
             }`}
           >
             {/* Drawer Header */}
             <div
               className={`px-6 py-4 border-b flex items-center justify-between shrink-0 ${
                 selectedDetail.priority === 'Khẩn cấp'
-                  ? 'bg-[#FDF2F3] border-[#F2C6CB]'
-                  : 'bg-[#F7FAF9] border-[#E1E9E6]'
+                  ? 'bg-urgent-tint border-urgent-line'
+                  : 'bg-canvas border-line'
               }`}
             >
               <div>
@@ -809,8 +809,8 @@ export const CareRequestsPage: React.FC<CareRequestsPageProps> = ({
                   <span
                     className={`font-mono-num text-[12px] font-semibold px-2 py-0.5 rounded ${
                       selectedDetail.priority === 'Khẩn cấp'
-                        ? 'bg-[#C03A47] text-white'
-                        : 'text-[#2F6F64] bg-[#E5F1EC]'
+                        ? 'bg-urgent text-white'
+                        : 'text-brand-600 bg-brand-100'
                     }`}
                   >
                     {selectedDetail.id}
@@ -818,18 +818,18 @@ export const CareRequestsPage: React.FC<CareRequestsPageProps> = ({
                   <PriorityBadge
                     priority={selectedDetail.priority}
                     showCountdown={selectedDetail.priority === 'Khẩn cấp'}
-                    seedId={selectedDetail.id}
+                    deadline={selectedDetail.windowStart}
                   />
                   {renderCareRequestStatusBadge(selectedDetail.operationalStatus)}
                 </div>
-                <h3 className="text-[16px] font-semibold text-[#253438] m-0 mt-1.5">
+                <h3 className="text-[16px] font-semibold text-ink m-0 mt-1.5">
                   {selectedDetail.serviceName}
                 </h3>
               </div>
               <button
                 type="button"
                 onClick={() => setSelectedRequestId(null)}
-                className="p-1.5 rounded-lg text-[#687A78] hover:text-[#253438] cursor-pointer"
+                className="p-1.5 rounded-lg text-muted hover:text-ink cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -839,41 +839,41 @@ export const CareRequestsPage: React.FC<CareRequestsPageProps> = ({
             <div className="flex-1 overflow-y-auto p-6 space-y-5">
               {/* SECTION A — Request Overview */}
               <div className="space-y-2">
-                <div className="text-[11px] font-semibold uppercase tracking-wider text-[#687A78]">
+                <div className="text-[11px] font-semibold uppercase tracking-wider text-muted">
                   A. Tổng quan Yêu cầu (Request Overview)
                 </div>
-                <div className="p-3.5 rounded-lg bg-[#F7FAF9] border border-[#E1E9E6] space-y-2 text-[13px]">
+                <div className="p-3.5 rounded-lg bg-canvas border border-line space-y-2 text-[13px]">
                   <div className="flex justify-between">
-                    <span className="text-[#687A78]">Mã yêu cầu & Thời điểm tạo:</span>
-                    <span className="font-mono-num font-semibold text-[#253438]">
+                    <span className="text-muted">Mã yêu cầu & Thời điểm tạo:</span>
+                    <span className="font-mono-num font-semibold text-ink">
                       {selectedDetail.id} ({selectedDetail.createdAtText})
                     </span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-[#687A78]">Người nhận chăm sóc:</span>
-                    <span className="font-semibold text-[#253438]">
+                    <span className="text-muted">Người nhận chăm sóc:</span>
+                    <span className="font-semibold text-ink">
                       {selectedDetail.patientName} ({selectedDetail.patientAge} tuổi)
                     </span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-[#687A78]">Nhóm dịch vụ:</span>
-                    <span className="font-medium text-[#253438]">
+                    <span className="text-muted">Nhóm dịch vụ:</span>
+                    <span className="font-medium text-ink">
                       {selectedDetail.serviceCategory}
                     </span>
                   </div>
                   {selectedDetail.assignedStaffName && (
-                    <div className="flex justify-between pt-1.5 border-t border-[#E1E9E6]">
-                      <span className="text-[#687A78]">Nhân sự đã phân công:</span>
-                      <span className="font-semibold text-[#2F6F64]">
+                    <div className="flex justify-between pt-1.5 border-t border-line">
+                      <span className="text-muted">Nhân sự đã phân công:</span>
+                      <span className="font-semibold text-brand-600">
                         {selectedDetail.assignedStaffName}
                       </span>
                     </div>
                   )}
-                  <div className="pt-2 border-t border-[#E1E9E6]">
-                    <span className="text-[11px] text-[#687A78] block mb-0.5">
+                  <div className="pt-2 border-t border-line">
+                    <span className="text-[11px] text-muted block mb-0.5">
                       Ghi chú vận hành (Operational Notes):
                     </span>
-                    <p className="text-[12px] text-[#253438] m-0 leading-relaxed">
+                    <p className="text-[12px] text-ink m-0 leading-relaxed">
                       {selectedDetail.clinicalNotes}
                     </p>
                   </div>
@@ -882,20 +882,20 @@ export const CareRequestsPage: React.FC<CareRequestsPageProps> = ({
 
               {/* SECTION B — Scheduling Requirements */}
               <div className="space-y-2">
-                <div className="text-[11px] font-semibold uppercase tracking-wider text-[#687A78]">
+                <div className="text-[11px] font-semibold uppercase tracking-wider text-muted">
                   B. Yêu cầu Lịch trình & Kỹ năng (Scheduling Requirements)
                 </div>
-                <div className="p-3.5 rounded-lg bg-[#F7FAF9] border border-[#E1E9E6] space-y-2.5 text-[13px]">
+                <div className="p-3.5 rounded-lg bg-canvas border border-line space-y-2.5 text-[13px]">
                   <div>
-                    <span className="text-[11px] text-[#687A78] block mb-1">
+                    <span className="text-[11px] text-muted block mb-1">
                       Kỹ năng / Chứng chỉ bắt buộc:
                     </span>
                     <div className="flex items-center gap-1.5 flex-wrap">
-                      <Stethoscope className="w-4 h-4 text-[#2F6F64]" />
+                      <Stethoscope className="w-4 h-4 text-brand-600" />
                       {selectedDetail.requiredSkills.map((sk) => (
                         <span
                           key={sk}
-                          className="px-2 py-0.5 rounded bg-white border border-[#E1E9E6] text-[12px] font-medium text-[#253438]"
+                          className="px-2 py-0.5 rounded bg-white border border-line text-[12px] font-medium text-ink"
                         >
                           {sk}
                         </span>
@@ -903,30 +903,30 @@ export const CareRequestsPage: React.FC<CareRequestsPageProps> = ({
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-2 pt-2 border-t border-[#E1E9E6] text-[12px]">
+                  <div className="grid grid-cols-2 gap-2 pt-2 border-t border-line text-[12px]">
                     <div>
-                      <span className="text-[#687A78] block text-[11px]">Ngày & Khung giờ hẹn</span>
-                      <span className="font-semibold text-[#253438] tabular-nums inline-flex items-center gap-1 mt-0.5">
-                        <Clock className="w-3.5 h-3.5 text-[#2F6F64]" />
+                      <span className="text-muted block text-[11px]">Ngày & Khung giờ hẹn</span>
+                      <span className="font-semibold text-ink tabular-nums inline-flex items-center gap-1 mt-0.5">
+                        <Clock className="w-3.5 h-3.5 text-brand-600" />
                         {selectedDetail.requestedTime}
                       </span>
                     </div>
                     <div>
-                      <span className="text-[#687A78] block text-[11px]">Thời lượng dự kiến</span>
-                      <span className="font-semibold text-[#2F6F64] tabular-nums block mt-0.5">
+                      <span className="text-muted block text-[11px]">Thời lượng dự kiến</span>
+                      <span className="font-semibold text-brand-600 tabular-nums block mt-0.5">
                         {selectedDetail.predictedDurationMin} phút{' '}
-                        <span className="text-[#687A78] font-normal">
+                        <span className="text-muted font-normal">
                           (Chuẩn {selectedDetail.standardDurationMin}p)
                         </span>
                       </span>
                     </div>
                   </div>
 
-                  <div className="pt-2 border-t border-[#E1E9E6] flex items-start gap-2 text-[12px]">
-                    <MapPin className="w-4 h-4 text-[#2F6F64] shrink-0 mt-0.5" />
+                  <div className="pt-2 border-t border-line flex items-start gap-2 text-[12px]">
+                    <MapPin className="w-4 h-4 text-brand-600 shrink-0 mt-0.5" />
                     <div>
-                      <div className="font-semibold text-[#253438]">{selectedDetail.district}</div>
-                      <div className="text-[#687A78]">{selectedDetail.address}</div>
+                      <div className="font-semibold text-ink">{selectedDetail.district}</div>
+                      <div className="text-muted">{selectedDetail.address}</div>
                     </div>
                   </div>
                 </div>
@@ -935,45 +935,45 @@ export const CareRequestsPage: React.FC<CareRequestsPageProps> = ({
               {/* SECTION C — Readiness and Validation */}
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <span className="text-[11px] font-semibold uppercase tracking-wider text-[#687A78]">
+                  <span className="text-[11px] font-semibold uppercase tracking-wider text-muted">
                     C. Kiểm tra Sẵn sàng Điều phối (Readiness & Validation)
                   </span>
                   <span
                     className={`text-[11px] font-semibold px-2 py-0.5 rounded ${
                       selectedDetail.isReadyForAI
-                        ? 'bg-[#EBF6F1] text-[#2E755D]'
-                        : 'bg-[#FDF6EC] text-[#B87514]'
+                        ? 'bg-ok-tint text-ok'
+                        : 'bg-high-tint text-high-ink'
                     }`}
                   >
                     {selectedDetail.isReadyForAI ? 'Đạt 5/5 điều kiện' : 'Cần rà soát'}
                   </span>
                 </div>
 
-                <div className="p-3.5 rounded-lg bg-[#F7FAF9] border border-[#E1E9E6] space-y-2">
+                <div className="p-3.5 rounded-lg bg-canvas border border-line space-y-2">
                   {selectedDetail.readinessChecks.map((chk) => (
                     <div
                       key={chk.key}
                       className={`p-2 rounded border flex items-start justify-between gap-2 text-[12px] ${
                         chk.passed
-                          ? 'bg-white border-[#E1E9E6]'
-                          : 'bg-[#FDF2F3] border-[#F2C6CB]'
+                          ? 'bg-white border-line'
+                          : 'bg-urgent-tint border-urgent-line'
                       }`}
                     >
                       <div className="flex items-start gap-2">
                         {chk.passed ? (
-                          <CheckCircle2 className="w-3.5 h-3.5 text-[#4D947B] shrink-0 mt-0.5" />
+                          <CheckCircle2 className="w-3.5 h-3.5 text-ok shrink-0 mt-0.5" />
                         ) : (
-                          <XCircle className="w-3.5 h-3.5 text-[#D85D68] shrink-0 mt-0.5" />
+                          <XCircle className="w-3.5 h-3.5 text-urgent shrink-0 mt-0.5" />
                         )}
                         <div>
                           <div
                             className={`font-medium ${
-                              chk.passed ? 'text-[#253438]' : 'text-[#C03A47]'
+                              chk.passed ? 'text-ink' : 'text-urgent'
                             }`}
                           >
                             {chk.label}
                           </div>
-                          <div className="text-[11px] text-[#687A78] tabular-nums">
+                          <div className="text-[11px] text-muted tabular-nums">
                             {chk.detail}
                           </div>
                         </div>
@@ -982,7 +982,7 @@ export const CareRequestsPage: React.FC<CareRequestsPageProps> = ({
                   ))}
 
                   {!selectedDetail.isReadyForAI && (
-                    <div className="p-2.5 rounded bg-[#FDF6EC] border border-[#F3D9B1] text-[12px] text-[#B87514] flex items-start gap-2 mt-2">
+                    <div className="p-2.5 rounded bg-high-tint border border-high-line text-[12px] text-high-ink flex items-start gap-2 mt-2">
                       <ShieldAlert className="w-4 h-4 shrink-0 mt-0.5" />
                       <span>
                         Chưa thể gửi sang phân công tự động do còn điều kiện chưa đạt. Vui lòng nhấn{' '}
@@ -995,12 +995,12 @@ export const CareRequestsPage: React.FC<CareRequestsPageProps> = ({
             </div>
 
             {/* SECTION D — Actions */}
-            <div className="p-4 border-t border-[#E1E9E6] bg-[#F7FAF9] space-y-2 shrink-0">
+            <div className="p-4 border-t border-line bg-canvas space-y-2 shrink-0">
               <div className="flex items-center gap-2">
                 <button
                   type="button"
                   onClick={() => handleEditSelectedRequest(selectedDetail)}
-                  className="px-3.5 py-2.5 rounded-lg border border-[#E1E9E6] bg-white text-[#253438] text-[13px] font-medium hover:border-[#2F6F64] hover:text-[#2F6F64] inline-flex items-center justify-center gap-1.5 cursor-pointer"
+                  className="px-3.5 py-2.5 rounded-lg border border-line bg-white text-ink text-[13px] font-medium hover:border-brand-600 hover:text-brand-600 inline-flex items-center justify-center gap-1.5 cursor-pointer"
                 >
                   <Edit3 className="w-4 h-4" />
                   Chỉnh sửa Yêu cầu
@@ -1017,8 +1017,8 @@ export const CareRequestsPage: React.FC<CareRequestsPageProps> = ({
                     }}
                     className={`flex-1 py-2.5 px-4 rounded-lg text-[13px] font-semibold inline-flex items-center justify-center gap-2 ${
                       selectedDetail.isReadyForAI
-                        ? 'bg-[#2F6F64] text-white hover:bg-[#255A51] cursor-pointer'
-                        : 'bg-[#E1E9E6] text-[#687A78] cursor-not-allowed'
+                        ? 'bg-brand-600 text-white hover:bg-brand-700 cursor-pointer'
+                        : 'bg-line text-muted cursor-not-allowed'
                     }`}
                   >
                     <Sparkles className="w-4 h-4" />
@@ -1031,7 +1031,7 @@ export const CareRequestsPage: React.FC<CareRequestsPageProps> = ({
                       setSelectedRequestId(null);
                       onNavigate('/dispatch');
                     }}
-                    className="flex-1 py-2.5 px-4 rounded-lg bg-[#2F6F64] text-white text-[13px] font-semibold hover:bg-[#255A51] inline-flex items-center justify-center gap-2 cursor-pointer"
+                    className="flex-1 py-2.5 px-4 rounded-lg bg-brand-600 text-white text-[13px] font-semibold hover:bg-brand-700 inline-flex items-center justify-center gap-2 cursor-pointer"
                   >
                     <ExternalLink className="w-4 h-4" />
                     Xem Phân công trên Lịch

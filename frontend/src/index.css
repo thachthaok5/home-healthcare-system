@@ -1,30 +1,86 @@
 @import "tailwindcss";
 
-@layer base {
-  :root {
-    --color-bg-app: #F7FAF9;
-    --color-surface: #FFFFFF;
-    --color-primary: #2F6F64;
-    --color-primary-hover: #255A51;
-    --color-primary-pale: #E5F1EC;
-    --color-text-primary: #253438;
-    --color-text-secondary: #687A78;
-    --color-border: #E1E9E6;
-    --color-accent-pink: #D96F7C;
-    --color-warning: #E6A64B;
-    --color-error: #D85D68;
-    --color-success: #4D947B;
-    --font-family-base: 'Inter', 'Be Vietnam Pro', -apple-system, BlinkMacSystemFont, sans-serif;
-  }
+/* =====================================================================
+   CareFlow design tokens v2
+   Xanh biển nhạt (brand) · pastel lavender (AI/DSS) · vàng nắng (nhấn)
+   Đỏ "urgent" CHỈ dùng cho ca Khẩn cấp; cam "high" cho Ưu tiên cao.
+   Dùng qua class Tailwind: bg-brand-600, text-ink, border-line, bg-urgent...
+   ===================================================================== */
+@theme {
+  /* Nền & chữ */
+  --color-canvas: #F4FAFD;
+  --color-surface: #FFFFFF;
+  --color-ink: #15334A;
+  --color-ink-soft: #2B4A60;
+  --color-muted: #5A7184;
+  --color-subtle: #8AA0AF;
+  --color-line: #DDEBF2;
+  --color-line-strong: #C4DCE8;
+  /* Thương hiệu · xanh biển nhạt */
+  --color-brand-50: #EEF8FC;
+  --color-brand-100: #D6EFF8;
+  --color-brand-200: #B5E2F3;
+  --color-brand-300: #8FD3EC;
+  --color-brand-400: #4FB3D9;
+  --color-brand-600: #1A73A0;
+  --color-brand-700: #155F80;
+  --color-brand-800: #0F4A63;
+  /* Pastel lavender · dành cho AI/DSS */
+  --color-lav-50: #F6F3FF;
+  --color-lav-100: #EEEAFE;
+  --color-lav-200: #DCD4FC;
+  --color-lav-500: #8B7BE8;
+  --color-lav-700: #5B4BC4;
+  /* Vàng nắng · điểm nhấn */
+  --color-sun-50: #FFFBEB;
+  --color-sun-100: #FFF6D6;
+  --color-sun-300: #FFE08A;
+  --color-sun-400: #FFC845;
+  --color-sun-700: #8A6100;
+  /* Mức ưu tiên & trạng thái (chỉ dùng đúng nghĩa) */
+  --color-urgent: #D3132E;
+  --color-urgent-ink: #B3122A;
+  --color-urgent-deep: #8F0E21;
+  --color-urgent-tint: #FFE8EB;
+  --color-urgent-line: #F7B5BF;
+  --color-high: #F27A1A;
+  --color-high-ink: #B45309;
+  --color-high-tint: #FFF3DF;
+  --color-high-line: #FBD3A6;
+  --color-ok: #0F7A4A;
+  --color-ok-tint: #E6F7EE;
+  --color-ok-line: #A9E3C5;
+  --color-conflict: #C2187A;
+  --color-conflict-tint: #FDE7F3;
 
+  --font-sans: 'Nunito', 'Be Vietnam Pro', system-ui, -apple-system, sans-serif;
+  --font-display: 'Lexend', 'Nunito', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, monospace;
+
+  --shadow-urgent: 0 0 0 4px rgb(211 19 46 / 0.16), 0 8px 24px -8px rgb(211 19 46 / 0.35);
+  --shadow-float: 0 10px 30px -12px rgb(21 51 74 / 0.22);
+
+  --animate-urgent-pulse: urgent-pulse 1.8s ease-in-out infinite;
+  @keyframes urgent-pulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgb(211 19 46 / 0.45); }
+    50% { box-shadow: 0 0 0 8px rgb(211 19 46 / 0); }
+  }
+}
+
+@layer base {
   body {
-    font-family: var(--font-family-base);
-    background-color: #F7FAF9;
-    color: #253438;
+    font-family: var(--font-sans);
+    background-color: var(--color-canvas);
+    color: var(--color-ink);
     font-size: 14px;
     line-height: 1.5;
     margin: 0;
     -webkit-font-smoothing: antialiased;
+  }
+
+  h1, h2, h3, h4 {
+    font-family: var(--font-display);
+    letter-spacing: -0.01em;
   }
 
   .tabular-nums {
@@ -32,17 +88,24 @@
   }
 
   .font-mono-num {
-    font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, monospace;
+    font-family: var(--font-mono);
     font-variant-numeric: tabular-nums;
   }
 }
 
-/* Ant Design & Custom Component Overrides for CareFlow */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
+/* Ant Design overrides */
 .ant-card,
 .ant-modal-content,
 .ant-drawer-content {
-  border-radius: 10px !important;
-  font-family: var(--font-family-base);
+  border-radius: 16px !important;
+  font-family: var(--font-sans);
 }
 
 .ant-btn,
@@ -50,8 +113,8 @@
 .ant-input-affix-wrapper,
 .ant-select-selector,
 .ant-picker {
-  border-radius: 8px !important;
-  font-family: var(--font-family-base);
+  border-radius: 10px !important;
+  font-family: var(--font-sans);
 }
 
 .ant-btn {
@@ -59,59 +122,58 @@
 }
 
 .ant-btn-primary {
-  background-color: #2F6F64 !important;
-  border-color: #2F6F64 !important;
+  background-color: var(--color-brand-600) !important;
+  border-color: var(--color-brand-600) !important;
   color: #FFFFFF !important;
 }
 
 .ant-btn-primary:hover {
-  background-color: #255A51 !important;
-  border-color: #255A51 !important;
+  background-color: var(--color-brand-700) !important;
+  border-color: var(--color-brand-700) !important;
 }
 
 .ant-drawer .ant-drawer-mask,
 .ant-modal-mask {
-  background-color: rgba(37, 52, 56, 0.25) !important;
+  background-color: rgb(21 51 74 / 0.3) !important;
 }
 
-/* Custom thin scrollbars for timeline & lists */
+/* Thin scrollbars */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
 }
-
 ::-webkit-scrollbar-track {
-  background: #F7FAF9;
+  background: var(--color-canvas);
 }
-
 ::-webkit-scrollbar-thumb {
-  background: #CBD8D3;
+  background: var(--color-line-strong);
   border-radius: 3px;
 }
-
 ::-webkit-scrollbar-thumb:hover {
-  background: #9DB3AC;
+  background: var(--color-brand-300);
 }
 
-/* Leaflet Map Customizations for CareFlow */
+/* Leaflet */
 .leaflet-container {
-  font-family: var(--font-family-base) !important;
-  background-color: #EBF2F0 !important;
+  font-family: var(--font-sans) !important;
+  background-color: var(--color-brand-50) !important;
 }
-
 .leaflet-popup-content-wrapper {
-  border-radius: 10px !important;
-  border: 1px solid #E1E9E6 !important;
-  box-shadow: 0 8px 24px rgba(37, 52, 56, 0.12) !important;
+  border-radius: 14px !important;
+  border: 1px solid var(--color-line) !important;
+  box-shadow: var(--shadow-float) !important;
   padding: 0 !important;
 }
-
 .leaflet-popup-content {
   margin: 12px 14px !important;
   line-height: 1.45 !important;
 }
-
 .leaflet-popup-tip {
   background: #FFFFFF !important;
 }
 
+/* Ghim khẩn cấp trên bản đồ: vòng sáng nhấp nháy */
+.cf-urgent-pin {
+  border-radius: 9999px;
+  animation: var(--animate-urgent-pulse);
+}

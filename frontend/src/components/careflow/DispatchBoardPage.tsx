@@ -77,12 +77,21 @@ export const DispatchBoardPage: React.FC<DispatchBoardPageProps> = ({
   }, [staffList]);
 
   const filteredStaff = useMemo(() => {
-    return staffList.filter((s) => {
-      if (staffFilter !== 'ALL' && s.id !== staffFilter) return false;
-      if (zoneFilter !== 'ALL' && s.zone !== zoneFilter) return false;
-      return true;
-    });
-  }, [staffList, staffFilter, zoneFilter]);
+    // Ghim nhân sự có ca Khẩn cấp lên đầu, kế đến nhân sự có ca trùng lịch
+    const rank = (staffId: string) => {
+      const own = assignments.filter((a) => a.staffId === staffId);
+      if (own.some((a) => a.priority === 'Khẩn cấp')) return 0;
+      if (own.some((a) => a.isConflict)) return 1;
+      return 2;
+    };
+    return staffList
+      .filter((s) => {
+        if (staffFilter !== 'ALL' && s.id !== staffFilter) return false;
+        if (zoneFilter !== 'ALL' && s.zone !== zoneFilter) return false;
+        return true;
+      })
+      .sort((a, b) => rank(a.id) - rank(b.id));
+  }, [staffList, assignments, staffFilter, zoneFilter]);
 
   const filteredAssignments = useMemo(() => {
     return assignments.filter((a) => {
@@ -137,16 +146,16 @@ export const DispatchBoardPage: React.FC<DispatchBoardPageProps> = ({
     <div className="space-y-5">
       {/* Newly Scheduled Assignment Success Notification */}
       {highlightedAssignmentId && (
-        <div className="p-3.5 rounded-xl bg-[#E5F1EC] border-2 border-[#2F6F64] flex items-center justify-between shadow-xs">
+        <div className="p-3.5 rounded-xl bg-brand-100 border-2 border-brand-600 flex items-center justify-between shadow-xs">
           <div className="flex items-center gap-2.5">
-            <span className="w-6 h-6 rounded-full bg-[#2F6F64] text-white flex items-center justify-center text-[12px] font-bold shrink-0">
+            <span className="w-6 h-6 rounded-full bg-brand-600 text-white flex items-center justify-center text-[12px] font-bold shrink-0">
               ✓
             </span>
             <div>
-              <span className="text-[13px] font-bold text-[#253438]">
+              <span className="text-[13px] font-bold text-ink">
                 Đã xếp lịch thành công vào Dòng thời gian!
               </span>
-              <span className="block text-[11px] text-[#557670]">
+              <span className="block text-[11px] text-muted">
                 Vị trí ca khám đang được viền nổi bật nhấp nháy trên timeline và mở chi tiết tại bảng thông tin bên phải.
               </span>
             </div>
@@ -154,7 +163,7 @@ export const DispatchBoardPage: React.FC<DispatchBoardPageProps> = ({
           <button
             type="button"
             onClick={onClearHighlight}
-            className="px-2.5 py-1 rounded-md text-[12px] font-bold text-[#2F6F64] hover:bg-[#2F6F64] hover:text-white transition-colors cursor-pointer"
+            className="px-2.5 py-1 rounded-md text-[12px] font-bold text-brand-600 hover:bg-brand-600 hover:text-white transition-colors cursor-pointer"
           >
             Đã nắm rõ
           </button>
@@ -171,8 +180,8 @@ export const DispatchBoardPage: React.FC<DispatchBoardPageProps> = ({
             onClick={() => setShowUnassignedPanel((v) => !v)}
             className={`inline-flex items-center gap-2 px-3.5 py-2 rounded-lg border text-[13px] font-medium transition-colors cursor-pointer ${
               showUnassignedPanel
-                ? 'bg-[#E5F1EC] border-[#2F6F64] text-[#2F6F64]'
-                : 'bg-white border-[#E1E9E6] text-[#253438] hover:border-[#2F6F64]'
+                ? 'bg-brand-100 border-brand-600 text-brand-600'
+                : 'bg-white border-line text-ink hover:border-brand-600'
             }`}
           >
             {showUnassignedPanel ? (
@@ -186,25 +195,25 @@ export const DispatchBoardPage: React.FC<DispatchBoardPageProps> = ({
       />
 
       {/* 7.1 Top Toolbar */}
-      <div className="bg-white rounded-[10px] border border-[#E1E9E6] p-3.5 flex flex-wrap items-center justify-between gap-3">
+      <div className="bg-white rounded-[10px] border border-line p-3.5 flex flex-wrap items-center justify-between gap-3">
         {/* Left: Date Navigation & Day/Week Toggle */}
         <div className="flex items-center gap-2 flex-wrap">
-          <div className="inline-flex items-center rounded-lg border border-[#E1E9E6] bg-[#F7FAF9] p-0.5">
+          <div className="inline-flex items-center rounded-lg border border-line bg-canvas p-0.5">
             <button
               type="button"
               onClick={() => stepDate(-1)}
-              className="p-1.5 rounded hover:bg-white text-[#253438] cursor-pointer"
+              className="p-1.5 rounded hover:bg-white text-ink cursor-pointer"
               title="Ngày trước"
             >
               <ChevronLeft className="w-4 h-4" />
             </button>
-            <span className="px-3 text-[13px] font-semibold text-[#253438] tabular-nums">
+            <span className="px-3 text-[13px] font-semibold text-ink tabular-nums">
               {selectedDate}
             </span>
             <button
               type="button"
               onClick={() => stepDate(1)}
-              className="p-1.5 rounded hover:bg-white text-[#253438] cursor-pointer"
+              className="p-1.5 rounded hover:bg-white text-ink cursor-pointer"
               title="Ngày sau"
             >
               <ChevronRight className="w-4 h-4" />
@@ -214,12 +223,12 @@ export const DispatchBoardPage: React.FC<DispatchBoardPageProps> = ({
           <button
             type="button"
             onClick={() => onDateChange('2026-05-15')}
-            className="px-3 py-1.5 rounded-lg border border-[#E1E9E6] bg-white text-[12px] font-medium text-[#253438] hover:border-[#2F6F64] cursor-pointer"
+            className="px-3 py-1.5 rounded-lg border border-line bg-white text-[12px] font-medium text-ink hover:border-brand-600 cursor-pointer"
           >
             Hôm nay
           </button>
 
-          <div className="inline-flex rounded-lg border border-[#E1E9E6] bg-[#F7FAF9] p-0.5">
+          <div className="inline-flex rounded-lg border border-line bg-canvas p-0.5">
             {(
               [
                 { key: 'Day', label: 'Theo Ngày' },
@@ -232,8 +241,8 @@ export const DispatchBoardPage: React.FC<DispatchBoardPageProps> = ({
                 onClick={() => setViewMode(m.key)}
                 className={`px-3 py-1 rounded-md text-[12px] font-medium transition-colors cursor-pointer ${
                   viewMode === m.key
-                    ? 'bg-[#2F6F64] text-white'
-                    : 'text-[#687A78] hover:text-[#253438]'
+                    ? 'bg-brand-600 text-white'
+                    : 'text-muted hover:text-ink'
                 }`}
               >
                 {m.label}
@@ -247,7 +256,7 @@ export const DispatchBoardPage: React.FC<DispatchBoardPageProps> = ({
           <select
             value={staffFilter}
             onChange={(e) => setStaffFilter(e.target.value)}
-            className="px-2.5 py-1.5 rounded-lg border border-[#E1E9E6] bg-white text-[12px] text-[#253438]"
+            className="px-2.5 py-1.5 rounded-lg border border-line bg-white text-[12px] text-ink"
           >
             <option value="ALL">Tất cả Nhân sự ({staffList.length})</option>
             {staffList.map((s) => (
@@ -260,7 +269,7 @@ export const DispatchBoardPage: React.FC<DispatchBoardPageProps> = ({
           <select
             value={zoneFilter}
             onChange={(e) => setZoneFilter(e.target.value)}
-            className="px-2.5 py-1.5 rounded-lg border border-[#E1E9E6] bg-white text-[12px] text-[#253438]"
+            className="px-2.5 py-1.5 rounded-lg border border-line bg-white text-[12px] text-ink"
           >
             <option value="ALL">Tất cả Khu vực (Phường)</option>
             {zones.map((z) => (
@@ -273,7 +282,7 @@ export const DispatchBoardPage: React.FC<DispatchBoardPageProps> = ({
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className="px-2.5 py-1.5 rounded-lg border border-[#E1E9E6] bg-white text-[12px] text-[#253438]"
+            className="px-2.5 py-1.5 rounded-lg border border-line bg-white text-[12px] text-ink"
           >
             <option value="ALL">Tất cả Trạng thái Ca khám</option>
             <option value="Confirmed">Đã xác nhận</option>
@@ -289,12 +298,12 @@ export const DispatchBoardPage: React.FC<DispatchBoardPageProps> = ({
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         <div
           onClick={() => setShowUnassignedPanel(true)}
-          className="bg-white rounded-[10px] border border-[#E1E9E6] px-4 py-2.5 flex items-center justify-between cursor-pointer hover:border-[#2F6F64]"
+          className="bg-white rounded-[10px] border border-line px-4 py-2.5 flex items-center justify-between cursor-pointer hover:border-brand-600"
         >
-          <span className="text-[13px] text-[#687A78] font-medium">
+          <span className="text-[13px] text-muted font-medium">
             Yêu cầu chưa phân công
           </span>
-          <span className="text-[18px] font-semibold text-[#253438] tabular-nums">
+          <span className="text-[18px] font-semibold text-ink tabular-nums">
             {unassignedCount}
           </span>
         </div>
@@ -302,27 +311,27 @@ export const DispatchBoardPage: React.FC<DispatchBoardPageProps> = ({
         <div
           onClick={() => setStatusFilter(statusFilter === 'Conflict' ? 'ALL' : 'Conflict')}
           className={`bg-white rounded-[10px] border px-4 py-2.5 flex items-center justify-between cursor-pointer ${
-            conflictCount > 0 ? 'border-[#F2C6CB]' : 'border-[#E1E9E6]'
+            conflictCount > 0 ? 'border-conflict/40' : 'border-line'
           }`}
         >
-          <span className="text-[13px] text-[#687A78] font-medium flex items-center gap-1.5">
-            {conflictCount > 0 && <AlertTriangle className="w-4 h-4 text-[#D85D68]" />}
+          <span className="text-[13px] text-muted font-medium flex items-center gap-1.5">
+            {conflictCount > 0 && <AlertTriangle className="w-4 h-4 text-conflict" />}
             Xung đột lịch trình
           </span>
           <span
             className={`text-[18px] font-semibold tabular-nums ${
-              conflictCount > 0 ? 'text-[#D85D68]' : 'text-[#4D947B]'
+              conflictCount > 0 ? 'text-conflict' : 'text-ok'
             }`}
           >
             {conflictCount}
           </span>
         </div>
 
-        <div className="bg-white rounded-[10px] border border-[#C6DFD7] px-4 py-2.5 flex items-center justify-between">
-          <span className="text-[13px] text-[#2F6F64] font-medium">
+        <div className="bg-white rounded-[10px] border border-brand-200 px-4 py-2.5 flex items-center justify-between">
+          <span className="text-[13px] text-brand-600 font-medium">
             Nhân sự còn dư năng lực nhận ca
           </span>
-          <span className="text-[18px] font-semibold text-[#2F6F64] tabular-nums">
+          <span className="text-[18px] font-semibold text-brand-600 tabular-nums">
             {staffWithCapacityCount} / {staffList.length}
           </span>
         </div>
@@ -331,26 +340,29 @@ export const DispatchBoardPage: React.FC<DispatchBoardPageProps> = ({
       {/* 7.3 Primary Schedule View + Optional Collapsible Unassigned Side Panel */}
       <div className="flex flex-col lg:flex-row gap-5 items-start">
         {/* Dominant Horizontal Timeline / Gantt */}
-        <div className="flex-1 w-full bg-white rounded-[10px] border border-[#E1E9E6] overflow-hidden">
+        <div className="flex-1 w-full bg-white rounded-[10px] border border-line overflow-hidden">
           {/* Legend & Mode Header */}
-          <div className="px-4 py-3 border-b border-[#E1E9E6] bg-[#F7FAF9] flex flex-wrap items-center justify-between gap-3">
-            <div className="text-[13px] font-semibold text-[#253438]">
+          <div className="px-4 py-3 border-b border-line bg-canvas flex flex-wrap items-center justify-between gap-3">
+            <div className="text-[13px] font-semibold text-ink">
               {viewMode === 'Day'
                 ? `Dòng thời gian Lịch trực Nhân sự (07:00 – 19:00) · ${selectedDate}`
                 : `Tổng quan Năng lực & Ca trực Theo Tuần · Tuần ${selectedDate}`}
             </div>
-            <div className="flex items-center gap-4 text-[11px] text-[#687A78]">
+            <div className="flex items-center gap-4 text-[11px] text-muted">
               <span className="inline-flex items-center gap-1.5">
-                <span className="w-2.5 h-2.5 rounded-sm bg-[#2F6F64]" /> Đã xác nhận / Đang khám
+                <span className="w-2.5 h-2.5 rounded-sm bg-urgent" /> Khẩn cấp
               </span>
               <span className="inline-flex items-center gap-1.5">
-                <span className="w-2.5 h-2.5 rounded-sm bg-[#E6A64B]" /> Chờ xác nhận
+                <span className="w-2.5 h-2.5 rounded-sm bg-brand-100 border border-brand-200" /> Đã xác nhận / Đang khám
               </span>
               <span className="inline-flex items-center gap-1.5">
-                <span className="w-2.5 h-2.5 rounded-sm bg-[#D96F7C]" /> Cảnh báo Trùng lịch
+                <span className="w-2.5 h-2.5 rounded-sm bg-lav-100 border border-dashed border-lav-500" /> AI đề xuất, chờ xác nhận
               </span>
               <span className="inline-flex items-center gap-1.5">
-                <span className="w-2.5 h-2.5 rounded-sm bg-[#E5F1EC] border border-[#C6DFD7]" /> Khung giờ Ca trực
+                <span className="w-2.5 h-2.5 rounded-sm border-2 border-conflict bg-conflict-tint" /> Trùng lịch
+              </span>
+              <span className="inline-flex items-center gap-1.5">
+                <span className="w-2.5 h-2.5 rounded-sm bg-canvas border border-line" /> Khung giờ Ca trực
               </span>
             </div>
           </div>
@@ -359,15 +371,15 @@ export const DispatchBoardPage: React.FC<DispatchBoardPageProps> = ({
             <div className="overflow-x-auto">
               <div className="min-w-[980px]">
                 {/* Time Axis Row (07:00 - 19:00) */}
-                <div className="flex border-b border-[#E1E9E6] bg-[#F7FAF9]">
-                  <div className="w-[240px] shrink-0 px-4 py-2.5 border-r border-[#E1E9E6] text-[11px] font-semibold uppercase tracking-wider text-[#687A78]">
+                <div className="flex border-b border-line bg-canvas">
+                  <div className="w-[240px] shrink-0 px-4 py-2.5 border-r border-line text-[11px] font-semibold uppercase tracking-wider text-muted">
                     Nhân sự Y tế & Tải công việc
                   </div>
                   <div className="flex-1 grid grid-cols-12">
                     {HOURS.slice(0, 12).map((hr) => (
                       <div
                         key={hr}
-                        className="px-2 py-2.5 border-r border-[#E1E9E6] last:border-r-0 text-[11px] font-mono-num font-semibold text-[#687A78]"
+                        className="px-2 py-2.5 border-r border-line last:border-r-0 text-[11px] font-mono-num font-semibold text-muted"
                       >
                         {String(hr).padStart(2, '0')}:00
                       </div>
@@ -376,7 +388,7 @@ export const DispatchBoardPage: React.FC<DispatchBoardPageProps> = ({
                 </div>
 
                 {/* Staff Rows */}
-                <div className="divide-y divide-[#E1E9E6]">
+                <div className="divide-y divide-line">
                   {filteredStaff.map((staff) => {
                     const staffVisits = filteredAssignments.filter(
                       (a) => a.staffId === staff.id
@@ -395,32 +407,32 @@ export const DispatchBoardPage: React.FC<DispatchBoardPageProps> = ({
                     return (
                       <div
                         key={staff.id}
-                        className="flex items-stretch min-h-[84px] hover:bg-[#F7FAF9]/50 transition-colors"
+                        className="flex items-stretch min-h-[84px] hover:bg-canvas/50 transition-colors"
                       >
                         {/* Pinned Left Staff Column */}
-                        <div className="w-[240px] shrink-0 px-4 py-3 border-r border-[#E1E9E6] flex flex-col justify-between bg-white">
+                        <div className="w-[240px] shrink-0 px-4 py-3 border-r border-line flex flex-col justify-between bg-white">
                           <div className="flex items-start justify-between gap-2">
                             <div className="min-w-0">
-                              <div className="text-[13px] font-semibold text-[#253438] truncate">
+                              <div className="text-[13px] font-semibold text-ink truncate">
                                 {staff.name}
                               </div>
-                              <div className="text-[11px] text-[#687A78] truncate">
+                              <div className="text-[11px] text-muted truncate">
                                 {staff.role} · {staff.zone}
                               </div>
                             </div>
                             {staff.isOnApprovedLeave ? (
-                              <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-[#FDF2F3] text-[#C03A47] shrink-0">
+                              <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-conflict-tint text-conflict shrink-0">
                                 Nghỉ phép
                               </span>
                             ) : (
-                              <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-[#E5F1EC] text-[#2F6F64] tabular-nums shrink-0">
+                              <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-brand-100 text-brand-600 tabular-nums shrink-0">
                                 {staff.workloadPct}%
                               </span>
                             )}
                           </div>
 
                           <div className="mt-2">
-                            <div className="flex items-center justify-between text-[10px] text-[#687A78] tabular-nums mb-1">
+                            <div className="flex items-center justify-between text-[10px] text-muted tabular-nums mb-1">
                               <span>
                                 {assignedMin}/{staff.maxDailyMinutes}p
                               </span>
@@ -428,14 +440,14 @@ export const DispatchBoardPage: React.FC<DispatchBoardPageProps> = ({
                                 Ca {staff.shiftStart}–{staff.shiftEnd}
                               </span>
                             </div>
-                            <div className="w-full h-1.5 bg-[#E1E9E6] rounded-full overflow-hidden">
+                            <div className="w-full h-1.5 bg-line rounded-full overflow-hidden">
                               <div
                                 className={`h-full rounded-full ${
                                   staff.workloadPct > 85
-                                    ? 'bg-[#D85D68]'
+                                    ? 'bg-conflict'
                                     : staff.workloadPct > 70
-                                    ? 'bg-[#E6A64B]'
-                                    : 'bg-[#2F6F64]'
+                                    ? 'bg-high'
+                                    : 'bg-brand-600'
                                 }`}
                                 style={{ width: `${Math.min(100, staff.workloadPct)}%` }}
                               />
@@ -444,13 +456,13 @@ export const DispatchBoardPage: React.FC<DispatchBoardPageProps> = ({
                         </div>
 
                         {/* Right Timeline Track */}
-                        <div className="flex-1 relative bg-[#F7FAF9]/35">
+                        <div className="flex-1 relative bg-canvas/35">
                           {/* Background Hour Grid Lines */}
                           <div className="absolute inset-0 grid grid-cols-12 pointer-events-none">
                             {HOURS.slice(0, 12).map((hr) => (
                               <div
                                 key={hr}
-                                className="border-r border-dashed border-[#E1E9E6] last:border-r-0"
+                                className="border-r border-dashed border-line last:border-r-0"
                               />
                             ))}
                           </div>
@@ -458,14 +470,14 @@ export const DispatchBoardPage: React.FC<DispatchBoardPageProps> = ({
                           {/* Available Shift Capacity Band */}
                           {!staff.isOnApprovedLeave ? (
                             <div
-                              className="absolute top-2 bottom-2 bg-white border border-[#E1E9E6] rounded pointer-events-none"
+                              className="absolute top-2 bottom-2 bg-white border border-line rounded pointer-events-none"
                               style={{
                                 left: `${shiftLeftPct}%`,
                                 width: `${shiftWidthPct}%`,
                               }}
                             />
                           ) : (
-                            <div className="absolute inset-2 rounded bg-[#FDF2F3]/60 border border-dashed border-[#F2C6CB] flex items-center justify-center text-[11px] text-[#C03A47] font-medium">
+                            <div className="absolute inset-2 rounded bg-conflict-tint/60 border border-dashed border-conflict/40 flex items-center justify-center text-[11px] text-conflict font-medium">
                               Nghỉ phép đã duyệt ({staff.leaveWindowText || 'Cả ngày'})
                             </div>
                           )}
@@ -480,12 +492,14 @@ export const DispatchBoardPage: React.FC<DispatchBoardPageProps> = ({
                             const isNewlyScheduled = highlightedAssignmentId === visit.id;
 
                             const blockStyle = isNewlyScheduled
-                              ? 'bg-[#D1FAE5] border-2 border-[#059669] text-[#065F46] ring-4 ring-[#2F6F64]/50 shadow-xl scale-[1.03] z-20 animate-pulse'
+                              ? 'bg-ok-tint border-2 border-ok text-ok ring-4 ring-brand-600/50 shadow-xl scale-[1.03] z-20 animate-pulse'
                               : visit.isConflict
-                              ? 'bg-[#FEF2F2] border-[#FCA5A5] text-[#991B1B] hover:bg-[#FEE2E2]'
+                              ? 'bg-[repeating-linear-gradient(135deg,var(--color-conflict-tint)_0_6px,white_6px_12px)] border-2 border-conflict text-conflict'
+                              : visit.priority === 'Khẩn cấp'
+                              ? 'bg-urgent border-urgent text-white shadow-urgent'
                               : visit.status === 'Proposed'
-                              ? 'bg-[#FFFBEB] border-[#FDE68A] text-[#92400E] hover:bg-[#FEF3C7]'
-                              : 'bg-[#ECFDF5] border-[#A7F3D0] text-[#065F46] hover:bg-[#D1FAE5]';
+                              ? 'bg-lav-100 border-dashed border-lav-500 text-lav-700 hover:bg-lav-200'
+                              : 'bg-brand-100 border-brand-200 text-brand-700 hover:bg-brand-200';
 
                             return (
                               <div
@@ -496,7 +510,7 @@ export const DispatchBoardPage: React.FC<DispatchBoardPageProps> = ({
                                   width: `${widthPct}%`,
                                 }}
                                 className={`absolute top-2.5 bottom-2.5 rounded-md border px-2 py-1 cursor-pointer transition-shadow hover:shadow-md flex flex-col justify-between overflow-hidden ${blockStyle} ${
-                                  isSelected ? 'ring-2 ring-[#2F6F64]' : ''
+                                  isSelected ? 'ring-2 ring-brand-600' : ''
                                 }`}
                               >
                                 <div className="flex items-center justify-between gap-1">
@@ -504,7 +518,7 @@ export const DispatchBoardPage: React.FC<DispatchBoardPageProps> = ({
                                     {visit.id}
                                   </span>
                                   {visit.isConflict && (
-                                    <AlertTriangle className="w-3 h-3 text-[#D85D68] shrink-0" />
+                                    <AlertTriangle className="w-3 h-3 text-conflict shrink-0" />
                                   )}
                                 </div>
                                 <div className="text-[11px] font-semibold truncate leading-tight">
@@ -528,7 +542,7 @@ export const DispatchBoardPage: React.FC<DispatchBoardPageProps> = ({
             <div className="p-5 overflow-x-auto">
               <table className="w-full text-left border-collapse">
                 <thead>
-                  <tr className="border-b border-[#E1E9E6] text-[12px] text-[#687A78]">
+                  <tr className="border-b border-line text-[12px] text-muted">
                     <th className="py-2.5 px-3">Nhân sự Y tế</th>
                     <th className="py-2.5 px-3">Thứ 2</th>
                     <th className="py-2.5 px-3">Thứ 3</th>
@@ -537,24 +551,24 @@ export const DispatchBoardPage: React.FC<DispatchBoardPageProps> = ({
                     <th className="py-2.5 px-3">Thứ 6</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-[#E1E9E6] text-[12px]">
+                <tbody className="divide-y divide-line text-[12px]">
                   {filteredStaff.map((st) => {
                     const todayCount = assignments.filter((a) => a.staffId === st.id).length;
                     return (
-                      <tr key={st.id} className="hover:bg-[#F7FAF9]">
-                        <td className="py-3 px-3 font-semibold text-[#253438]">
+                      <tr key={st.id} className="hover:bg-canvas">
+                        <td className="py-3 px-3 font-semibold text-ink">
                           {st.name}
-                          <div className="text-[11px] font-normal text-[#687A78]">{st.role}</div>
+                          <div className="text-[11px] font-normal text-muted">{st.role}</div>
                         </td>
-                        <td className="py-3 px-3 tabular-nums text-[#687A78]">2 ca (180p)</td>
-                        <td className="py-3 px-3 tabular-nums text-[#687A78]">3 ca (240p)</td>
+                        <td className="py-3 px-3 tabular-nums text-muted">2 ca (180p)</td>
+                        <td className="py-3 px-3 tabular-nums text-muted">3 ca (240p)</td>
                         <td className="py-3 px-3">
-                          <span className="px-2 py-1 rounded bg-[#E5F1EC] text-[#2F6F64] font-semibold tabular-nums">
+                          <span className="px-2 py-1 rounded bg-brand-100 text-brand-600 font-semibold tabular-nums">
                             {todayCount} ca ({st.workloadPct}% tải)
                           </span>
                         </td>
-                        <td className="py-3 px-3 tabular-nums text-[#687A78]">2 ca (150p)</td>
-                        <td className="py-3 px-3 tabular-nums text-[#687A78]">1 ca (90p)</td>
+                        <td className="py-3 px-3 tabular-nums text-muted">2 ca (150p)</td>
+                        <td className="py-3 px-3 tabular-nums text-muted">1 ca (90p)</td>
                       </tr>
                     );
                   })}
@@ -566,44 +580,44 @@ export const DispatchBoardPage: React.FC<DispatchBoardPageProps> = ({
 
         {/* 7.5 Collapsible Side Panel for Unassigned Requests */}
         {showUnassignedPanel && (
-          <div className="w-full lg:w-[340px] shrink-0 bg-white rounded-[10px] border border-[#E1E9E6] overflow-hidden">
-            <div className="px-4 py-3 border-b border-[#E1E9E6] bg-[#F7FAF9] flex items-center justify-between">
+          <div className="w-full lg:w-[340px] shrink-0 bg-white rounded-[10px] border border-line overflow-hidden">
+            <div className="px-4 py-3 border-b border-line bg-canvas flex items-center justify-between">
               <div>
-                <h3 className="text-[14px] font-semibold text-[#253438] m-0">
+                <h3 className="text-[14px] font-semibold text-ink m-0">
                   Yêu cầu Chưa phân công ({unassignedRequests.length})
                 </h3>
-                <p className="text-[11px] text-[#687A78] m-0">
+                <p className="text-[11px] text-muted m-0">
                   Mở trong Đề xuất AI để đánh giá và gán nhân sự
                 </p>
               </div>
               <button
                 type="button"
                 onClick={() => setShowUnassignedPanel(false)}
-                className="text-[#687A78] hover:text-[#253438] cursor-pointer"
+                className="text-muted hover:text-ink cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
-            <div className="divide-y divide-[#E1E9E6] max-h-[540px] overflow-y-auto">
+            <div className="divide-y divide-line max-h-[540px] overflow-y-auto">
               {unassignedRequests.map((req) => (
-                <div key={req.id} className="p-3.5 space-y-2 hover:bg-[#F7FAF9]">
+                <div key={req.id} className="p-3.5 space-y-2 hover:bg-canvas">
                   <div className="flex items-center justify-between">
-                    <span className="font-mono-num text-[12px] font-semibold text-[#2F6F64]">
+                    <span className="font-mono-num text-[12px] font-semibold text-brand-600">
                       {req.id}
                     </span>
                     <PriorityBadge priority={req.priority} />
                   </div>
-                  <div className="text-[13px] font-semibold text-[#253438]">
+                  <div className="text-[13px] font-semibold text-ink">
                     {req.serviceName}
                   </div>
-                  <div className="text-[12px] text-[#687A78] flex items-center justify-between tabular-nums">
+                  <div className="text-[12px] text-muted flex items-center justify-between tabular-nums">
                     <span>{req.district}</span>
                     <span>{req.requestedWindow}</span>
                   </div>
                   <button
                     type="button"
                     onClick={() => onNavigate('/recommendations', req.id)}
-                    className="w-full mt-1 py-1.5 px-3 rounded-md bg-[#E5F1EC] text-[#2F6F64] text-[12px] font-semibold hover:bg-[#2F6F64] hover:text-white transition-colors inline-flex items-center justify-center gap-1 cursor-pointer"
+                    className="w-full mt-1 py-1.5 px-3 rounded-md bg-brand-100 text-brand-600 text-[12px] font-semibold hover:bg-brand-600 hover:text-white transition-colors inline-flex items-center justify-center gap-1 cursor-pointer"
                   >
                     Đánh giá Đề xuất AI
                     <ArrowRight className="w-3.5 h-3.5" />
@@ -617,12 +631,12 @@ export const DispatchBoardPage: React.FC<DispatchBoardPageProps> = ({
 
       {/* 7.4 Right-Side Assignment Detail Drawer */}
       {selectedAssignment && (
-        <div className="fixed inset-0 z-50 flex justify-end bg-[#253438]/30">
-          <div className="w-full max-w-[460px] bg-white h-full shadow-xl border-l border-[#E1E9E6] flex flex-col">
-            <div className="px-6 py-4 border-b border-[#E1E9E6] bg-[#F7FAF9] flex items-center justify-between">
+        <div className="fixed inset-0 z-50 flex justify-end bg-ink/30">
+          <div className="w-full max-w-[460px] bg-white h-full shadow-xl border-l border-line flex flex-col">
+            <div className="px-6 py-4 border-b border-line bg-canvas flex items-center justify-between">
               <div>
                 <div className="flex items-center gap-2">
-                  <span className="font-mono-num text-[12px] font-semibold text-[#2F6F64] bg-[#E5F1EC] px-2 py-0.5 rounded">
+                  <span className="font-mono-num text-[12px] font-semibold text-brand-600 bg-brand-100 px-2 py-0.5 rounded">
                     {selectedAssignment.id}
                   </span>
                   {selectedAssignment.isConflict ? (
@@ -631,28 +645,28 @@ export const DispatchBoardPage: React.FC<DispatchBoardPageProps> = ({
                     <StatusBadge status={selectedAssignment.status} />
                   )}
                 </div>
-                <h3 className="text-[16px] font-semibold text-[#253438] m-0 mt-1">
+                <h3 className="text-[16px] font-semibold text-ink m-0 mt-1">
                   {selectedAssignment.serviceName}
                 </h3>
               </div>
               <button
                 type="button"
                 onClick={() => setSelectedAssignmentId(null)}
-                className="p-1.5 rounded-lg text-[#687A78] hover:text-[#253438] cursor-pointer"
+                className="p-1.5 rounded-lg text-muted hover:text-ink cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
             {/* Action Tabs inside Drawer */}
-            <div className="px-6 py-2.5 border-b border-[#E1E9E6] flex items-center gap-2 bg-white">
+            <div className="px-6 py-2.5 border-b border-line flex items-center gap-2 bg-white">
               <button
                 type="button"
                 onClick={() => setDrawerTab('details')}
                 className={`px-3 py-1 rounded-md text-[12px] font-medium cursor-pointer ${
                   drawerTab === 'details'
-                    ? 'bg-[#E5F1EC] text-[#2F6F64]'
-                    : 'text-[#687A78] hover:text-[#253438]'
+                    ? 'bg-brand-100 text-brand-600'
+                    : 'text-muted hover:text-ink'
                 }`}
               >
                 Chi tiết ca khám
@@ -662,8 +676,8 @@ export const DispatchBoardPage: React.FC<DispatchBoardPageProps> = ({
                 onClick={() => setDrawerTab('change')}
                 className={`px-3 py-1 rounded-md text-[12px] font-medium cursor-pointer ${
                   drawerTab === 'change'
-                    ? 'bg-[#E5F1EC] text-[#2F6F64]'
-                    : 'text-[#687A78] hover:text-[#253438]'
+                    ? 'bg-brand-100 text-brand-600'
+                    : 'text-muted hover:text-ink'
                 }`}
               >
                 Đổi nhân sự
@@ -673,8 +687,8 @@ export const DispatchBoardPage: React.FC<DispatchBoardPageProps> = ({
                 onClick={() => setDrawerTab('constraints')}
                 className={`px-3 py-1 rounded-md text-[12px] font-medium cursor-pointer ${
                   drawerTab === 'constraints'
-                    ? 'bg-[#E5F1EC] text-[#2F6F64]'
-                    : 'text-[#687A78] hover:text-[#253438]'
+                    ? 'bg-brand-100 text-brand-600'
+                    : 'text-muted hover:text-ink'
                 }`}
               >
                 Kiểm tra ràng buộc
@@ -686,23 +700,23 @@ export const DispatchBoardPage: React.FC<DispatchBoardPageProps> = ({
                 <>
                   {/* Request Summary */}
                   <div className="space-y-2">
-                    <div className="text-[11px] font-semibold uppercase tracking-wider text-[#687A78]">
+                    <div className="text-[11px] font-semibold uppercase tracking-wider text-muted">
                       Thông tin Bệnh nhân & Yêu cầu
                     </div>
-                    <div className="p-3.5 rounded-lg bg-[#F7FAF9] border border-[#E1E9E6] space-y-1.5 text-[13px]">
+                    <div className="p-3.5 rounded-lg bg-canvas border border-line space-y-1.5 text-[13px]">
                       <div className="flex justify-between">
-                        <span className="text-[#687A78]">Bệnh nhân:</span>
-                        <span className="font-semibold text-[#253438]">
+                        <span className="text-muted">Bệnh nhân:</span>
+                        <span className="font-semibold text-ink">
                           {selectedAssignment.patientName} ({selectedAssignment.patientAge} tuổi)
                         </span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-[#687A78]">Mức ưu tiên:</span>
+                        <span className="text-muted">Mức ưu tiên:</span>
                         <PriorityBadge priority={selectedAssignment.priority} />
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-[#687A78]">Địa chỉ khám:</span>
-                        <span className="font-medium text-[#253438] text-right">
+                        <span className="text-muted">Địa chỉ khám:</span>
+                        <span className="font-medium text-ink text-right">
                           {selectedAssignment.address}
                         </span>
                       </div>
@@ -711,26 +725,26 @@ export const DispatchBoardPage: React.FC<DispatchBoardPageProps> = ({
 
                   {/* Assigned Staff & Scheduled Window */}
                   <div className="space-y-2">
-                    <div className="text-[11px] font-semibold uppercase tracking-wider text-[#687A78]">
+                    <div className="text-[11px] font-semibold uppercase tracking-wider text-muted">
                       Nhân sự Phụ trách & Khung giờ
                     </div>
-                    <div className="p-3.5 rounded-lg bg-[#F7FAF9] border border-[#E1E9E6] space-y-2 text-[13px]">
+                    <div className="p-3.5 rounded-lg bg-canvas border border-line space-y-2 text-[13px]">
                       <div className="flex justify-between">
-                        <span className="text-[#687A78]">Nhân sự được gán:</span>
-                        <span className="font-semibold text-[#2F6F64]">
+                        <span className="text-muted">Nhân sự được gán:</span>
+                        <span className="font-semibold text-brand-600">
                           {selectedAssignment.staffName}
                         </span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-[#687A78]">Khung giờ lịch hẹn:</span>
-                        <span className="font-semibold text-[#253438] tabular-nums">
+                        <span className="text-muted">Khung giờ lịch hẹn:</span>
+                        <span className="font-semibold text-ink tabular-nums">
                           {selectedAssignment.startTime} – {selectedAssignment.endTime} (
                           {selectedAssignment.predictedDurationMin} phút)
                         </span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-[#687A78]">Quãng đường di chuyển:</span>
-                        <span className="tabular-nums text-[#253438]">
+                        <span className="text-muted">Quãng đường di chuyển:</span>
+                        <span className="tabular-nums text-ink">
                           {selectedAssignment.distanceKm} km (~{selectedAssignment.travelMinutes} phút)
                         </span>
                       </div>
@@ -739,15 +753,15 @@ export const DispatchBoardPage: React.FC<DispatchBoardPageProps> = ({
 
                   {/* Conflict Alert & One-Click Resolution if applicable */}
                   {selectedAssignment.isConflict && selectedAssignment.conflictDetail && (
-                    <div className="p-4 rounded-lg bg-[#FDF2F3] border border-[#F2C6CB] space-y-2.5">
-                      <div className="flex items-center gap-2 text-[13px] font-semibold text-[#C03A47]">
+                    <div className="p-4 rounded-lg bg-conflict-tint border border-conflict/40 space-y-2.5">
+                      <div className="flex items-center gap-2 text-[13px] font-semibold text-conflict">
                         <AlertTriangle className="w-4 h-4 shrink-0" />
                         <span>Phát hiện Trùng lịch ({selectedAssignment.conflictDetail.overlapMinutes} phút)</span>
                       </div>
-                      <p className="text-[12px] text-[#253438] m-0">
+                      <p className="text-[12px] text-ink m-0">
                         {selectedAssignment.conflictDetail.reason}
                       </p>
-                      <div className="text-[12px] text-[#2F6F64] font-medium tabular-nums">
+                      <div className="text-[12px] text-brand-600 font-medium tabular-nums">
                         Khung giờ điều chỉnh gợi ý: {selectedAssignment.conflictDetail.suggestedNewStart} –{' '}
                         {selectedAssignment.conflictDetail.suggestedNewEnd}
                       </div>
@@ -755,7 +769,7 @@ export const DispatchBoardPage: React.FC<DispatchBoardPageProps> = ({
                         type="button"
                         disabled={isResolving}
                         onClick={handleResolveConflictAction}
-                        className="w-full py-2 px-3 rounded-lg bg-[#2F6F64] text-white text-[12px] font-semibold hover:bg-[#255A51] cursor-pointer"
+                        className="w-full py-2 px-3 rounded-lg bg-brand-600 text-white text-[12px] font-semibold hover:bg-brand-700 cursor-pointer"
                       >
                         {isResolving
                           ? 'Đang cập nhật khung giờ...'
@@ -768,13 +782,13 @@ export const DispatchBoardPage: React.FC<DispatchBoardPageProps> = ({
 
               {drawerTab === 'change' && (
                 <div className="space-y-4">
-                  <div className="text-[13px] font-semibold text-[#253438]">
+                  <div className="text-[13px] font-semibold text-ink">
                     Chuyển Ca chăm sóc sang Nhân sự Khác
                   </div>
                   <select
                     value={reassignStaffId}
                     onChange={(e) => setReassignStaffId(e.target.value)}
-                    className="w-full px-3 py-2 rounded-lg border border-[#E1E9E6] bg-white text-[13px] text-[#253438]"
+                    className="w-full px-3 py-2 rounded-lg border border-line bg-white text-[13px] text-ink"
                   >
                     {staffList
                       .filter((s) => !s.isOnApprovedLeave)
@@ -792,7 +806,7 @@ export const DispatchBoardPage: React.FC<DispatchBoardPageProps> = ({
                         setSelectedAssignmentId(null);
                       }
                     }}
-                    className="w-full py-2 px-4 rounded-lg bg-[#2F6F64] text-white text-[13px] font-semibold hover:bg-[#255A51] cursor-pointer"
+                    className="w-full py-2 px-4 rounded-lg bg-brand-600 text-white text-[13px] font-semibold hover:bg-brand-700 cursor-pointer"
                   >
                     Xác nhận Đổi Nhân sự
                   </button>
@@ -801,7 +815,7 @@ export const DispatchBoardPage: React.FC<DispatchBoardPageProps> = ({
 
               {drawerTab === 'constraints' && (
                 <div className="space-y-3">
-                  <div className="text-[13px] font-semibold text-[#253438]">
+                  <div className="text-[13px] font-semibold text-ink">
                     Trạng thái 6 Ràng buộc Cứng Vận hành
                   </div>
                   {[
@@ -842,18 +856,18 @@ export const DispatchBoardPage: React.FC<DispatchBoardPageProps> = ({
                       key={c.label}
                       className={`p-2.5 rounded border flex items-start gap-2 text-[12px] ${
                         c.passed
-                          ? 'bg-[#F7FAF9] border-[#E1E9E6]'
-                          : 'bg-[#FDF2F3] border-[#F2C6CB]'
+                          ? 'bg-canvas border-line'
+                          : 'bg-conflict-tint border-conflict/40'
                       }`}
                     >
                       {c.passed ? (
-                        <CheckCircle2 className="w-4 h-4 text-[#4D947B] shrink-0 mt-0.5" />
+                        <CheckCircle2 className="w-4 h-4 text-ok shrink-0 mt-0.5" />
                       ) : (
-                        <AlertTriangle className="w-4 h-4 text-[#D85D68] shrink-0 mt-0.5" />
+                        <AlertTriangle className="w-4 h-4 text-conflict shrink-0 mt-0.5" />
                       )}
                       <div>
-                        <div className="font-semibold text-[#253438]">{c.label}</div>
-                        <div className="text-[11px] text-[#687A78]">{c.detail}</div>
+                        <div className="font-semibold text-ink">{c.label}</div>
+                        <div className="text-[11px] text-muted">{c.detail}</div>
                       </div>
                     </div>
                   ))}
@@ -862,14 +876,14 @@ export const DispatchBoardPage: React.FC<DispatchBoardPageProps> = ({
             </div>
 
             {/* Bottom Actions */}
-            <div className="p-4 border-t border-[#E1E9E6] bg-[#F7FAF9] flex items-center justify-between gap-2">
+            <div className="p-4 border-t border-line bg-canvas flex items-center justify-between gap-2">
               <button
                 type="button"
                 onClick={() => {
                   setSelectedAssignmentId(null);
                   onNavigate('/requests');
                 }}
-                className="px-3.5 py-2 rounded-lg border border-[#E1E9E6] bg-white text-[12px] font-medium text-[#253438] hover:border-[#2F6F64] cursor-pointer"
+                className="px-3.5 py-2 rounded-lg border border-line bg-white text-[12px] font-medium text-ink hover:border-brand-600 cursor-pointer"
               >
                 Xem Yêu cầu
               </button>
@@ -877,14 +891,14 @@ export const DispatchBoardPage: React.FC<DispatchBoardPageProps> = ({
                 <button
                   type="button"
                   onClick={() => setDrawerTab('change')}
-                  className="px-3.5 py-2 rounded-lg border border-[#E1E9E6] bg-white text-[12px] font-medium text-[#2F6F64] hover:bg-[#E5F1EC] cursor-pointer"
+                  className="px-3.5 py-2 rounded-lg border border-line bg-white text-[12px] font-medium text-brand-600 hover:bg-brand-100 cursor-pointer"
                 >
                   Đổi Nhân sự
                 </button>
                 <button
                   type="button"
                   onClick={() => setDrawerTab('constraints')}
-                  className="px-3.5 py-2 rounded-lg bg-[#2F6F64] text-white text-[12px] font-medium hover:bg-[#255A51] cursor-pointer"
+                  className="px-3.5 py-2 rounded-lg bg-brand-600 text-white text-[12px] font-medium hover:bg-brand-700 cursor-pointer"
                 >
                   Kiểm tra Ràng buộc
                 </button>
