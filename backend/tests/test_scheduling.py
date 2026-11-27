@@ -107,7 +107,8 @@ from app.models import RecommendationLog
 def test_ortools_global_schedule_optimization(db_session):
     """Kiểm thử giải bài toán tối ưu hóa phân công toàn cục bằng OR-Tools CP-SAT"""
     # Ngày mai (đã seed 5 request pending)
-    target_date = (datetime.now(timezone.utc) + timedelta(days=1)).date()
+    # Ngày nghiệp vụ tính theo giờ Việt Nam (UTC+7), khớp với múi giờ phiên CSDL
+    target_date = (datetime.now(timezone(timedelta(hours=7))) + timedelta(days=1)).date()
 
     # Dọn dẹp phân công cũ trên target_date để đảm bảo tính cô lập (tuân thủ thứ tự FK)
     db_session.query(Assignment).filter(func.date(Assignment.scheduled_start) == target_date).delete()

@@ -2,6 +2,8 @@ import os
 import sys
 import random
 from datetime import date, time, datetime, timedelta, timezone
+
+VN_TZ = timezone(timedelta(hours=7))  # Múi giờ nghiệp vụ Nha Trang (UTC+7)
 from decimal import Decimal
 from pathlib import Path
 
@@ -430,7 +432,7 @@ def seed_database():
                 req_status = "pending"
 
             hour = 8 + (i % 4) * 2  # 8:00, 10:00, 14:00, 16:00
-            pref_start = datetime(req_day.year, req_day.month, req_day.day, hour, 0, tzinfo=timezone.utc)
+            pref_start = datetime(req_day.year, req_day.month, req_day.day, hour, 0, tzinfo=VN_TZ)
             pref_end = pref_start + timedelta(hours=2)
 
             sr = ServiceRequest(

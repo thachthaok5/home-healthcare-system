@@ -10,6 +10,9 @@ engine = create_engine(
     pool_size=10,
     max_overflow=20,
     echo=False,
+    # Múi giờ nghiệp vụ: mọi timestamptz trả về và hàm date() trong SQL đều tính theo giờ Việt Nam,
+    # để ràng buộc ca làm việc H3 (so sánh giờ địa phương) không phụ thuộc múi giờ của máy chủ CSDL.
+    connect_args={"options": "-c timezone=Asia/Ho_Chi_Minh"},
 )
 
 # Quản lý Database Session

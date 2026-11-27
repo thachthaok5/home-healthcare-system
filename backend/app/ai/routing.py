@@ -173,7 +173,7 @@ class RoutingEngine:
 
         # Nếu cho phép gọi mạng và mạng khả dụng, truy vấn OSRM public server
         if allow_network and cls._network_available:
-            url = f"http://router.project-osrm.org/route/v1/driving/{f_lon:.6f},{f_lat:.6f};{t_lon:.6f},{t_lat:.6f}?overview=false"
+            url = f"https://router.project-osrm.org/route/v1/driving/{f_lon:.6f},{f_lat:.6f};{t_lon:.6f},{t_lat:.6f}?overview=false"
             try:
                 with httpx.Client(timeout=timeout_seconds) as client:
                     resp = client.get(url)
