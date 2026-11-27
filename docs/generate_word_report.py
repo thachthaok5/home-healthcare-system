@@ -27,7 +27,8 @@ from docx.enum.table import WD_TABLE_ALIGNMENT, WD_ALIGN_VERTICAL
 from docx.oxml import parse_xml, OxmlElement
 from docx.oxml.ns import nsdecls, qn
 
-BASE_DIR = Path("D:/New folder/DOAN")
+# Đường dẫn tương đối theo vị trí script (chạy được trên mọi máy và trên CI)
+BASE_DIR = Path(__file__).resolve().parent.parent
 OUTPUT_DOCX = BASE_DIR / "docs" / "Bao_cao_Tien_do_Dot_2_Nguyen_Thach_Thao.docx"
 EXP_DIR = BASE_DIR / "backend" / "artifacts" / "experiments"
 
@@ -191,11 +192,56 @@ def add_paragraph(doc, text, bold_prefix=None, space_after=6):
         r_pre.font.bold = True
         r_pre.font.color.rgb = DARK_TEXT
         
-    r_text = p.add_run(text)
-    r_text.font.name = "Times New Roman"
-    r_text.font.size = Pt(11)
-    r_text.font.color.rgb = DARK_TEXT
+    # Hỗ trợ **in đậm** và `mã` kiểu Markdown đơn giản (tránh in nguyên ký tự ** ra Word)
+    import re
+    for idx, chunk in enumerate(re.split(r"\*\*(.+?)\*\*", text)):
+        if not chunk:
+            continue
+        r_text = p.add_run(chunk.replace("`", ""))
+        r_text.font.name = "Times New Roman"
+        r_text.font.size = Pt(11)
+        r_text.font.color.rgb = DARK_TEXT
+        if idx % 2 == 1:
+            r_text.font.bold = True
     return p
+
+
+# ---------------------------------------------------------------------------
+# TIỆN ÍCH ĐỌC SỐ LIỆU: mọi con số trong phần nhận xét đều lấy trực tiếp từ CSV/manifest
+# ---------------------------------------------------------------------------
+def mean_of(cell):
+    """'38.80 ± 2.96' -> 38.80 ; '66.0% ± 3.5%' -> 66.0"""
+    return float(str(cell).split("±")[0].replace("%", "").strip())
+
+
+def std_of(cell):
+    parts = str(cell).split("±")
+    return float(parts[1].replace("%", "").strip()) if len(parts) > 1 else 0.0
+
+
+def vn(x, nd=2):
+    """Định dạng số kiểu Việt Nam: 1.237,20"""
+    txt = f"{x:,.{nd}f}"
+    return txt.replace(",", "_").replace(".", ",").replace("_", ".")
+
+
+def vn_ms(cell, nd=2):
+    return f"{vn(mean_of(cell), nd)} ± {vn(std_of(cell), nd)}"
+
+
+def pick(df, **cond):
+    sub = df
+    for k, v in cond.items():
+        if isinstance(v, str) and v.endswith("*"):
+            sub = sub[sub[k].astype(str).str.startswith(v[:-1])]
+        else:
+            sub = sub[sub[k] == v]
+    assert len(sub) == 1, f"Không tìm thấy duy nhất 1 dòng với điều kiện {cond} (tìm thấy {len(sub)})"
+    return sub.iloc[0]
+
+
+def pct_change(old, new):
+    return (old - new) / old * 100.0 if old else 0.0
 
 
 def build_word_report():
@@ -217,17 +263,34 @@ def build_word_report():
         with open(manifest_path, "r", encoding="utf-8") as f:
             manifest = json.load(f)
 
-    git_sha = manifest.get("git_commit_sha", "6fd103ba76587d3e9f69ce09acef201c75b6e29d")
-    run_dt = manifest.get("run_datetime_local", "2026-10-31T19:14:54")
-    py_ver = manifest.get("python_version", "3.13.3")
-    seeds_str = str(manifest.get("seeds", [42, 101, 202, 303, 404]))
-    model_ver = manifest.get("ai_model_version", "v1.1.0")
-    model_art = manifest.get("ai_model_artifact", "backend/artifacts/models/duration_model_v1.joblib")
+    git_sha = manifest["git_commit_sha"]
+    run_dt = manifest["run_datetime_local"]
+    py_ver = manifest["python_version"]
+    seeds_str = str(manifest["seeds"])
+    model_ver = manifest["ai_model_version"]
+    model_art = manifest["ai_model_artifact"]
 
-    r_stats = manifest.get("routing_stats", {})
-    cov_pct = r_stats.get("osrm_coverage_pct", 0.38)
-    tot_queries = r_stats.get("total_queries", 353330)
-    cache_hits = r_stats.get("counts", {}).get("osrm_cache", 1357)
+    r_stats = manifest["routing_stats"]
+    cov_pct = r_stats["osrm_coverage_pct"]
+    tot_queries = r_stats["total_queries"]
+    cache_hits = r_stats["counts"]["osrm_cache"]
+    hav_cnt = r_stats["counts"]["haversine_fallback"]
+    hav_pct = r_stats["ratios_pct"]["haversine_fallback_pct"]
+    same_cnt = r_stats["counts"]["same_location"]
+    same_pct = r_stats["ratios_pct"]["same_location_pct"]
+    libs = manifest.get("library_versions", {})
+    tol_min = manifest.get("delay_tolerance_minutes", 15)
+    tol_list = manifest.get("delay_tolerance_sensitivity_minutes", [10, 15, 20])
+    solver_cfg = manifest.get("ortools_solver", {})
+    target_date_str = manifest.get("benchmark_target_date", "")
+
+    df_stress_raw = pd.read_csv(EXP_DIR / "stress_test_benchmark_results.csv")
+    max_runtime_ms = float(df_stress_raw["runtime_ms"].max())
+
+    # Số test thực tế trong backend/tests (không ghi tay)
+    import re
+    n_tests = sum(len(re.findall(r"^def test_", f.read_text(encoding="utf-8"), flags=re.M))
+                  for f in (BASE_DIR / "backend" / "tests").glob("test_*.py"))
 
     # -------------------------------------------------------------
     # TIÊU ĐỀ & KHUNG THÔNG TIN BÁO CÁO
@@ -263,7 +326,7 @@ def build_word_report():
     r_t2.font.bold = True
     r_t2.font.color.rgb = NAVY_SECONDARY
 
-    r_t3 = p_title.add_run("(Thực hiện theo toàn bộ 9 nội dung góp ý từ Giảng viên Hướng dẫn)")
+    r_t3 = p_title.add_run("(Cập nhật theo các góp ý của Giảng viên Hướng dẫn — bản freeze kết quả thực nghiệm)")
     r_t3.font.name = "Times New Roman"
     r_t3.font.size = Pt(11)
     r_t3.font.italic = True
@@ -311,12 +374,13 @@ def build_word_report():
     audit_table.alignment = WD_TABLE_ALIGNMENT.CENTER
     set_table_borders(audit_table, color="2B547E", sz="6", val="single")
 
-    routing_str = f"OSRM Nha Trang Local Cache ({cache_hits:,} Hits) + Haversine Fallback ({tot_queries:,} queries toàn bộ tour)"
+    routing_str = (f"OSRM cache + deterministic Haversine fallback: {tot_queries:,} truy vấn, trong đó OSRM cache "
+                   f"{cache_hits:,} ({vn(cov_pct)}%), Haversine {hav_cnt:,} ({vn(hav_pct)}%), trùng vị trí {same_cnt:,} ({vn(same_pct)}%)")
 
     audit_meta = [
-        ("Git Commit SHA Đóng băng:", f"{git_sha} (Nhánh main, đóng băng mã nguồn)"),
-        ("Thời điểm thực thi Thực nghiệm:", f"{run_dt} (Tự động 100%, 0% số liệu cập nhật thủ công)"),
-        ("Môi trường Phần mềm & Thư viện:", f"Python {py_ver}, Google OR-Tools 9.11, Scikit-learn 1.5.2, PostgreSQL 16"),
+        ("Git Commit SHA Đóng băng:", f"{git_sha} (tag thesis-experiments-final)"),
+        ("Thời điểm thực thi Thực nghiệm:", f"{run_dt} — ngày mô phỏng cố định {target_date_str}; số liệu sinh tự động từ pipeline"),
+        ("Môi trường Phần mềm & Thư viện:", f"Python {py_ver} ({manifest.get('platform', '')}), OR-Tools {libs.get('ortools', '?')}, scikit-learn {libs.get('scikit-learn', '?')}, pandas {libs.get('pandas', '?')}, PostgreSQL 16"),
         ("Danh sách Random Seeds chuẩn hóa:", f"{seeds_str} (5 hạt giống cố định chạy cho toàn bộ các bài benchmark)"),
         ("Mô hình AI & Trọng số Huấn luyện:", f"Random Forest Regressor {model_ver} ({model_art})"),
         ("Động cơ Định tuyến & Tính cự ly:", routing_str)
@@ -398,11 +462,11 @@ def build_word_report():
         ("7", "Diễn giải thận trọng mô hình AI & Bổ sung Robustness Test", 
          "Giữ nguyên giới hạn dữ liệu mô phỏng trong luận văn. Bổ sung bài kiểm tra độ bền vững qua 5 kịch bản phân phối biến dạng R0-R4 (nhiễu gấp đôi, biến chứng nặng, thay đổi cấu trúc bệnh nền).", 
          "backend/scripts/run_ai_robustness_test.py\nai_robustness_test_results.csv", "100% Hoàn thành"),
-        ("8", "Hoàn thiện Actual Duration experiment (N=150, Overtime, Grace Period)", 
-         "Bổ sung mức tải cực đại N=150; bổ sung cột overtime_minutes; tách biệt direct_overlap (chồng lấn vật lý) và cascading_delay (trễ dây chuyền); chuẩn hóa trễ <= 15p là khả thi theo Grace Period điều dưỡng.", 
+        ("8", "Hoàn thiện Actual Duration experiment (N=150, Overtime, ngưỡng dung sai trễ)", 
+         "Bổ sung mức tải cực đại N=150; bổ sung cột overtime_minutes; tách biệt direct_overlap (chồng lấn vật lý) và cascading_delay (trễ dây chuyền); trễ <= 15 phút được xem là khả thi theo ngưỡng dung sai GIẢ ĐỊNH của kịch bản mô phỏng (có phân tích độ nhạy 10/15/20 phút).", 
          "artifacts/experiments/actual_duration_summary_mean_std.csv", "100% Hoàn thành"),
         ("9", "Triển khai Giao diện Điều phối viên (Frontend CareFlow) & Tích hợp API thật", 
-         "Xây dựng đủ 5 màn hình: (1) AI Recommendation radar 5 tiêu chí + lý do loại + Override, (2) Dispatch Gantt Timeline, (3) OR-Tools Daily Optimization, (4) Leaflet Map, (5) Dashboard KPI. Kết nối trực tiếp API PostgreSQL 23 bảng; GitHub Actions regression tests.", 
+         "Xây dựng đủ 5 màn hình: (1) AI Recommendation radar 5 tiêu chí + lý do loại + Override, (2) Dispatch Gantt Timeline, (3) OR-Tools Daily Optimization, (4) Leaflet Map, (5) Dashboard KPI. Kiến trúc chính React → FastAPI → PostgreSQL → AI/DSS/OR-Tools; GitHub Actions chạy toàn bộ backend/tests rồi verify_experiments.py.", 
          "frontend/src/components/careflow/*\nbackend/app/api/v1/coordinator.py\n.github/workflows/ci.yml", "100% Hoàn thành")
     ]
 
@@ -452,12 +516,24 @@ def build_word_report():
     add_paragraph(doc,
         "Đồng thời, script `backend/scripts/verify_experiments.py` đã được tái cấu trúc hoàn toàn:\n"
         "• Lọc chính xác phương án Plan B bằng tiền tố `B.` (thay thế lệnh `contains('AI')` trước đây vốn lọc trùng cả 'Thiếu AI' và 'Có AI').\n"
-        "• Sửa điều kiện kiểm định thời gian giải thuật: `raw_stress['runtime_ms'].max() <= 8000.0`. Thực tế đo được thời gian giải thuật cực đại của Google OR-Tools tại mức tải nặng nhất (N=150) là 6.703,2 ms, hoàn toàn nằm trong ngưỡng an toàn cho phép.\n"
+        f"• Sửa điều kiện kiểm định thời gian giải thuật: `raw_stress['runtime_ms'].max() <= 8000.0`. Thời gian chạy cực đại đo được trong lần freeze là {vn(max_runtime_ms, 1)} ms (đo trên máy chạy pipeline, phụ thuộc phần cứng).\n"
+        "• Bổ sung kiểm tra nguồn gốc artifacts: manifest phải trỏ tới một commit tổ tiên của HEAD và từ commit đó tới HEAD không có thay đổi ở mã nguồn backend, mô hình và dữ liệu đầu vào.\n"
         "• Toàn bộ các cảnh báo được chuyển sang câu lệnh `assert`, nếu phát hiện sai lệch dù chỉ 0.01 ở mean hoặc std, script sẽ ném ngoại lệ và thoát với mã lỗi `sys.exit(1)`.\n"
         "• Đã loại bỏ hoàn toàn các phát biểu chủ quan, định tính khỏi script kiểm định để đảm bảo tính khách quan khoa học."
     )
     
+    import subprocess
+    ver = subprocess.run([sys.executable, str(BASE_DIR / "backend" / "scripts" / "verify_experiments.py")],
+                         cwd=str(BASE_DIR), capture_output=True, text=True, encoding="utf-8", errors="replace")
+    ver_lines = [ln.strip() for ln in ver.stdout.splitlines() if ln.strip().startswith(("✅", "❌", "[Chi tiết", "* Tổng phút", "=> Giảm"))]
     add_code_block(doc,
+        "=== KẾT QUẢ THỰC THI verify_experiments.py (sinh tự động khi tạo báo cáo) ===\n"
+        + "\n".join(ver_lines)
+        + f"\n==> EXIT CODE: {ver.returncode} <=="
+    )
+    if ver.returncode != 0:
+        raise SystemExit("verify_experiments.py thất bại — không sinh báo cáo khi số liệu chưa nhất quán.\n" + ver.stdout[-3000:] + ver.stderr[-3000:])
+    _unused_old_block = (
         "=== KẾT QUẢ THỰC THI SCRIPT KIỂM ĐỊNH verify_experiments.py (NGÀY 31/10/2026) ===\n"
         "[1] STRESS TEST BENCHMARK: 75/75 lượt chạy thô khớp 100% với bảng tổng hợp mean ± std.\n"
         "[2] ACTUAL DURATION EVALUATION: 50/50 lượt chạy khớp 100% (cả N=100 và N=150).\n"
@@ -471,6 +547,7 @@ def build_word_report():
         "[5] AI ROBUSTNESS AUDIT: Đủ 5 kịch bản R0-R4, R² thuộc [0, 1], MAE không âm.\n"
         "==> XÁC MINH TOÀN DIỆN THÀNH CÔNG (EXIT CODE: 0) <=="
     )
+    del _unused_old_block
 
     # -------------------------------------------------------------
     # PHẦN 3: ĐỊNH TUYẾN OSRM & CỰ LY TOUR
@@ -478,15 +555,19 @@ def build_word_report():
     add_heading_1(doc, "PHẦN 3: CHUẨN HÓA ĐỊNH TUYẾN OSRM & CỰ LY HÀNH TRÌNH TOUR (MỤC 3)")
     add_paragraph(doc,
         "Theo đúng hướng dẫn của GVHD, sinh viên đã làm rõ vai trò và cơ chế hoạt động của OSRM OpenStreetMap trong thực nghiệm:\n"
-        "1. **Xây dựng Cache cố định (Deterministic Offline Routing Matrix):** Toàn bộ các truy vấn cự ly thực tế giữa các phường và trạm y tế tại TP. Nha Trang đã được tạo sẵn trong tệp `backend/artifacts/data/routing_cache.json`. Khi thực hiện Stress Test, hàm `RoutingEngine.disable_network()` được kích hoạt để cô lập hoàn toàn truy cập mạng, bảo đảm 100% tính tái lập kết quả và loại bỏ độ trễ do đường truyền internet.\n"
-        "2. **Kiểm toán nguồn định tuyến minh bạch (Routing Audit):** Mọi lệnh tính cự ly đều phân loại và lưu trữ nguồn trích xuất vào tệp `routing_audit_summary.json`. Trong tổng số 353.330 lượt truy vấn cự ly phục vụ mô phỏng tour và kiểm tra khả thi di chuyển, các cặp điểm nội suy ngoài cache được định tuyến an toàn qua hệ số uốn lượn đường đô thị ven biển Nha Trang (circuity factor = 1.3 kèm buffer 3 phút đỗ xe).\n"
+        "1. **Ma trận định tuyến cố định (Offline Routing Matrix):** Khi chạy thực nghiệm, `RoutingEngine.disable_network()` được kích hoạt để không gọi mạng; mọi cự ly lấy từ ma trận OSRM đã tính trước hoặc từ fallback Haversine tất định, nên chạy lại cho cùng kết quả.\n"
+        f"2. **Kiểm toán nguồn định tuyến (Routing Audit):** Mọi lệnh tính cự ly đều được phân loại nguồn và lưu vào `routing_audit_summary.json`. Trong lần freeze, tổng số {vn(tot_queries, 0)} truy vấn gồm: OSRM cache {vn(cache_hits, 0)} ({vn(cov_pct)}%), Haversine fallback {vn(hav_cnt, 0)} ({vn(hav_pct)}%) và trùng vị trí {vn(same_cnt, 0)} ({vn(same_pct)}%). "
+        "Ma trận OSRM được tính trước bằng `precompute_routing_matrix.py` (OSRM Table API, profile driving) cho đúng các điểm dùng trong benchmark và lưu tại `routing_matrix_benchmark.json.gz`; truy vấn ngoài ma trận dùng Haversine × hệ số uốn lượn 1,3, tốc độ 25 km/h, cộng 3 phút đỗ xe. "
+        + ("Vì vậy kết quả được mô tả chính xác là mô hình \"OSRM cache + deterministic Haversine fallback\", với tỷ lệ từng nguồn như trên.\n"
+           if hav_pct >= 1.0 else
+           "Do phần lớn truy vấn lấy từ OSRM cache, cự ly trong benchmark phản ánh khoảng cách đường bộ OSRM (profile ô tô của máy chủ OSRM công khai), không phải đường đi xe máy thực tế.\n")
         "3. **Tính toán cự ly theo chuỗi hành trình Tour thực tế:** Sinh viên đã thay thế toàn bộ cách tính cộng dồn khoảng cách độc lập từ trạm đến từng khách hàng bằng phương thức `calculate_daily_tour_metrics()`. Tổng cự ly di chuyển của mỗi điều dưỡng được tính theo đúng chuỗi lộ trình liên tục trong ngày:"
     )
     add_callout(doc,
         "Cự ly di chuyển thực tế (Tour) của nhân viên e:\n"
         "   Distance(e) = d(Base, Ca_1) + ∑ d(Ca_i, Ca_{i+1}) + d(Ca_k, Base)\n"
         "Trong đó:\n"
-        "• d(A, B) là cự ly đường bộ đô thị trích xuất từ OSRM Nha Trang Cache hoặc Fallback hình học có hiệu chỉnh.\n"
+        "• d(A, B) là cự ly lấy từ ma trận OSRM tính trước, hoặc từ fallback Haversine có hệ số hiệu chỉnh khi cặp điểm không có trong ma trận.\n"
         "• Tổng thời gian di chuyển được tính tương ứng bao gồm cả thời gian dừng xe và tìm nhà trong ngõ hẻm.",
         "CÔNG THỨC CHUỖI HÀNH TRÌNH TOUR CỦA NHÂN VIÊN Y TẾ"
     )
@@ -511,9 +592,11 @@ def build_word_report():
     # -------------------------------------------------------------
     # PHẦN 5: PHÂN TÍCH ĐỘ NHẠY DSS & ĐỘ LIÊN TỤC
     # -------------------------------------------------------------
+    df_sens_all = pd.read_csv(EXP_DIR / "dss_sensitivity_summary.csv")
+    time_fit_str = vn_ms(pick(df_sens_all, scenario="1.*")["avg_time_fit"])
     add_heading_1(doc, "PHẦN 5: PHÂN TÍCH ĐỘ NHẠY ĐA MỤC TIÊU DSS & ĐỘ LIÊN TỤC KHÁCH QUEN (MỤC 5)")
     add_paragraph(doc,
-        "Tại bản báo cáo trước, tỷ lệ khả thi ở cả 6 bộ trọng số đều bằng 85,2% do Continuity dùng giá trị tĩnh và TimeFit chưa biến động. "
+        "Ở phiên bản trước, tỷ lệ khả thi ở cả 6 bộ trọng số trùng nhau do Continuity dùng giá trị tĩnh và TimeFit chưa biến động. "
         "Sinh viên đã khắc phục triệt để theo đúng góp ý của GVHD:\n"
         "1. **Triển khai Continuity động từ dữ liệu lịch sử:** Thiết lập cơ chế mô phỏng lịch sử quan hệ bệnh nhân - nhân viên y tế (`customer_emp_history`). Khoảng 60% bệnh nhân trong mẫu là khách hàng quen, từng được một nhân viên y tế phục vụ từ 1 đến 3 lần trước đó. Điểm Continuity được tính toán thực tế dựa trên số lần tương tác lịch sử thay vì gán giá trị mặc định.\n"
         "2. **Đánh giá bằng các thước đo ngoại sinh độc lập (External Metrics):** Không dùng chính điểm DSS tổng hợp để kết luận bộ trọng số tốt, mà sử dụng các tiêu chí vận hành khách quan:\n"
@@ -522,7 +605,7 @@ def build_word_report():
         "   - Tỷ lệ đáp ứng khách hàng quen (`continuity_match_rate`).\n"
         "   - Số lượng ca bị thay đổi phân công nhân sự so với kịch bản Cơ sở (`assignment_change_count`).\n"
         "   - Giá trị trung bình của từng thành phần điểm số riêng biệt (Skill, Time, Distance, Workload, Continuity).\n"
-        "3. **Ghi nhận hạn chế của TimeFit:** Luận văn ghi nhận rõ ràng: Do mô hình ưu tiên đảm bảo giờ hẹn mong muốn của bệnh nhân (`preferred_start`), điểm TimeFit duy trì ở mức cao ổn định (0,95 ± 0,01) trên các kịch bản cố định giờ."
+        "3. **Ghi nhận hạn chế của TimeFit:** Luận văn ghi nhận rõ ràng: Do mô hình ưu tiên đảm bảo giờ hẹn mong muốn của bệnh nhân (`preferred_start`), điểm TimeFit duy trì ở mức cao ổn định (" + time_fit_str + ") trên các kịch bản cố định giờ."
     )
 
     # Bảng 1: DSS Sensitivity
@@ -580,12 +663,25 @@ def build_word_report():
                     r.font.color.rgb = GREEN_ACCENT
 
     doc.add_paragraph().paragraph_format.space_after = Pt(6)
+    b0, b4, b5, b6 = (pick(df_sens_all, scenario=f"{i}.*") for i in (1, 4, 5, 6))
+    same_as_base = [str(r["scenario"]) for _, r in df_sens_all.iterrows()
+                    if not str(r["scenario"]).startswith("1.") and mean_of(r["assignment_change_count"]) == 0.0]
+
+    def trend(old, new, unit, nd=2, lower_better=True):
+        if abs(new - old) < 10 ** (-nd):
+            return f"không đổi ({vn(new, nd)}{unit})"
+        word = "giảm" if new < old else "tăng"
+        return f"{word} từ {vn(old, nd)}{unit} xuống {vn(new, nd)}{unit}" if new < old else f"{word} từ {vn(old, nd)}{unit} lên {vn(new, nd)}{unit}"
+
     add_paragraph(doc,
-        "Nhận xét từ Bảng 1: Khi áp dụng trọng số 'Ưu tiên liên tục' (Scenario 6), tỷ lệ đáp ứng khách quen tăng vọt từ 12,33% lên 15,49%, "
-        "điểm thành phần Continuity tăng từ 0,10 lên 0,13, và làm thay đổi trung bình 8,60 ca phân công so với kịch bản cơ sở. "
-        "Khi 'Ưu tiên khoảng cách' (Scenario 4), tổng cự ly di chuyển giảm xuống 142,98 km. "
-        "Khi 'Ưu tiên cân bằng tải' (Scenario 5), độ lệch chuẩn thời gian làm việc giảm từ 72,66 phút xuống 70,85 phút. "
-        "Điều này chứng minh hệ thống hỗ trợ ra quyết định DSS phản ứng rất nhạy và đúng bản chất nghiệp vụ y tế với từng cấu hình trọng số."
+        "Nhận xét từ Bảng 1 (số liệu đọc trực tiếp từ dss_sensitivity_summary.csv, so với kịch bản Cơ sở): "
+        f"với 'Ưu tiên liên tục', tỷ lệ đáp ứng khách quen {trend(mean_of(b0['continuity_match_rate']), mean_of(b6['continuity_match_rate']), '%')}, "
+        f"điểm Continuity {trend(mean_of(b0['avg_cont_score']), mean_of(b6['avg_cont_score']), '')}, "
+        f"và trung bình {vn(mean_of(b6['assignment_change_count']))} ca đổi nhân sự. "
+        f"Với 'Ưu tiên khoảng cách', tổng cự ly Tour {trend(mean_of(b0['total_travel_distance_km']), mean_of(b4['total_travel_distance_km']), ' km')}. "
+        f"Với 'Ưu tiên cân bằng tải', độ lệch chuẩn tải {trend(mean_of(b0['workload_std_dev']), mean_of(b5['workload_std_dev']), ' phút')}. "
+        + (f"Các kịch bản {', '.join(same_as_base)} cho phân công trùng với kịch bản Cơ sở (0 ca thay đổi), cho thấy trong cấu hình hiện tại việc dịch chuyển 5–10% trọng số giữa Skill/Time chưa đủ để đổi nghiệm tối ưu. " if same_as_base else "")
+        + "Mức thay đổi nhỏ so với độ lệch chuẩn giữa các seed, nên kết quả chỉ cho thấy xu hướng phản ứng của DSS theo trọng số trong kịch bản mô phỏng, chưa đủ để kết luận về mức độ nhạy trong vận hành thực tế."
     )
 
     # -------------------------------------------------------------
@@ -670,23 +766,51 @@ def build_word_report():
                         r.font.color.rgb = NAVY_PRIMARY
 
     doc.add_paragraph().paragraph_format.space_after = Pt(6)
+    df_bm_all = pd.read_csv(EXP_DIR / "stress_test_summary_mean_std.csv")
+    ORT, NF, WD = "OR-Tools CP-SAT", "Nearest Feasible", "Weighted DSS"
+    loads_bm = sorted(df_bm_all["load"].unique())
+    best_feas_loads = [l for l in loads_bm
+                       if mean_of(pick(df_bm_all, load=l, algorithm=ORT)["feasible_rate"]) >= max(
+                           mean_of(pick(df_bm_all, load=l, algorithm=a)["feasible_rate"]) for a in (NF, WD))]
+    nmax = max(loads_bm)
+    o, n, w = (pick(df_bm_all, load=nmax, algorithm=a) for a in (ORT, NF, WD))
+    o_assigned = nmax - mean_of(o["unassigned_count"])
+    n_assigned = nmax - mean_of(n["unassigned_count"])
+    w_assigned = nmax - mean_of(w["unassigned_count"])
+    o_km, n_km, w_km = (mean_of(r["total_travel_distance_km"]) for r in (o, n, w))
+    if len(best_feas_loads) == len(loads_bm):
+        feas_sentence = "• Ở cả " + str(len(loads_bm)) + " mức tải, OR-Tools CP-SAT đạt tỷ lệ khả thi trung bình cao nhất (hoặc bằng) trong 3 thuật toán."
+    else:
+        feas_sentence = ("• OR-Tools CP-SAT đạt tỷ lệ khả thi trung bình cao nhất ở các mức tải N = "
+                         + ", ".join(str(l) for l in best_feas_loads) + ".")
+    km_cmp = "thấp hơn" if o_km < min(n_km, w_km) else ("cao hơn" if o_km > max(n_km, w_km) else "nằm giữa")
     add_paragraph(doc,
-        "Phân tích kết quả Benchmark từ Bảng 2:\n"
-        "• Ở mọi mức tải, Google OR-Tools CP-SAT luôn đạt tỷ lệ khả thi cao nhất và số lượng ca bỏ sót (unassigned) thấp nhất. Tại mức tải cực đại N=150 requests/ngày, OR-Tools phân công thành công trung bình 74,40 ca (đạt 49,60%), vượt trội so với 41,20 ca của Nearest Feasible và 41,80 ca của Weighted DSS.\n"
-        "• Tổng cự ly di chuyển hành trình Tour của OR-Tools tại N=150 là 155,05 km, tối ưu hơn hẳn so với việc phân công manh mún.\n"
-        "• Thời gian giải thuật: Tại N=150, OR-Tools giải quyết bài toán tối ưu toàn cục chỉ trong 6.326,98 ± 360,76 ms (dưới ngưỡng 8.000 ms), bảo đảm tính khả thi cho việc vận hành thực tế tại trạm điều phối y tế."
+        "Phân tích kết quả Benchmark từ Bảng 2 (số liệu đọc trực tiếp từ stress_test_summary_mean_std.csv):\n"
+        + feas_sentence + "\n"
+        f"• Tại N={nmax} yêu cầu/ngày, OR-Tools đạt tỷ lệ khả thi {vn_ms(o['feasible_rate'])}% (bỏ sót {vn_ms(o['unassigned_count'])} ca, tức phân công trung bình {vn(o_assigned)} ca), "
+        f"so với {vn_ms(n['feasible_rate'])}% của Nearest Feasible ({vn(n_assigned)} ca) và {vn_ms(w['feasible_rate'])}% của Weighted DSS ({vn(w_assigned)} ca). "
+        f"Tỷ lệ khả thi thấp ở mức tải này phản ánh giới hạn năng lực của đội 10 nhân sự trong kịch bản, không phải lỗi giải thuật.\n"
+        f"• Tổng cự ly Tour của OR-Tools tại N={nmax} là {vn_ms(o['total_travel_distance_km'])} km, {km_cmp} so với hai thuật toán tham lam "
+        f"({vn(n_km)} km và {vn(w_km)} km).\n"
+        f"• Thời gian chạy của OR-Tools tại N={nmax} là {vn_ms(o['runtime_ms'])} ms; giá trị lớn nhất trên toàn bộ lượt chạy là {vn(max_runtime_ms, 1)} ms. "
+        "Kết quả này chỉ cho thấy bài toán xử lý được trong cấu hình thực nghiệm hiện tại (10 nhân sự, tối đa 150 yêu cầu/ngày, giới hạn thời gian tất định của CP-SAT, phần cứng của máy chạy pipeline), "
+        "chưa đủ để khẳng định bảo đảm vận hành thực tế."
     )
 
     # -------------------------------------------------------------
     # PHẦN 7: DIỄN GIẢI THẬN TRỌNG & AI ROBUSTNESS TEST
     # -------------------------------------------------------------
+    df_rob_all = pd.read_csv(EXP_DIR / "ai_robustness_test_results.csv")
+    r0 = pick(df_rob_all, scenario_id="R0")
+    r0_mae_ai, r0_mae_def = vn(mean_of(r0["mae_ai"])), vn(mean_of(r0["mae_default"]))
+    r0_r2 = vn(mean_of(r0["r2_ai"]), 3)
     add_heading_1(doc, "PHẦN 7: DIỄN GIẢI THẬN TRỌNG VỀ AI & BÀI TOÁN ROBUSTNESS TEST (MỤC 7)")
     add_paragraph(doc,
         "Tiếp thu ý kiến sâu sắc của GVHD về tính khách quan khoa học, sinh viên xác định rõ trong báo cáo và luận văn:\n"
-        "• Kết quả mô hình Random Forest Regressor v1.1.0 đạt sai số MAE rất thấp (4,39 phút so với 12,90 phút của định mức mặc định) và hệ số R² cao (0,943) "
+        f"• Kết quả mô hình Random Forest Regressor {model_ver} trên phân phối gốc R0 đạt MAE {r0_mae_ai} phút (so với {r0_mae_def} phút của định mức mặc định) và R² {r0_r2} "
         "phản ánh mô hình đã học rất tốt cơ chế phát sinh dữ liệu từ các biến tiền lập lịch (độ phức tạp ca bệnh, thiết bị chuyên dụng, mức độ ưu tiên, khung giờ hẹn và quận huyện). "
         "Điều này chứng minh tính đúng đắn và sự thông suốt của pipeline thu thập, tiền xử lý và huấn luyện máy học, nhưng **chưa chứng minh khả năng dự báo hoàn hảo trên dữ liệu thực tế lâm sàng**, vốn chứa đựng nhiều biến thiên bất định chưa thể mô hình hóa hết.\n"
-        "• Để đánh giá độ tin cậy khi gặp biến động ngoại sinh, sinh viên đã tiến hành **Thử nghiệm Độ bền vững (Robustness Test)** độc lập trên 5 kịch bản phân phối bị làm biến dạng (Distribution Perturbations) qua 5 random seeds:"
+        "• Để đánh giá độ tin cậy khi phân phối dữ liệu thay đổi, sinh viên tiến hành **Thử nghiệm Độ bền vững (Robustness Test)** trên 5 kịch bản phân phối synthetic bị làm biến dạng (synthetic perturbation) qua 5 random seeds:"
     )
 
     # Bảng 3: Robustness Test
@@ -744,10 +868,17 @@ def build_word_report():
                     r.font.color.rgb = GREEN_ACCENT
 
     doc.add_paragraph().paragraph_format.space_after = Pt(6)
+    worst = max((r for _, r in df_rob_all.iterrows()), key=lambda r: mean_of(r["mae_ai"]))
+    all_better = all(mean_of(r["mae_ai"]) < mean_of(r["mae_default"]) for _, r in df_rob_all.iterrows())
+    red_min = min(mean_of(r["mae_reduction_pct"]) for _, r in df_rob_all.iterrows())
+    red_max = max(mean_of(r["mae_reduction_pct"]) for _, r in df_rob_all.iterrows())
     add_paragraph(doc,
-        "Kết luận từ Bảng 3: Dù trong điều kiện khắc nghiệt nhất (Kịch bản R4: Nhiễu ngẫu nhiên gấp đôi kèm 10% ca biến chứng nặng kéo dài thêm 15-40 phút), "
-        "mô hình AI vẫn duy trì MAE ở mức 9,03 ± 0,86 phút (thấp hơn nhiều so với 18,43 phút của định mức mặc định, giúp giảm 51,1% sai số dự báo). "
-        "Kết quả này chứng minh thuật toán học máy có khả năng kháng nhiễu và thích nghi tốt trên các phân phối ngoại suy."
+        "Nhận xét từ Bảng 3 (số liệu đọc trực tiếp từ ai_robustness_test_results.csv): "
+        + (f"ở cả {len(df_rob_all)} kịch bản, MAE của mô hình AI thấp hơn định mức mặc định, mức giảm sai số từ {vn(red_min, 1)}% đến {vn(red_max, 1)}%. " if all_better
+           else "không phải mọi kịch bản mô hình AI đều tốt hơn định mức mặc định. ")
+        + f"Kịch bản có MAE của AI cao nhất là {worst['scenario_id']} ({worst['description']}): MAE AI {vn_ms(worst['mae_ai'])} phút so với {vn(mean_of(worst['mae_default']))} phút của định mức mặc định. "
+        "Vì vậy có thể kết luận: mô hình vẫn duy trì ưu thế so với baseline trong các kịch bản synthetic perturbation được khảo sát. "
+        "Kết quả này chưa chứng minh mô hình thích nghi với phân phối ngoài phạm vi khảo sát hay với dữ liệu lâm sàng thực tế, vì toàn bộ dữ liệu và các phép biến dạng đều là mô phỏng."
     )
 
     # -------------------------------------------------------------
@@ -758,9 +889,10 @@ def build_word_report():
         "Thực hiện trọn vẹn yêu cầu của GVHD, bài thí nghiệm mô phỏng thời lượng thực tế (Actual Duration Simulation) đã được bổ sung đầy đủ:\n"
         "1. **Mức tải cực đại N = 150 requests/ngày:** Kiểm chứng giới hạn chịu tải khi nhu cầu chăm sóc y tế tại nhà tăng vọt.\n"
         "2. **Chỉ số làm thêm giờ (Overtime Minutes):** Tính toán chính xác số phút nhân viên phải làm việc vượt quá khung ca quy định để hoàn tất các ca khám trong ngày.\n"
-        "3. **Chuẩn hóa định nghĩa trễ hạn theo tiêu chuẩn y tế gia đình:**\n"
-        "   - Độ trễ ≤ 15 phút (`mild_delay_count`): Được xếp vào **Khả thi thực tế** (Actual Feasible) do nằm trong khoảng dung sai cho phép (Clinical Grace Period) trong điều dưỡng gia đình (thời gian chuẩn bị tư trang, chào hỏi người nhà).\n"
-        "   - Độ trễ > 15 phút (`severe_delay_count`): Bị coi là **Vi phạm cam kết dịch vụ** (SLA Breach).\n"
+        f"3. **Ngưỡng dung sai {tol_min} phút được giả định trong kịch bản thực nghiệm:**\n"
+        f"   - Độ trễ ≤ {tol_min} phút (`mild_delay_count`): xếp vào **khả thi thực tế** (actual feasible).\n"
+        f"   - Độ trễ > {tol_min} phút (`severe_delay_count`): xếp vào **trễ vượt ngưỡng dung sai**.\n"
+        f"   - Đây là **một tham số của mô phỏng**, không dựa trên chuẩn y khoa hay quy định nghiệp vụ được trích dẫn. Để kiểm tra kết luận không phụ thuộc duy nhất vào một ngưỡng, Bảng 5 tính lại trên cùng các lịch trình với ngưỡng {'/'.join(str(t) for t in tol_list)} phút.\n"
         "4. **Tách biệt rõ ràng 2 dạng xung đột lịch trình:**\n"
         "   - Chồng lấn trực tiếp (`direct_overlap_count`): Ca khám trước thực tế vẫn đang diễn ra khi đã đến giờ hẹn ca tiếp theo trên cùng một nhân viên (hai ca đè lên nhau tại cùng một thời điểm).\n"
         "   - Trễ dây chuyền (`cascading_delay_count`): Ca khám sau bị bắt đầu muộn do ca trước kéo dài cộng thời gian di chuyển, dù không có sự hiện diện đồng thời tại giờ bắt đầu danh nghĩa."
@@ -823,10 +955,76 @@ def build_word_report():
                         r.font.color.rgb = GREEN_ACCENT
 
     doc.add_paragraph().paragraph_format.space_after = Pt(6)
+    df_act_all = pd.read_csv(EXP_DIR / "actual_duration_summary_mean_std.csv")
+
+    def act_bullet(load):
+        a = pick(df_act_all, load=load, plan="A.*")
+        b = pick(df_act_all, load=load, plan="B.*")
+        g = lambda r, c: mean_of(r[c])
+        return (
+            f"• **Tại mức tải N = {load} yêu cầu/ngày:** Plan A (thời lượng mặc định) có trung bình {vn(g(a, 'direct_overlap_count'), 1)} ca chồng lấn trực tiếp, "
+            f"{vn(g(a, 'total_delay_minutes'), 1)} phút trễ, {vn(g(a, 'severe_delay_count'), 1)} ca trễ vượt ngưỡng và {vn(g(a, 'overtime_minutes'), 1)} phút làm thêm giờ. "
+            f"Plan B (thời lượng AI) giảm còn {vn(g(b, 'direct_overlap_count'), 1)} ca chồng lấn (giảm {vn(pct_change(g(a, 'direct_overlap_count'), g(b, 'direct_overlap_count')), 1)}%), "
+            f"{vn(g(b, 'total_delay_minutes'), 1)} phút trễ (giảm {vn(pct_change(g(a, 'total_delay_minutes'), g(b, 'total_delay_minutes')), 1)}%), "
+            f"{vn(g(b, 'severe_delay_count'), 1)} ca trễ vượt ngưỡng và {vn(g(b, 'overtime_minutes'), 1)} phút làm thêm giờ. "
+            f"Tỷ lệ khả thi thực tế: {vn(g(b, 'actual_feasible_rate'), 1)}% so với {vn(g(a, 'actual_feasible_rate'), 1)}%.\n"
+        )
+
+    act_loads = sorted(df_act_all["load"].unique())[-2:]
     add_paragraph(doc,
+        "Nhận xét từ Bảng 4 (số liệu đọc trực tiếp từ actual_duration_summary_mean_std.csv):\n"
+        + "".join(act_bullet(l) for l in act_loads)
+        + "Lưu ý: thời lượng thực tế (ground truth) và thời lượng AI dự báo đều sinh từ cùng một cơ chế mô phỏng, nên mức cải thiện trên phản ánh lợi ích trong kịch bản synthetic, chưa phải dữ liệu vận hành thực tế."
+    )
+    _unused_old_act = (
         "Đánh giá sâu sắc từ Bảng 4:\n"
         "• **Tại mức tải nặng N = 100 requests/ngày:** Phương án Plan A (dùng thời lượng mặc định) làm phát sinh trung bình 30,6 ca chồng lấn trực tiếp, 967,2 phút trễ hẹn và 185,0 phút làm thêm ngoài giờ. Khi có AI dự báo chính xác (Plan B), số ca chồng lấn giảm 81,7% (chỉ còn 5,6 ca), tổng phút trễ giảm 90,7% (còn 90,2 phút) và Overtime giảm mạnh về 19,0 phút.\n"
         "• **Tại mức tải cực đại N = 150 requests/ngày:** Lợi ích của AI thể hiện rõ nét nhất: Tổng phút trễ giảm từ 1.237,2 phút xuống 97,0 phút (giảm 92,2%); số ca vi phạm cam kết dịch vụ (trễ > 15 phút) giảm từ 31,4 ca xuống gần như triệt tiêu (0,2 ca); Overtime giảm từ 256,8 phút xuống 34,6 phút. Tỷ lệ khả thi thực tế đạt tới 99,7% so với mức 54,0% của Plan A."
+    )
+    del _unused_old_act
+
+    # Bảng 5: Độ nhạy ngưỡng dung sai trễ
+    csv_tol = EXP_DIR / "delay_tolerance_sensitivity_summary.csv"
+    df_tol = pd.read_csv(csv_tol)
+    add_paragraph(doc, f"Bảng 5: Độ nhạy theo ngưỡng dung sai trễ ({'/'.join(str(t) for t in tol_list)} phút) trên cùng các lịch trình của Bảng 4", bold_prefix="• ")
+    tol_cols = ["Tải (req/ngày)", "Phương án lập lịch", "Ngưỡng (phút)", "Ca trễ vượt ngưỡng", "Khả thi thực tế (%)"]
+    t_tol = doc.add_table(rows=len(df_tol) + 1, cols=len(tol_cols))
+    t_tol.alignment = WD_TABLE_ALIGNMENT.CENTER
+    set_table_borders(t_tol, color="CBD5E1", sz="4", val="single")
+    for c_idx, h_text in enumerate(tol_cols):
+        cell = t_tol.cell(0, c_idx)
+        set_cell_background(cell, HEX_HEADER_BG)
+        p = cell.paragraphs[0]
+        p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        r = p.add_run(h_text)
+        r.font.bold = True
+        r.font.size = Pt(8.0)
+        r.font.color.rgb = RGBColor(255, 255, 255)
+    for r_idx, row in df_tol.reset_index(drop=True).iterrows():
+        vals = [str(row["load"]), str(row["plan"]), str(row["tolerance_minutes"]), str(row["severe_delay_count"]), str(row["actual_feasible_rate"])]
+        for c_idx, val_str in enumerate(vals):
+            cell = t_tol.cell(r_idx + 1, c_idx)
+            set_cell_background(cell, HEX_LIGHT_BG if r_idx % 2 == 1 else "FFFFFF")
+            p = cell.paragraphs[0]
+            p.paragraph_format.space_after = Pt(0)
+            p.alignment = WD_ALIGN_PARAGRAPH.LEFT if c_idx < 2 else WD_ALIGN_PARAGRAPH.RIGHT
+            r = p.add_run(val_str)
+            r.font.name = "Times New Roman"
+            r.font.size = Pt(7.5)
+    doc.add_paragraph().paragraph_format.space_after = Pt(6)
+    nmax_t = int(df_tol["load"].max())
+    fa = {t: mean_of(pick(df_tol, load=nmax_t, plan="A.*", tolerance_minutes=t)["actual_feasible_rate"]) for t in tol_list}
+    fb = {t: mean_of(pick(df_tol, load=nmax_t, plan="B.*", tolerance_minutes=t)["actual_feasible_rate"]) for t in tol_list}
+    b_wins_all = all(fb[t] >= fa[t] for t in tol_list for _l in [0]) and all(
+        mean_of(pick(df_tol, load=l, plan="B.*", tolerance_minutes=t)["actual_feasible_rate"]) >=
+        mean_of(pick(df_tol, load=l, plan="A.*", tolerance_minutes=t)["actual_feasible_rate"])
+        for l in df_tol["load"].unique() for t in tol_list)
+    add_paragraph(doc,
+        f"Nhận xét từ Bảng 5: tại N = {nmax_t}, tỷ lệ khả thi thực tế của Plan A là "
+        + ", ".join(f"{vn(fa[t], 1)}% (ngưỡng {t} phút)" for t in tol_list)
+        + "; của Plan B là " + ", ".join(f"{vn(fb[t], 1)}%" for t in tol_list) + ". "
+        + ("Ở mọi mức tải và mọi ngưỡng khảo sát, Plan B đều có tỷ lệ khả thi không thấp hơn Plan A, nên kết luận so sánh không phụ thuộc vào việc chọn riêng ngưỡng 15 phút."
+           if b_wins_all else "Thứ tự giữa hai phương án thay đổi ở một số ngưỡng, nên kết luận cần nêu kèm ngưỡng dung sai được chọn.")
     )
 
     # -------------------------------------------------------------
@@ -835,8 +1033,11 @@ def build_word_report():
     add_heading_1(doc, "PHẦN 9: TRIỂN KHAI GIAO DIỆN ĐIỀU PHỐI VIÊN & TÍCH HỢP CSDL THỰC TẾ (MỤC 9)")
     add_paragraph(doc,
         "Đáp ứng hoàn toàn định hướng 5 màn hình ưu tiên của GVHD, sinh viên đã xây dựng hoàn chỉnh giao diện Web Application CareFlow "
-        "bằng React 19 + TypeScript + Vite + Tailwind CSS v4, kết nối trực tiếp CSDL PostgreSQL qua module API `backend/app/api/v1/coordinator.py`, "
-        "cam kết 0% hard-code số liệu demo:"
+        "bằng React 19 + TypeScript + Vite + Tailwind CSS v4. Kiến trúc chính duy nhất khi chạy và khi bảo vệ là "
+        "React → FastAPI (`/api/v1/coordinator/...`) → PostgreSQL → AI/DSS/OR-Tools; Vite chỉ đóng vai trò dev server và proxy `/api` sang FastAPI. "
+        "Máy chủ Express (`server.ts`) cùng dữ liệu seed giả và cơ chế sinh tọa độ minh họa của bản prototype đã được tách khỏi đường chạy chính "
+        "(chuyển vào thư mục `frontend/legacy-prototype/`, chỉ lưu lại để tham khảo). Bản đồ lộ trình dùng tọa độ lấy từ CSDL qua API; "
+        "dữ liệu hiển thị là dữ liệu seed mô phỏng trong PostgreSQL:"
     )
 
     fe_screens = [
@@ -865,8 +1066,8 @@ def build_word_report():
         "• **Tích hợp Tự động hóa Kiểm thử Hồi quy (GitHub Actions CI/CD):**\n"
         "Sinh viên đã thiết lập quy trình CI tại `.github/workflows/ci.yml`. Mỗi khi mã nguồn được push lên nhánh `main`, "
         "GitHub Actions sẽ tự động khởi động một PostgreSQL 16 container, khởi tạo schema 23 bảng, nạp dữ liệu seed chuẩn hóa, "
-        "chạy toàn bộ 33 unit tests với `pytest` và thực thi script kiểm định `verify_experiments.py`. "
-        "Điều này bảo đảm toàn bộ hệ thống luôn vượt qua regression tests và ngăn chặn hoàn toàn việc phát sinh lỗi khi cập nhật mã nguồn."
+        f"chạy toàn bộ {n_tests} test trong `backend/tests/` bằng `pytest`, sau đó chạy `verify_experiments.py` (gồm kiểm tra manifest khớp commit). "
+        "Commit dùng để nộp (tag `thesis-experiments-final`) phải có workflow này chạy xanh."
     )
 
     # -------------------------------------------------------------
@@ -875,9 +1076,9 @@ def build_word_report():
     add_heading_1(doc, "PHẦN 10: KẾT LUẬN & SỰ SẴN SÀNG CHO BUỔI BẢO VỆ TỐT NGHIỆP")
     add_paragraph(doc,
         "Sau đợt rà soát và chỉnh sửa toàn diện này:\n"
-        "1. **Tính Khoa học & Trung thực Học thuật:** Toàn bộ số liệu thực nghiệm đã được đóng băng tại commit `6fd103ba`, đồng bộ 100% giữa mã nguồn, file artifacts CSV và báo cáo Word. Các hạn chế của dữ liệu mô phỏng và giới hạn bài toán được tuyên bố minh bạch, khách quan.\n"
-        "2. **Chất lượng Giải thuật & Hệ thống:** Google OR-Tools CP-SAT đã được nâng cấp thành công hỗ trợ cửa sổ thời gian linh hoạt; OSRM tour routing và continuity lịch sử phản ánh sát thực tế lâm sàng; mô hình AI chứng minh được độ bền vững cao qua 5 kịch bản stress test.\n"
-        "3. **Sản phẩm Ứng dụng Thực tiễn:** Toàn bộ 5 màn hình giao diện điều phối viên đã hoàn thiện, hoạt động mượt mà trên dữ liệu thật của CSDL 23 bảng, sẵn sàng demo trực tiếp toàn bộ quy trình trước Hội đồng Chấm Đồ án Tốt nghiệp.\n"
+        f"1. **Tính nhất quán & khả năng tái lập:** Số liệu thực nghiệm được sinh tại commit `{git_sha[:8]}` (ghi trong manifest), mọi con số trong báo cáo được đọc trực tiếp từ CSV; CI kiểm tra manifest khớp commit. Các hạn chế của dữ liệu mô phỏng được nêu rõ.\n"
+        f"2. **Giải thuật & hệ thống:** OR-Tools CP-SAT hỗ trợ cửa sổ thời gian linh hoạt và chạy ở chế độ tất định; cự ly dùng mô hình OSRM cache + Haversine fallback (OSRM {vn(cov_pct)}% truy vấn); mô hình AI duy trì ưu thế so với baseline trong các kịch bản synthetic perturbation được khảo sát.\n"
+        "3. **Sản phẩm ứng dụng:** 5 màn hình điều phối viên chạy trên kiến trúc React → FastAPI → PostgreSQL → AI/DSS/OR-Tools với dữ liệu seed mô phỏng trong CSDL 23 bảng, phục vụ demo quy trình trước Hội đồng.\n"
         "Sinh viên xin trân trọng cảm ơn sự hướng dẫn tận tình, nghiêm cẩn và sâu sát về mặt chuyên môn của Giảng viên Hướng dẫn TS. Trần Thị Thúy!"
     )
 

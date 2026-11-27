@@ -61,7 +61,7 @@ const resolveInitialRoute = (): CareFlowRoute => {
 
 export function App() {
   const [currentRoute, setCurrentRoute] = useState<CareFlowRoute>(resolveInitialRoute);
-  const [selectedDate, setSelectedDate] = useState<string>('2026-05-15');
+  const [selectedDate, setSelectedDate] = useState<string>('');
   const [globalSearch, setGlobalSearch] = useState<string>('');
   const [newRequestDrawerOpen, setNewRequestDrawerOpen] = useState<boolean>(false);
   const [notificationsOpen, setNotificationsOpen] = useState<boolean>(false);
@@ -130,7 +130,7 @@ export function App() {
     return () => window.removeEventListener('popstate', onPopState);
   }, []);
 
-  // Fetch initial state & KPIs from Express backend
+  // Fetch initial state & KPIs from FastAPI backend
   const fetchSystemState = useCallback(async () => {
     try {
       setIsLoading(true);
@@ -184,7 +184,7 @@ export function App() {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [selectedDate]);
 
   useEffect(() => {
     fetchSystemState();
@@ -194,7 +194,7 @@ export function App() {
   const handleUpdateWeights = async (newWeights: DSSWeights) => {
     try {
       const dateQs = selectedDate ? `?target_date=${selectedDate}` : '';
-      let res = await fetch(`/api/v1/coordinator/evaluate-dss${dateQs}`, {
+      const res = await fetch(`/api/v1/coordinator/evaluate-dss${dateQs}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -207,13 +207,6 @@ export function App() {
           },
         }),
       });
-      if (!res.ok) {
-        res = await fetch('/api/dss/evaluate', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ weights: newWeights }),
-        });
-      }
       if (res.ok) {
         const data = await res.json();
         setDssWeights(data.dssWeights || newWeights);
@@ -241,7 +234,7 @@ export function App() {
     });
 
     try {
-      let res = await fetch('/api/v1/coordinator/assign', {
+      const res = await fetch('/api/v1/coordinator/assign', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -252,22 +245,6 @@ export function App() {
           override_notes: overrideReason || 'Xác nhận từ màn hình Đề xuất AI',
         }),
       });
-      if (!res.ok) {
-        res = await fetch('/api/v1/assignments/manual', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            requestId,
-            staffId: candidate.staffId,
-            isOverride,
-            overrideReasonCode: overrideReasonCode || 'skill',
-            overrideCategory: overrideCategory || 'Điều phối viên Xác nhận',
-            overrideNotes: overrideReason || 'Xác nhận từ màn hình Đề xuất AI',
-            dispatcherName: 'Điều phối viên Trần Thu Hà',
-          }),
-        });
-      }
-
       if (res.ok) {
         const data = await res.json();
         setStaffList(data.staffList);
@@ -359,7 +336,7 @@ export function App() {
     newStaffId?: string
   ) => {
     try {
-      let res = await fetch('/api/v1/coordinator/resolve-conflict', {
+      const res = await fetch('/api/v1/coordinator/resolve-conflict', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -369,18 +346,6 @@ export function App() {
           new_staff_id: newStaffId,
         }),
       });
-      if (!res.ok) {
-        res = await fetch('/api/dispatch/resolve-conflict', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            assignmentId,
-            newStartTime,
-            newEndTime,
-            newStaffId,
-          }),
-        });
-      }
       if (res.ok) {
         const data = await res.json();
         setStaffList(data.staffList);
@@ -509,7 +474,7 @@ export function App() {
 
   // Run & Apply Optimization in Reports
   const handleRunOptimization = async () => {
-    let res = await fetch('/api/v1/coordinator/optimize', {
+    const res = await fetch('/api/v1/coordinator/optimize', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -523,20 +488,6 @@ export function App() {
         },
       }),
     });
-    if (!res.ok) {
-      res = await fetch('/api/optimization/run', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          weights: {
-            travelWeight: 40,
-            workloadBalanceWeight: 30,
-            continuityWeight: 20,
-            slaPenaltyWeight: 10,
-          },
-        }),
-      });
-    }
     if (res.ok) {
       const data = await res.json();
       setOptimizationResult(data);
@@ -548,9 +499,15 @@ export function App() {
   };
 
   const handleApplyOptimization = async () => {
-    const res = await fetch('/api/optimization/apply', {
+    const versionId = (optimizationResult as { scheduleVersionId?: number } | null)?.scheduleVersionId;
+    if (!versionId) {
+      showToast('Chưa có phiên bản lịch OR-Tools để áp dụng. Hãy chạy bộ giải trước.');
+      return;
+    }
+    const res = await fetch('/api/v1/coordinator/optimize/apply', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ schedule_version_id: versionId, target_date: selectedDate }),
     });
     if (res.ok) {
       const data = await res.json();

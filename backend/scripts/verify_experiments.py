@@ -222,6 +222,54 @@ def verify_ai_robustness():
     print("✅ File robustness đủ 5 kịch bản R0–R4, cột số liệu hợp lệ và định dạng mean ± std nhất quán.")
     return True
 
+def verify_delay_tolerance_sensitivity():
+    print_separator("6. KIỂM TRA ĐỘ NHẠY NGƯỠNG DUNG SAI TRỄ (10/15/20 PHÚT)")
+    raw_file = EXP_DIR / "delay_tolerance_sensitivity_results.csv"
+    act_file = EXP_DIR / "actual_duration_evaluation_results.csv"
+    if not raw_file.exists():
+        print("❌ LỖI: Chưa tìm thấy file delay_tolerance_sensitivity_results.csv!")
+        return False
+    df_tol = pd.read_csv(raw_file)
+    df_act = pd.read_csv(act_file)
+    # Ngưỡng 15 phút phải trùng khớp tuyệt đối với bảng Actual Duration chính
+    t15 = df_tol[df_tol["tolerance_minutes"] == 15].set_index(["load", "seed", "plan"]).sort_index()
+    act = df_act.set_index(["load", "seed", "plan"]).sort_index()
+    assert len(t15) == len(act), "Số lượt chạy ở ngưỡng 15 phút không khớp bảng Actual Duration"
+    assert (t15["severe_delay_count"] == act.loc[t15.index, "severe_delay_count"]).all(), \
+        "severe_delay_count ở ngưỡng 15 phút không khớp actual_duration_evaluation_results.csv"
+    # Ngưỡng lớn hơn không thể có nhiều ca vượt ngưỡng hơn
+    piv = df_tol.pivot_table(index=["load", "seed", "plan"], columns="tolerance_minutes", values="severe_delay_count")
+    assert ((piv[10] >= piv[15]) & (piv[15] >= piv[20])).all(), "Số ca vượt ngưỡng không giảm dần theo ngưỡng 10 → 15 → 20"
+    print(f"✅ {len(t15)} lượt chạy: ngưỡng 15 phút khớp bảng Actual Duration; số ca vượt ngưỡng giảm dần theo 10 → 15 → 20 phút.")
+    return True
+
+
+def verify_manifest_provenance():
+    """Manifest phải trỏ tới commit mà từ đó tới HEAD không có thay đổi nào ở mã nguồn backend / mô hình / dữ liệu đầu vào."""
+    import json
+    import subprocess
+    print_separator("7. KIỂM TRA NGUỒN GỐC ARTIFACTS (MANIFEST ↔ GIT COMMIT)")
+    manifest_file = EXP_DIR / "experiment_run_manifest.json"
+    audit_file = EXP_DIR / "routing_audit_summary.json"
+    manifest = json.loads(manifest_file.read_text(encoding="utf-8"))
+    sha = manifest.get("git_commit_sha", "")
+    assert manifest.get("source_tree_clean") is True, \
+        f"Manifest ghi nhận pipeline chạy khi còn file chưa commit: {manifest.get('uncommitted_source_files')}"
+    audit = json.loads(audit_file.read_text(encoding="utf-8"))
+    assert audit == manifest.get("routing_stats"), "routing_audit_summary.json không khớp routing_stats trong manifest"
+    repo_root = BASE_DIR.parent
+    try:
+        subprocess.check_output(["git", "cat-file", "-e", f"{sha}^{{commit}}"], cwd=str(repo_root), stderr=subprocess.STDOUT)
+    except Exception:
+        raise AssertionError(f"Không tìm thấy commit {sha} trong lịch sử git (CI cần fetch-depth: 0)")
+    subprocess.check_call(["git", "merge-base", "--is-ancestor", sha, "HEAD"], cwd=str(repo_root))
+    frozen_paths = ["backend/app", "backend/scripts", "backend/requirements.txt", "backend/artifacts/models", "backend/artifacts/data"]
+    diff = subprocess.check_output(["git", "diff", "--name-only", sha, "HEAD", "--"] + frozen_paths, cwd=str(repo_root), text=True).strip()
+    assert diff == "", f"Mã nguồn/dữ liệu đầu vào đã thay đổi sau commit {sha[:8]} của manifest:\n{diff}"
+    print(f"✅ Manifest trỏ tới commit {sha[:12]}; từ commit đó tới HEAD không có thay đổi ở {', '.join(frozen_paths)}.")
+    return True
+
+
 def main():
     print("=" * 80)
     print(" CÔNG CỤ TỰ ĐỘNG KIỂM TRA ĐỘ CHÍNH XÁC VÀ TOÀN VẸN CỦA DỮ LIỆU THỰC NGHIỆM ")
@@ -231,10 +279,12 @@ def main():
     v3 = verify_sensitivity_math()
     v4 = verify_business_logic_rules()
     v5 = verify_ai_robustness()
-    
+    v6 = verify_delay_tolerance_sensitivity()
+    v7 = verify_manifest_provenance()
+
     # Final outcome: exit code indicates verification success (0) or failure (non‑zero).
     # No scientific conclusion text is printed to keep the script purely a validator.
-    if v1 and v2 and v3 and v4 and v5:
+    if v1 and v2 and v3 and v4 and v5 and v6 and v7:
         sys.exit(0)
     else:
         sys.exit(1)

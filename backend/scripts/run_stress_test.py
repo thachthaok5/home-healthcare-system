@@ -14,7 +14,7 @@ import time
 import math
 import random
 from pathlib import Path
-from datetime import datetime, timedelta, timezone, time as dt_time
+from datetime import date, datetime, timedelta, timezone, time as dt_time
 from decimal import Decimal
 from typing import Any, Dict, List, Optional, Tuple
 import pandas as pd
@@ -40,6 +40,36 @@ from app.ai.routing import RoutingEngine
 from app.ai.duration_prediction import DurationPredictor
 
 vn_tz = timezone(timedelta(hours=7))
+
+# ---------------------------------------------------------------------------
+# THAM SỐ THỰC NGHIỆM CỐ ĐỊNH (đóng băng để bảo đảm khả năng tái lập)
+# ---------------------------------------------------------------------------
+SEEDS = [42, 101, 202, 303, 404]
+LOADS = [10, 25, 50, 100, 150]
+# Ngày mô phỏng cố định (thứ Ba). Không dùng "ngày mai" vì đặc trưng day_of_week của mô hình AI
+# sẽ làm kết quả thay đổi theo ngày chạy script.
+BENCHMARK_TARGET_DATE = date(2026, 12, 1)
+# Ngưỡng dung sai trễ giả định trong kịch bản mô phỏng (tham số mô phỏng, không phải chuẩn y khoa).
+DELAY_TOLERANCE_MINUTES = 15
+TOLERANCE_SENSITIVITY_MINUTES = [10, 15, 20]
+# Cấu hình CP-SAT tất định: số luồng cố định + interleave search + giới hạn thời gian tất định
+# (deterministic time) thay cho giới hạn thời gian thực, để chạy lại cho cùng một nghiệm.
+SOLVER_NUM_WORKERS = 8
+SOLVER_DETERMINISTIC_TIME_LIMIT = 6.0
+SOLVER_WALL_TIME_SAFETY_LIMIT = 120.0
+LAST_SOLVER_INFO: Dict[str, Any] = {}
+
+
+def get_benchmark_target_date():
+    return BENCHMARK_TARGET_DATE
+
+
+def configure_solver(solver, deterministic_time_limit=SOLVER_DETERMINISTIC_TIME_LIMIT):
+    solver.parameters.num_workers = SOLVER_NUM_WORKERS
+    solver.parameters.interleave_search = True
+    solver.parameters.random_seed = 0
+    solver.parameters.max_deterministic_time = float(deterministic_time_limit)
+    solver.parameters.max_time_in_seconds = SOLVER_WALL_TIME_SAFETY_LIMIT
 
 # 10 phường tại Nha Trang
 NHA_TRANG_DISTRICTS = [
@@ -458,7 +488,7 @@ def _window_bounds_minutes(req, dur, window_minutes=90):
 
 
 def run_ortools_opt(
-    reqs, emps, use_ai=True, weights=None, time_limit=6.0,
+    reqs, emps, use_ai=True, weights=None, time_limit=SOLVER_DETERMINISTIC_TIME_LIMIT,
     emp_shifts=None, emp_leaves=None, customer_history=None,
     allow_time_window=True, window_minutes=90
 ):
@@ -630,8 +660,13 @@ def run_ortools_opt(
     model.maximize(sum(obj_terms))
 
     solver = cp_model.CpSolver()
-    solver.parameters.max_time_in_seconds = time_limit
+    configure_solver(solver, time_limit)
     status = solver.solve(model)
+    LAST_SOLVER_INFO.update({
+        "status": solver.status_name(status),
+        "deterministic_time": solver.deterministic_time,
+        "wall_time": solver.wall_time,
+    })
 
     assigns = []
     if status in [cp_model.OPTIMAL, cp_model.FEASIBLE]:
@@ -728,15 +763,17 @@ def calc_metrics(assigns, total_reqs, emps):
     }
 
 
-def simulate_actual(assigns, emps, emp_shifts=None):
+def simulate_actual(assigns, emps, emp_shifts=None, tolerance_minutes=DELAY_TOLERANCE_MINUTES):
     """
     Mô phỏng diễn tiến thực tế (Ground-Truth Execution Simulation) của lịch trình:
     1. direct_overlap_count: Số ca bị chồng lấn thực tế trực tiếp (Physical Overlap),
        xảy ra khi ca trước chưa kết thúc mà ca sau đã đến giờ hẹn bắt đầu (current_time > sched_st).
     2. cascading_delay_count: Số ca bị bắt đầu trễ do hiệu ứng dây chuyền (earliest_arrival > sched_st).
-    3. mild_delay_count: Số ca trễ nhẹ trong ngưỡng dung sai lâm sàng (0 < delay <= 15 phút - Grace Period).
-    4. severe_delay_count: Số ca trễ nghiêm trọng (> 15 phút, vi phạm SLA).
-    5. actual_feasible_rate: Tỷ lệ ca khả thi thực tế (không bị trễ > 15 phút).
+    3. mild_delay_count: Số ca trễ trong ngưỡng dung sai giả định (0 < delay <= tolerance_minutes).
+    4. severe_delay_count: Số ca trễ vượt ngưỡng dung sai giả định (delay > tolerance_minutes).
+    5. actual_feasible_rate: Tỷ lệ ca không trễ vượt ngưỡng dung sai.
+    Ghi chú: tolerance_minutes (mặc định 15 phút) là THAM SỐ GIẢ ĐỊNH của kịch bản mô phỏng,
+    không phải chuẩn y khoa; độ trễ từng ca được trả về trong khóa "_delays" để phân tích độ nhạy ngưỡng.
     6. overtime_minutes: Tổng số phút làm thêm ngoài giờ làm việc chuẩn (Shift End) của nhân viên.
     """
     if not assigns:
@@ -744,7 +781,7 @@ def simulate_actual(assigns, emps, emp_shifts=None):
             "direct_overlap_count": 0, "cascading_delay_count": 0, "late_start_count": 0,
             "mild_delay_count": 0, "severe_delay_count": 0,
             "total_delay_minutes": 0, "max_delay_minutes": 0, "overtime_minutes": 0,
-            "actual_feasible_rate": 0.0
+            "actual_feasible_rate": 0.0, "_delays": []
         }
 
     emp_a = {e.employee_id: [] for e in emps}
@@ -758,6 +795,7 @@ def simulate_actual(assigns, emps, emp_shifts=None):
     tot_delay = 0
     max_delay = 0
     total_overtime = 0
+    delays_per_visit = []
 
     for e in emps:
         eid = e.employee_id
@@ -803,13 +841,14 @@ def simulate_actual(assigns, emps, emp_shifts=None):
                     tot_delay += delay
                     max_delay = max(max_delay, delay)
 
-                    if delay <= 15:
+                    if delay <= tolerance_minutes:
                         mild_delays += 1
                     else:
                         severe_delays += 1
                 else:
                     act_st = st
                     delay = 0
+            delays_per_visit.append(delay)
 
             curr_time = act_st + timedelta(minutes=act_dur)
             prev_loc = loc
@@ -832,8 +871,23 @@ def simulate_actual(assigns, emps, emp_shifts=None):
         "total_delay_minutes": tot_delay,
         "max_delay_minutes": max_delay,
         "overtime_minutes": total_overtime,
-        "actual_feasible_rate": feas
+        "actual_feasible_rate": feas,
+        "_delays": delays_per_visit
     }
+
+
+def tolerance_rows(delays, load, seed, plan):
+    """Tính lại số ca trễ vượt ngưỡng và tỷ lệ khả thi cho từng ngưỡng 10/15/20 phút trên cùng lịch trình."""
+    rows = []
+    n = len(delays)
+    for tol in TOLERANCE_SENSITIVITY_MINUTES:
+        severe = sum(1 for d in delays if d > tol)
+        rows.append({
+            "load": load, "seed": seed, "plan": plan, "tolerance_minutes": tol,
+            "severe_delay_count": severe,
+            "actual_feasible_rate": round((n - severe) / n * 100.0, 2) if n > 0 else 0.0,
+        })
+    return rows
 
 
 def main():
@@ -845,9 +899,10 @@ def main():
         exp_dir = BASE_DIR / "artifacts" / "experiments"
         exp_dir.mkdir(parents=True, exist_ok=True)
 
-        target_date = (datetime.now(timezone.utc) + timedelta(days=1)).date()
-        seeds = [42, 101, 202, 303, 404]
-        loads = [10, 25, 50, 100, 150]
+        RoutingEngine.reset_stats()
+        target_date = get_benchmark_target_date()
+        seeds = SEEDS
+        loads = LOADS
 
         # -------------------------------------------------------------
         # 1. STRESS TEST BENCHMARK
@@ -877,7 +932,7 @@ def main():
                 stress_recs.append(m)
 
                 # OR-Tools
-                a_ort, t_ort = run_ortools_opt(reqs, emps, True, time_limit=6.0, emp_shifts=emp_shifts, emp_leaves=emp_leaves, customer_history=cust_history)
+                a_ort, t_ort = run_ortools_opt(reqs, emps, True, time_limit=SOLVER_DETERMINISTIC_TIME_LIMIT, emp_shifts=emp_shifts, emp_leaves=emp_leaves, customer_history=cust_history)
                 m = calc_metrics(a_ort, load, emps)
                 m.update({"load": load, "seed": seed, "algorithm": "OR-Tools CP-SAT", "runtime_ms": round(t_ort, 2)})
                 stress_recs.append(m)
@@ -907,22 +962,25 @@ def main():
         print("="*80)
 
         act_recs = []
-        for load in [10, 25, 50, 100, 150]:
+        tol_recs = []
+        for load in loads:
             print(f"--> Load {load} req/day...")
             for seed in seeds:
                 reqs, cust_history = generate_requests(load, seed, target_date, emps=emps, services=services, srv_skills=srv_skills, db=db)
                 emp_shifts, emp_leaves = generate_seed_workforce_availability(emps, seed, target_date)
 
                 # Plan A: Default Duration
-                a_def, _ = run_ortools_opt(reqs, emps, use_ai=False, time_limit=6.0, emp_shifts=emp_shifts, emp_leaves=emp_leaves, customer_history=cust_history)
+                a_def, _ = run_ortools_opt(reqs, emps, use_ai=False, time_limit=SOLVER_DETERMINISTIC_TIME_LIMIT, emp_shifts=emp_shifts, emp_leaves=emp_leaves, customer_history=cust_history)
                 res_a = simulate_actual(a_def, emps, emp_shifts=emp_shifts)
                 res_a.update({"load": load, "seed": seed, "plan": "A. Default Duration (Thiếu AI)"})
+                tol_recs.extend(tolerance_rows(res_a.pop("_delays"), load, seed, res_a["plan"]))
                 act_recs.append(res_a)
 
                 # Plan B: AI Predicted Duration
-                a_ai, _ = run_ortools_opt(reqs, emps, use_ai=True, time_limit=6.0, emp_shifts=emp_shifts, emp_leaves=emp_leaves, customer_history=cust_history)
+                a_ai, _ = run_ortools_opt(reqs, emps, use_ai=True, time_limit=SOLVER_DETERMINISTIC_TIME_LIMIT, emp_shifts=emp_shifts, emp_leaves=emp_leaves, customer_history=cust_history)
                 res_b = simulate_actual(a_ai, emps, emp_shifts=emp_shifts)
                 res_b.update({"load": load, "seed": seed, "plan": "B. AI Predicted Duration (Có AI)"})
+                tol_recs.extend(tolerance_rows(res_b.pop("_delays"), load, seed, res_b["plan"]))
                 act_recs.append(res_b)
 
         df_act = pd.DataFrame(act_recs)
@@ -943,6 +1001,21 @@ def main():
         df_act_sum.to_csv(exp_dir / "actual_duration_summary_mean_std.csv", index=False, encoding="utf-8-sig")
         print("\nACTUAL DURATION EVALUATION SUMMARY TABLE (mean ± std):")
         print(df_act_sum.to_markdown(index=False))
+
+        # 2b. Độ nhạy theo ngưỡng dung sai trễ (10/15/20 phút) trên CÙNG các lịch trình đã sinh
+        df_tol = pd.DataFrame(tol_recs)
+        df_tol.to_csv(exp_dir / "delay_tolerance_sensitivity_results.csv", index=False, encoding="utf-8-sig")
+        tol_sum = []
+        for (load, plan, tol), group in df_tol.groupby(["load", "plan", "tolerance_minutes"]):
+            tol_sum.append({
+                "load": load, "plan": plan, "tolerance_minutes": tol,
+                "severe_delay_count": f"{group['severe_delay_count'].mean():.1f} ± {group['severe_delay_count'].std():.1f}",
+                "actual_feasible_rate": f"{group['actual_feasible_rate'].mean():.1f} ± {group['actual_feasible_rate'].std():.1f}",
+            })
+        df_tol_sum = pd.DataFrame(tol_sum)
+        df_tol_sum.to_csv(exp_dir / "delay_tolerance_sensitivity_summary.csv", index=False, encoding="utf-8-sig")
+        print("\nDELAY TOLERANCE SENSITIVITY (10/15/20 min):")
+        print(df_tol_sum.to_markdown(index=False))
 
         # -------------------------------------------------------------
         # 3. SENSITIVITY ANALYSIS
@@ -968,7 +1041,7 @@ def main():
             # Chạy kịch bản Baseline (Scenario 1) trước làm mốc so sánh
             base_weights = scenarios["1. Co so (Baseline)"]
             a_base, t_base = run_ortools_opt(
-                reqs, emps, use_ai=True, weights=base_weights, time_limit=6.0,
+                reqs, emps, use_ai=True, weights=base_weights, time_limit=SOLVER_DETERMINISTIC_TIME_LIMIT,
                 emp_shifts=emp_shifts, emp_leaves=emp_leaves, customer_history=cust_history
             )
             base_map = {a["request_id"]: a["employee_id"] for a in a_base}
@@ -979,7 +1052,7 @@ def main():
                     diff_count = 0
                 else:
                     a_curr, t_curr = run_ortools_opt(
-                        reqs, emps, use_ai=True, weights=w_dict, time_limit=6.0,
+                        reqs, emps, use_ai=True, weights=w_dict, time_limit=SOLVER_DETERMINISTIC_TIME_LIMIT,
                         emp_shifts=emp_shifts, emp_leaves=emp_leaves, customer_history=cust_history
                     )
                     curr_map = {a["request_id"]: a["employee_id"] for a in a_curr}
@@ -1035,25 +1108,52 @@ def main():
         import platform
         import subprocess
         sha = "unknown"
+        dirty_files = []
         try:
             sha = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=str(BASE_DIR.parent), text=True).strip()
+            status_out = subprocess.check_output(
+                ["git", "status", "--porcelain", "--", "backend/app", "backend/scripts", "backend/requirements.txt",
+                 "backend/artifacts/models", "backend/artifacts/data"],
+                cwd=str(BASE_DIR.parent), text=True)
+            dirty_files = [ln[3:] for ln in status_out.splitlines() if ln.strip()]
         except Exception:
             pass
+        import importlib.metadata as im
+        lib_versions = {}
+        for pkg in ["ortools", "scikit-learn", "pandas", "numpy", "joblib", "sqlalchemy", "psycopg"]:
+            try:
+                lib_versions[pkg] = im.version(pkg)
+            except Exception:
+                lib_versions[pkg] = "unknown"
         manifest = {
             "git_commit_sha": sha,
+            "source_tree_clean": len(dirty_files) == 0,
+            "uncommitted_source_files": dirty_files,
             "run_datetime_local": datetime.now().isoformat(timespec="seconds"),
             "python_version": platform.python_version(),
             "platform": platform.platform(),
             "seeds": seeds,
             "load_levels": loads,
+            "benchmark_target_date": target_date.isoformat(),
+            "library_versions": lib_versions,
             "ortools_allow_time_window": True,
-            "ortools_time_limit_seconds": 6.0,
+            "ortools_solver": {
+                "num_workers": SOLVER_NUM_WORKERS,
+                "interleave_search": True,
+                "random_seed": 0,
+                "max_deterministic_time": SOLVER_DETERMINISTIC_TIME_LIMIT,
+                "wall_time_safety_limit_seconds": SOLVER_WALL_TIME_SAFETY_LIMIT,
+                "note": "runtime_ms là thời gian thực đo trên máy chạy, phụ thuộc phần cứng; nghiệm phân công tất định"
+            },
+            "employee_source": "PostgreSQL" if db else "Standard Fixture",
             "ai_model_artifact": "backend/artifacts/models/duration_model_v1.joblib",
             "ai_model_version": "v1.1.0",
             "dataset": "synthetic_nha_trang_seeded",
             "routing_stats": routing_stats,
             "workforce_availability": "per-seed shifts + approved leave (H3)",
-            "delay_feasibility_definition": "actual_feasible if delay_minutes <= 15 (clinical grace / SLA); severe_delay if delay > 15",
+            "delay_tolerance_minutes": DELAY_TOLERANCE_MINUTES,
+            "delay_tolerance_sensitivity_minutes": TOLERANCE_SENSITIVITY_MINUTES,
+            "delay_feasibility_definition": "actual_feasible if delay_minutes <= 15 (assumed simulation tolerance parameter, not a clinical standard); severe_delay if delay > 15",
             "overlap_definition": {
                 "direct_overlap": "physical overlap: previous visit still running when next scheduled_start is due, or earliest_arrival exceeds previous scheduled_end",
                 "cascading_delay": "late start of a later visit caused by previous actual duration + travel, without requiring simultaneous occupancy at scheduled_start"

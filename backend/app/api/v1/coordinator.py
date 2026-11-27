@@ -527,9 +527,79 @@ class OptimizeIn(BaseModel):
     weights: Optional[Dict[str, float]] = None
 
 
+def _day_metrics(db: Session, target: date) -> Dict[str, Any]:
+    """Chỉ số thật của lịch trong ngày, tính từ CSDL (không hard-code)."""
+    import statistics
+    employees = db.execute(select(Employee).where(Employee.status == "active")).scalars().all()
+    day_asg = [
+        a for a in db.execute(
+            select(Assignment).where(Assignment.assignment_status.in_(["proposed", "confirmed", "in_progress", "completed"]))
+        ).scalars().all()
+        if a.scheduled_start.astimezone(VN_TZ).date() == target
+    ]
+    pending = db.execute(
+        select(ServiceRequest).where(
+            ServiceRequest.status.in_(["pending", "proposed"]),
+            func.date(ServiceRequest.preferred_start) == target,
+        )
+    ).scalars().all()
+    assigned_req_ids = {a.request_id for a in day_asg}
+    unassigned = [r for r in pending if r.request_id not in assigned_req_ids]
+
+    tot_km, tot_min, conflicts = 0.0, 0, 0
+    loads = []
+    for e in employees:
+        mine = sorted([a for a in day_asg if a.employee_id == e.employee_id], key=lambda a: a.scheduled_start)
+        loads.append(sum((a.scheduled_end - a.scheduled_start).total_seconds() / 60.0 for a in mine) / float(e.max_daily_minutes or 480) * 100.0)
+        prev = (e.base_lat, e.base_lon)
+        prev_end = None
+        for a in mine:
+            req = a.request
+            lat = req.lat if req and req.lat is not None else (req.customer.lat if req and req.customer else None)
+            lon = req.lon if req and req.lon is not None else (req.customer.lon if req and req.customer else None)
+            d_km, t_min, _ = RoutingEngine.get_distance_and_travel_time(prev[0], prev[1], lat, lon)
+            tot_km += d_km
+            tot_min += t_min
+            if prev_end is not None and a.scheduled_start < prev_end + timedelta(minutes=t_min):
+                conflicts += 1
+            prev, prev_end = (lat, lon), a.scheduled_end
+
+    in_window = 0
+    continuity = 0
+    for a in day_asg:
+        req = a.request
+        if req and req.preferred_end is not None and req.preferred_start <= a.scheduled_start <= req.preferred_end:
+            in_window += 1
+        if req:
+            seen = db.execute(
+                select(func.count(Assignment.assignment_id)).join(ServiceRequest, Assignment.request_id == ServiceRequest.request_id).where(
+                    ServiceRequest.customer_id == req.customer_id,
+                    Assignment.employee_id == a.employee_id,
+                    Assignment.assignment_status == "completed",
+                    Assignment.assignment_id != a.assignment_id,
+                )
+            ).scalar() or 0
+            continuity += 1 if seen > 0 else 0
+    n = len(day_asg)
+    return {
+        "totalAssigned": n,
+        "unassignedCount": len(unassigned),
+        "totalTravelMinutes": int(tot_min),
+        "totalDistanceKm": round(tot_km, 2),
+        "workloadStdDevPct": round(statistics.pstdev(loads), 1) if loads else 0.0,
+        "continuityMatchRatePct": round(continuity / n * 100.0, 1) if n else 0.0,
+        "conflictCount": conflicts,
+        "slaCompliancePct": round(in_window / n * 100.0, 1) if n else 0.0,
+    }
+
+
 @router.post("/optimize")
 def optimize_day(body: OptimizeIn, db: Session = Depends(get_db)):
+    """Chạy OR-Tools CP-SAT cho cả ngày. Kết quả là một phiên bản lịch ở trạng thái 'proposed';
+    điều phối viên phải bấm áp dụng (/optimize/apply) thì lịch mới được xác nhận (human-in-the-loop)."""
+    from app.models import ScheduleVersion
     target = _target_date(db, body.target_date)
+    baseline = _day_metrics(db, target)
     t0 = datetime.now()
     result = SchedulingEngine.optimize_schedule(
         db=db,
@@ -540,45 +610,104 @@ def optimize_day(body: OptimizeIn, db: Session = Depends(get_db)):
         window_minutes=90,
     )
     elapsed = (datetime.now() - t0).total_seconds() * 1000
+    optimized = _day_metrics(db, target)
     state = _build_state(db, target)
+
+    version_id = result.get("schedule_version_id")
+    params = {}
+    if version_id:
+        ver = db.get(ScheduleVersion, version_id)
+        params = (ver.parameters_json or {}) if ver else {}
+    new_asg = db.execute(select(Assignment).where(Assignment.schedule_version_id == version_id)).scalars().all() if version_id else []
+
+    comparison = []
+    for a in new_asg:
+        req = a.request
+        emp = a.employee
+        comparison.append({
+            "assignmentId": _asg_id(a.assignment_id),
+            "patientName": req.customer.full_name if req and req.customer else "",
+            "serviceName": req.service.service_name if req and req.service else "",
+            "district": _district(req.district_code if req else None),
+            "priority": _priority_label(req.priority if req else 1),
+            "baselineStaffName": "Chưa phân công",
+            "baselineTime": req.preferred_start.astimezone(VN_TZ).strftime("%H:%M") if req else "",
+            "baselineTravelMin": 0,
+            "baselineHasConflict": False,
+            "optimizedStaffId": _staff_id(a.employee_id),
+            "optimizedStaffName": emp.full_name if emp else "",
+            "optimizedStartTime": a.scheduled_start.astimezone(VN_TZ).strftime("%H:%M"),
+            "optimizedEndTime": a.scheduled_end.astimezone(VN_TZ).strftime("%H:%M"),
+            "optimizedTravelMin": 0,
+            "optimizedDistanceKm": 0,
+            "improvementNote": a.explanation or "",
+            "isNewlyAssignedFromQueue": True,
+        })
+
+    assigned_ids = {a.request_id for a in new_asg}
+    unschedulable = []
+    for u in state["unassignedRequests"]:
+        if _parse_entity_id(u["id"]) in assigned_ids:
+            continue
+        reasons = [v for c in u.get("aiCandidates", []) for v in c.get("constraintViolations", [])]
+        unschedulable.append({
+            "requestId": u["id"],
+            "patientName": u.get("patientName", ""),
+            "serviceName": u.get("serviceName", ""),
+            "district": u.get("district", ""),
+            "requestedWindow": f"{u.get('preferredStart', '')} - {u.get('preferredEnd', '')}",
+            "requiredSkills": u.get("requiredSkills", []),
+            "infeasibleReason": reasons[0] if reasons else (result.get("message") or "Không còn nhân sự thỏa 6 ràng buộc cứng"),
+            "suggestedResolution": "Điều phối viên xem xét dời khung giờ hoặc bổ sung nhân sự có kỹ năng phù hợp.",
+        })
+
     return {
-        "solverStatus": "OPTIMAL" if result.get("status") == "success" else "FEASIBLE",
+        "solverStatus": params.get("solver_status", "FEASIBLE") if result.get("status") == "success" else "FEASIBLE",
         "solveTimeMs": round(elapsed, 1),
-        "objectiveValue": 0,
-        "weightsUsed": {
-            "travelWeight": 40,
-            "workloadBalanceWeight": 30,
-            "continuityWeight": 20,
-            "slaPenaltyWeight": 10,
-        },
-        "baselineMetrics": {
-            "totalAssigned": 0,
-            "unassignedCount": len(state["unassignedRequests"]),
-            "totalTravelMinutes": 0,
-            "totalDistanceKm": 0,
-            "workloadStdDevPct": 0,
-            "continuityMatchRatePct": 0,
-            "conflictCount": 0,
-            "slaCompliancePct": 0,
-        },
-        "optimizedMetrics": {
-            "totalAssigned": len(state["assignments"]),
-            "unassignedCount": len(state["unassignedRequests"]),
-            "totalTravelMinutes": 0,
-            "totalDistanceKm": 0,
-            "workloadStdDevPct": 0,
-            "continuityMatchRatePct": 0,
-            "conflictCount": 0,
-            "slaCompliancePct": 0,
-        },
-        "scheduleComparison": [],
-        "unschedulableRequests": [],
-        "isApplied": True,
-        "backendResult": {"status": result.get("status"), "message": result.get("message"), "schedule_version_id": result.get("schedule_version_id")},
+        "objectiveValue": params.get("objective_value", 0),
+        "weightsUsed": body.weights or {},
+        "baselineMetrics": baseline,
+        "optimizedMetrics": optimized,
+        "scheduleComparison": comparison,
+        "unschedulableRequests": unschedulable,
+        "isApplied": False,
+        "scheduleVersionId": version_id,
+        "backendResult": {"status": result.get("status"), "message": result.get("message"), "schedule_version_id": version_id},
         "staffList": state["staffList"],
         "assignments": state["assignments"],
         "unassignedRequests": state["unassignedRequests"],
     }
+
+
+class ApplyOptimizationIn(BaseModel):
+    schedule_version_id: int
+    target_date: Optional[date] = None
+    confirmed_by: int = 1
+
+
+@router.post("/optimize/apply")
+def apply_optimization(body: ApplyOptimizationIn, db: Session = Depends(get_db)):
+    """Điều phối viên xác nhận toàn bộ phân công 'proposed' của một phiên bản lịch OR-Tools."""
+    from app.models import ScheduleVersion
+    ver = db.get(ScheduleVersion, body.schedule_version_id)
+    if not ver:
+        raise HTTPException(status_code=404, detail="Không tìm thấy phiên bản lịch")
+    now_utc = datetime.now(timezone.utc)
+    asgs = db.execute(select(Assignment).where(Assignment.schedule_version_id == ver.schedule_version_id)).scalars().all()
+    confirmed = 0
+    for a in asgs:
+        if a.assignment_status == "proposed":
+            a.assignment_status = "confirmed"
+            a.confirmed_by = body.confirmed_by
+            a.confirmed_at = now_utc
+            confirmed += 1
+        if a.request:
+            a.request.status = "assigned"
+    db.commit()
+    target = body.target_date or ver.schedule_date
+    state = _build_state(db, target)
+    state["confirmedCount"] = confirmed
+    return state
 
 
 class ResolveConflictIn(BaseModel):

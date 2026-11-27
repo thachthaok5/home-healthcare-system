@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { App as AntdApp, Button, Slider } from 'antd';
 import {
   Cpu,
@@ -29,7 +29,7 @@ export const ORToolsOptimizationScreen: React.FC<ORToolsOptimizationScreenProps>
 }) => {
   const { message } = AntdApp.useApp();
   const [optData, setOptData] = useState<OptimizationResult | null>(null);
-  const [loading, setLoading] = useState<boolean>(true);
+  const [loading] = useState<boolean>(false);
   const [solving, setSolving] = useState<boolean>(false);
   const [applying, setApplying] = useState<boolean>(false);
   const [weights, setWeights] = useState<OptimizationWeights>({
@@ -39,39 +39,19 @@ export const ORToolsOptimizationScreen: React.FC<ORToolsOptimizationScreenProps>
     slaPenaltyWeight: 10,
   });
 
-  const fetchLatestOptimization = async () => {
-    setLoading(true);
-    try {
-      const res = await fetch('/api/optimization/latest');
-      if (res.ok) {
-        const data: OptimizationResult = await res.json();
-        setOptData(data);
-        setWeights(data.weightsUsed);
-      }
-    } catch (err) {
-      message.error('Không thể tải dữ liệu tối ưu hóa từ Backend.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchLatestOptimization();
-  }, []);
-
   const handleRunSolver = async () => {
     setSolving(true);
     try {
-      const res = await fetch('/api/optimization/run', {
+      const res = await fetch('/api/v1/coordinator/optimize', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ weights }),
+        body: JSON.stringify({ allow_time_window: true, weights }),
       });
       if (res.ok) {
         const data: OptimizationResult = await res.json();
         setOptData(data);
         message.success(
-          `Mô phỏng bộ giải OR-Tools đã hội tụ (${data.solverStatus}) trong ${data.solveTimeMs}ms · Điểm mục tiêu: ${data.objectiveValue}`
+          `Bộ giải OR-Tools kết thúc (${data.solverStatus}) trong ${data.solveTimeMs}ms · Điểm mục tiêu: ${data.objectiveValue}`
         );
       }
     } catch (err) {
@@ -84,12 +64,18 @@ export const ORToolsOptimizationScreen: React.FC<ORToolsOptimizationScreenProps>
   const handleApplySchedule = async () => {
     setApplying(true);
     try {
-      const res = await fetch('/api/optimization/apply', {
+      const versionId = (optData as (OptimizationResult & { scheduleVersionId?: number }) | null)?.scheduleVersionId;
+      if (!versionId) {
+        message.warning('Chưa có phiên bản lịch OR-Tools để áp dụng.');
+        return;
+      }
+      const res = await fetch('/api/v1/coordinator/optimize/apply', {
         method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ schedule_version_id: versionId }),
       });
       if (res.ok) {
-        const result = await res.json();
-        setOptData(result.optimization);
+        setOptData((prev) => (prev ? { ...prev, isApplied: true } : prev));
         await onApplySuccess();
         message.success(
           'Đã áp dụng Lịch tối ưu vào Timeline/Gantt! Toàn bộ ca chờ hợp lệ đã được xếp lịch và loại bỏ xung đột giờ.'
@@ -104,8 +90,16 @@ export const ORToolsOptimizationScreen: React.FC<ORToolsOptimizationScreenProps>
 
   if (loading || !optData) {
     return (
-      <div className="bg-white border border-line-strong rounded-xl p-8 text-center text-xs text-muted">
-        Đang tải kết quả mô hình tối ưu hóa toàn ngày từ Backend API...
+      <div className="bg-white border border-line-strong rounded-xl p-8 text-center text-xs text-muted space-y-3">
+        <div>Chưa có kết quả tối ưu hóa cho ngày đang chọn. Bấm nút dưới để chạy OR-Tools CP-SAT trên dữ liệu PostgreSQL qua FastAPI.</div>
+        <button
+          type="button"
+          onClick={handleRunSolver}
+          disabled={solving}
+          className="px-4 py-2 rounded-lg bg-brand-600 hover:bg-brand-700 text-white text-xs font-semibold disabled:opacity-60"
+        >
+          {solving ? 'Đang chạy bộ giải...' : 'Chạy bộ giải OR-Tools'}
+        </button>
       </div>
     );
   }

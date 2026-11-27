@@ -89,7 +89,7 @@ export const NewRequestDrawer: React.FC<NewRequestDrawerProps> = ({
   const [selectedSkills, setSelectedSkills] = useState<string[]>(SERVICE_OPTIONS[0].skills);
   const [district, setDistrict] = useState(DISTRICT_OPTIONS[0]);
   const [address, setAddress] = useState('42 Trần Phú, Nha Trang');
-  const [requestedDate, setRequestedDate] = useState('2026-05-15');
+  const [requestedDate, setRequestedDate] = useState(new Date(Date.now() + 7 * 3600 * 1000).toISOString().slice(0, 10));
   const [windowStart, setWindowStart] = useState('10:00');
   const [windowEnd, setWindowEnd] = useState('11:30');
   const [estimatedDurationMin, setEstimatedDurationMin] = useState<number>(55);
@@ -137,7 +137,7 @@ export const NewRequestDrawer: React.FC<NewRequestDrawerProps> = ({
       setSelectedSkills(SERVICE_OPTIONS[0].skills);
       setDistrict(DISTRICT_OPTIONS[0]);
       setAddress('42 Trần Phú, Nha Trang');
-      setRequestedDate('2026-05-15');
+      setRequestedDate(new Date(Date.now() + 7 * 3600 * 1000).toISOString().slice(0, 10));
       setWindowStart('10:00');
       setWindowEnd('11:30');
       setEstimatedDurationMin(SERVICE_OPTIONS[0].predictedMin);

@@ -116,7 +116,7 @@ export const DispatchBoardPage: React.FC<DispatchBoardPageProps> = ({
   );
 
   const stepDate = (deltaDays: number) => {
-    const d = new Date(selectedDate || '2026-05-15');
+    const d = new Date(selectedDate || new Date(Date.now() + 7 * 3600 * 1000).toISOString().slice(0, 10));
     d.setDate(d.getDate() + deltaDays);
     onDateChange(d.toISOString().slice(0, 10));
   };
@@ -222,7 +222,7 @@ export const DispatchBoardPage: React.FC<DispatchBoardPageProps> = ({
 
           <button
             type="button"
-            onClick={() => onDateChange('2026-05-15')}
+            onClick={() => onDateChange(new Date(Date.now() + 7 * 3600 * 1000).toISOString().slice(0, 10))}
             className="px-3 py-1.5 rounded-lg border border-line bg-white text-[12px] font-medium text-ink hover:border-brand-600 cursor-pointer"
           >
             Hôm nay

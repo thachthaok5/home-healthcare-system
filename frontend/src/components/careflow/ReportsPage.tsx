@@ -49,7 +49,7 @@ export const ReportsPage: React.FC<ReportsPageProps> = ({
   onNavigate,
 }) => {
   const [activeTab, setActiveTab] = useState<'kpi_summary' | 'ortools_deepdive'>('kpi_summary');
-  const [dateRange, setDateRange] = useState<string>('7 ngày gần nhất (09/05 – 15/05/2026)');
+  const [dateRange, setDateRange] = useState<string>('7 ngày gần nhất');
   const [showDetailedAnalysis, setShowDetailedAnalysis] = useState<boolean>(false);
   const [isRunningSolver, setIsRunningSolver] = useState<boolean>(false);
 
@@ -106,11 +106,11 @@ export const ReportsPage: React.FC<ReportsPageProps> = ({
               onChange={(e) => setDateRange(e.target.value)}
               className="bg-transparent border-none outline-none text-[13px] font-medium text-ink cursor-pointer"
             >
-              <option value="Hôm nay (15/05/2026)">Hôm nay (15/05/2026)</option>
-              <option value="7 ngày gần nhất (09/05 – 15/05/2026)">
-                7 ngày gần nhất (09/05 – 15/05/2026)
+              <option value="Hôm nay">Hôm nay</option>
+              <option value="7 ngày gần nhất">
+                7 ngày gần nhất
               </option>
-              <option value="Tháng 05/2026">Tháng 05/2026</option>
+              <option value="Tháng này">Tháng này</option>
             </select>
           </div>
         }

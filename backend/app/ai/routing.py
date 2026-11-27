@@ -18,6 +18,9 @@ import httpx
 logger = logging.getLogger(__name__)
 
 CACHE_FILE = Path(__file__).resolve().parent.parent.parent / "artifacts" / "data" / "routing_cache.json"
+# Ma trận OSRM tính trước cho các điểm benchmark (nén gzip vì có hàng trăm nghìn cặp điểm),
+# sinh bởi backend/scripts/precompute_routing_matrix.py
+PRECOMPUTED_MATRIX_FILE = CACHE_FILE.parent / "routing_matrix_benchmark.json.gz"
 
 
 class RoutingEngine:
@@ -25,6 +28,8 @@ class RoutingEngine:
     Công cụ tính toán cự ly và thời gian di chuyển tích hợp OSRM và Fallback Haversine.
     """
     _memory_cache: Dict[str, Tuple[float, int, str]] = {}
+    # Chỉ các cặp OSRM lấy từ routing_cache.json hoặc gọi mạng lúc chạy (không gồm ma trận tính trước, không gồm Haversine)
+    _disk_cache: Dict[str, Tuple[float, int, str]] = {}
     _cache_loaded: bool = False
     _network_available: bool = True
     _query_stats: Dict[str, int] = {
@@ -75,11 +80,21 @@ class RoutingEngine:
     def _init_cache(cls):
         if cls._cache_loaded:
             return
+        cls._memory_cache = {}
+        if PRECOMPUTED_MATRIX_FILE.exists():
+            try:
+                import gzip
+                with gzip.open(PRECOMPUTED_MATRIX_FILE, "rt", encoding="utf-8") as f:
+                    data = json.load(f)
+                    cls._memory_cache.update({k: (v[0], v[1], v[2]) for k, v in data.items()})
+            except Exception as e:
+                logger.warning(f"Không thể đọc ma trận OSRM tính trước: {e}")
         if CACHE_FILE.exists():
             try:
                 with open(CACHE_FILE, "r", encoding="utf-8") as f:
                     data = json.load(f)
-                    cls._memory_cache = {k: (v[0], v[1], v[2]) for k, v in data.items()}
+                    cls._disk_cache = {k: (v[0], v[1], v[2]) for k, v in data.items() if v[2] != "haversine_fallback"}
+                    cls._memory_cache.update(cls._disk_cache)
             except Exception as e:
                 logger.warning(f"Không thể đọc routing cache từ file: {e}")
         cls._cache_loaded = True
@@ -89,7 +104,7 @@ class RoutingEngine:
         try:
             CACHE_FILE.parent.mkdir(parents=True, exist_ok=True)
             with open(CACHE_FILE, "w", encoding="utf-8") as f:
-                json.dump(cls._memory_cache, f, ensure_ascii=False, indent=2)
+                json.dump(cls._disk_cache, f, ensure_ascii=False, indent=2, sort_keys=True)
         except Exception as e:
             logger.warning(f"Không thể lưu routing cache: {e}")
 
@@ -186,6 +201,7 @@ class RoutingEngine:
                             dur_mins = max(3, int(math.ceil(route["duration"] / 60.0)) + 3)
                             
                             cls._memory_cache[cache_key] = (dist_km, dur_mins, "osrm_network")
+                            cls._disk_cache[cache_key] = (dist_km, dur_mins, "osrm_network")
                             cls._save_cache()
                             cls._query_stats["osrm_network"] += 1
                             return dist_km, dur_mins, "osrm_network"
@@ -244,6 +260,7 @@ class RoutingEngine:
     def clear_cache(cls):
         """Xóa bộ nhớ đệm (dùng cho test)"""
         cls._memory_cache.clear()
+        cls._disk_cache.clear()
         cls._cache_loaded = False
         if CACHE_FILE.exists():
             try:

@@ -91,21 +91,6 @@ const STAFF_ROUTE_COLORS: string[] = [
   '#0F7A4A', // Emerald Green
 ];
 
-// Fictional demonstration coordinates anchored on real wards in Nha Trang (land-only)
-const NHA_TRANG_WARD_ANCHORS: Record<string, { lat: number; lng: number }> = {
-  'Phường Lộc Thọ': { lat: 12.2388, lng: 109.1942 },
-  'Phường Tân Lập': { lat: 12.2345, lng: 109.1905 },
-  'Phường Phước Tiến': { lat: 12.2418, lng: 109.1882 },
-  'Phường Phước Hòa': { lat: 12.2362, lng: 109.1835 },
-  'Phường Phước Hải': { lat: 12.2395, lng: 109.1778 },
-  'Phường Vạn Thạnh': { lat: 12.2535, lng: 109.1908 },
-  'Phường Phương Sài': { lat: 12.2512, lng: 109.1836 },
-  'Phường Vĩnh Hải': { lat: 12.2735, lng: 109.1938 },
-  'Phường Vĩnh Phước': { lat: 12.2652, lng: 109.1965 },
-  'Phường Vĩnh Nguyên': { lat: 12.2125, lng: 109.2015 },
-  'Phường Vĩnh Trường': { lat: 12.2045, lng: 109.1968 },
-  'Xã Vĩnh Ngọc': { lat: 12.2665, lng: 109.1695 },
-};
 
 const DEFAULT_CENTER: [number, number] = [12.2435, 109.1905];
 
@@ -115,53 +100,22 @@ const parseTimeMinutes = (timeStr: string): number => {
 };
 
 /**
- * Generates deterministic fictional demonstration coordinates within Nha Trang land bounds
- * so that visits never overlap at the exact same pixel and never drift into the sea.
+ * Tọa độ hiển thị lấy đúng từ CSDL qua FastAPI (/api/v1/coordinator/...).
+ * Không sinh tọa độ minh họa: điểm không có tọa độ hợp lệ sẽ không được vẽ lên bản đồ.
  */
-function resolveDemonstrationCoords(
-  rawLocation: { lat: number; lng: number } | undefined,
-  district: string,
-  seedKey: string,
-  indexOffset: number
-): { lat: number; lng: number } {
-  let hash = 0;
-  for (let i = 0; i < seedKey.length; i++) {
-    hash = (hash * 31 + seedKey.charCodeAt(i)) % 10000;
-  }
-
-  const wardAnchor = NHA_TRANG_WARD_ANCHORS[district];
-  const hasValidRaw =
+function resolveApiCoords(
+  rawLocation: { lat: number; lng: number } | undefined | null
+): { lat: number; lng: number } | null {
+  if (
     rawLocation &&
     typeof rawLocation.lat === 'number' &&
     typeof rawLocation.lng === 'number' &&
-    rawLocation.lat >= 12.18 &&
-    rawLocation.lat <= 12.31 &&
-    rawLocation.lng >= 109.15 &&
-    rawLocation.lng <= 109.21;
-
-  // Deterministic micro-offset so markers in the same ward don't stack on top of each other
-  const latJitter = (((hash % 17) - 8) * 0.00055) + (indexOffset % 5) * 0.00035;
-  const lngJitter = ((((hash >> 3) % 17) - 8) * 0.00055) - (indexOffset % 4) * 0.00035;
-
-  const baseLat = hasValidRaw
-    ? rawLocation!.lat
-    : wardAnchor
-    ? wardAnchor.lat
-    : DEFAULT_CENTER[0];
-  const baseLng = hasValidRaw
-    ? rawLocation!.lng
-    : wardAnchor
-    ? wardAnchor.lng
-    : DEFAULT_CENTER[1];
-
-  // Clamp longitude west of 109.1985 for central wards so pins stay strictly on land
-  const clampedLng = Math.min(109.1985, Math.max(109.165, baseLng + lngJitter));
-  const clampedLat = Math.min(12.288, Math.max(12.198, baseLat + latJitter));
-
-  return {
-    lat: Number(clampedLat.toFixed(5)),
-    lng: Number(clampedLng.toFixed(5)),
-  };
+    Number.isFinite(rawLocation.lat) &&
+    Number.isFinite(rawLocation.lng)
+  ) {
+    return { lat: rawLocation.lat, lng: rawLocation.lng };
+  }
+  return null;
 }
 
 function formatAssignmentStatusVi(status: string, isConflict?: boolean): string {
@@ -207,24 +161,18 @@ export const RouteMapPage: React.FC<RouteMapPageProps> = ({
       const routeColor =
         STAFF_ROUTE_COLORS[idx % STAFF_ROUTE_COLORS.length] || staff.avatarColor || '#1A73A0';
 
-      const hubCoords = resolveDemonstrationCoords(
-        staff.baseLocation,
-        staff.zone,
-        `HUB-${staff.id}`,
-        idx
-      );
+      const hubCoords = resolveApiCoords(staff.baseLocation) ?? {
+        lat: DEFAULT_CENTER[0],
+        lng: DEFAULT_CENTER[1],
+      };
 
       const staffAssignments = assignments
         .filter((a) => a.staffId === staff.id)
         .sort((a, b) => parseTimeMinutes(a.startTime) - parseTimeMinutes(b.startTime));
 
-      const stops: RouteStopItem[] = staffAssignments.map((asg, stopIdx) => {
-        const coords = resolveDemonstrationCoords(
-          asg.location,
-          asg.district,
-          asg.id,
-          stopIdx + 1
-        );
+      const locatedAssignments = staffAssignments.filter((asg) => resolveApiCoords(asg.location) !== null);
+      const stops: RouteStopItem[] = locatedAssignments.map((asg, stopIdx) => {
+        const coords = resolveApiCoords(asg.location)!;
 
         const hasDistance =
           typeof asg.distanceKm === 'number' && !Number.isNaN(asg.distanceKm) && asg.distanceKm > 0;
@@ -257,7 +205,7 @@ export const RouteMapPage: React.FC<RouteMapPageProps> = ({
         };
       });
 
-      const hasConflict = stops.some((s) => s.isConflict || s.status === 'Conflict');
+      const hasConflict = stops.some((s) => s.isConflict || (s.status as string) === 'Conflict');
       const stopsWithMetrics = stops.filter(
         (s) => s.distanceKm !== null || s.travelMinutes !== null
       );
@@ -336,10 +284,10 @@ export const RouteMapPage: React.FC<RouteMapPageProps> = ({
   // Summary metrics
   const totalScheduledStops = allStopsFlat.length;
   const activeRouteCount = staffRoutes.filter((r) => r.visitCount > 0).length;
-  const conflictStopCount = allStopsFlat.filter((s) => s.isConflict || s.status === 'Conflict').length;
+  const conflictStopCount = allStopsFlat.filter((s) => s.isConflict || (s.status as string) === 'Conflict').length;
 
   const stepDate = (deltaDays: number) => {
-    const d = new Date(selectedDate || '2026-05-15');
+    const d = new Date(selectedDate || new Date(Date.now() + 7 * 3600 * 1000).toISOString().slice(0, 10));
     d.setDate(d.getDate() + deltaDays);
     onDateChange(d.toISOString().slice(0, 10));
   };
@@ -367,9 +315,9 @@ export const RouteMapPage: React.FC<RouteMapPageProps> = ({
       });
 
       if (staffScope === 'ALL' && showUnassignedPins) {
-        unassignedRequests.forEach((req, idx) => {
-          const c = resolveDemonstrationCoords(req.location, req.district, req.id, idx + 20);
-          points.push([c.lat, c.lng]);
+        unassignedRequests.forEach((req) => {
+          const c = resolveApiCoords(req.location);
+          if (c) points.push([c.lat, c.lng]);
         });
       }
 
@@ -554,7 +502,7 @@ export const RouteMapPage: React.FC<RouteMapPageProps> = ({
 
           polyline.bindTooltip(
             `<div style="font-size:11px;font-weight:600;color:#15334A;">
-              Lộ trình minh họa: ${route.staff.name} (${route.visitCount} điểm dừng)
+              Thứ tự điểm dừng: ${route.staff.name} (${route.visitCount} điểm dừng)
             </div>`,
             { sticky: true }
           );
@@ -619,7 +567,7 @@ export const RouteMapPage: React.FC<RouteMapPageProps> = ({
       // 1c. Numbered Visit Markers (1, 2, 3...)
       route.stops.forEach((stop) => {
         const isSelectedStop = selectedStopId === stop.assignmentId;
-        const isConflict = Boolean(stop.isConflict || stop.status === 'Conflict');
+        const isConflict = Boolean(stop.isConflict || (stop.status as string) === 'Conflict');
         const badgeBg = isConflict ? '#D3132E' : route.routeColor;
         const size = isSelectedStop ? 34 : 28;
         const ringShadow = isSelectedStop
@@ -741,13 +689,9 @@ export const RouteMapPage: React.FC<RouteMapPageProps> = ({
 
     // 2. Render Unassigned Request Markers when enabled
     if (showUnassignedPins && selectedStaffId === 'ALL') {
-      unassignedRequests.forEach((req, idx) => {
-        const coords = resolveDemonstrationCoords(
-          req.location,
-          req.district,
-          req.id,
-          idx + 30
-        );
+      unassignedRequests.forEach((req) => {
+        const coords = resolveApiCoords(req.location);
+        if (!coords) return;
         const isUrgent =
           req.priority === 'Khẩn cấp' || req.priority.toLowerCase() === 'urgent';
         const pinColor = isUrgent ? '#D3132E' : '#F27A1A';
@@ -818,7 +762,7 @@ export const RouteMapPage: React.FC<RouteMapPageProps> = ({
               Bệnh nhân: <strong style="color:#15334A;">${req.patientName}</strong>
             </div>
             <div style="font-size:11px;color:#5A7184;padding:6px 8px;border-radius:6px;background:#F4FAFD;border:1px solid #DDEBF2;">
-              <div>Khung giờ yêu cầu: <strong style="color:#15334A;">${req.requestedWindow}</strong> (${req.estimatedDurationMin}p)</div>
+              <div>Khung giờ yêu cầu: <strong style="color:#15334A;">${req.requestedWindow}</strong> (${req.predictedDurationMin}p)</div>
               <div style="margin-top:2px;">Khu vực: ${req.address} (${req.district})</div>
             </div>
           </div>
@@ -1107,7 +1051,7 @@ export const RouteMapPage: React.FC<RouteMapPageProps> = ({
                 </div>
               </div>
               <div className="mt-1.5 pt-1.5 border-t border-line text-[10px] text-muted leading-snug">
-                Tọa độ mô phỏng tại Nha Trang. Đường nối nét đứt minh họa thứ tự điểm dừng.
+                Tọa độ lấy từ CSDL (dữ liệu seed mô phỏng tại Nha Trang). Đường nối nét đứt thể hiện thứ tự điểm dừng.
               </div>
             </div>
           </div>
@@ -1314,7 +1258,7 @@ export const RouteMapPage: React.FC<RouteMapPageProps> = ({
                         {route.stops.map((stop) => {
                           const isStopActive = selectedStopId === stop.assignmentId;
                           const isConflict = Boolean(
-                            stop.isConflict || stop.status === 'Conflict'
+                            stop.isConflict || (stop.status as string) === 'Conflict'
                           );
 
                           return (
