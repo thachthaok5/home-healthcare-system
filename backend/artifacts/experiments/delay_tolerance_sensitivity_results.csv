@@ -1,0 +1,151 @@
+﻿load,seed,plan,tolerance_minutes,severe_delay_count,actual_feasible_rate
+10,42,A. Default Duration (Thiếu AI),10,0,100.0
+10,42,A. Default Duration (Thiếu AI),15,0,100.0
+10,42,A. Default Duration (Thiếu AI),20,0,100.0
+10,42,B. AI Predicted Duration (Có AI),10,0,100.0
+10,42,B. AI Predicted Duration (Có AI),15,0,100.0
+10,42,B. AI Predicted Duration (Có AI),20,0,100.0
+10,101,A. Default Duration (Thiếu AI),10,0,100.0
+10,101,A. Default Duration (Thiếu AI),15,0,100.0
+10,101,A. Default Duration (Thiếu AI),20,0,100.0
+10,101,B. AI Predicted Duration (Có AI),10,0,100.0
+10,101,B. AI Predicted Duration (Có AI),15,0,100.0
+10,101,B. AI Predicted Duration (Có AI),20,0,100.0
+10,202,A. Default Duration (Thiếu AI),10,0,100.0
+10,202,A. Default Duration (Thiếu AI),15,0,100.0
+10,202,A. Default Duration (Thiếu AI),20,0,100.0
+10,202,B. AI Predicted Duration (Có AI),10,0,100.0
+10,202,B. AI Predicted Duration (Có AI),15,0,100.0
+10,202,B. AI Predicted Duration (Có AI),20,0,100.0
+10,303,A. Default Duration (Thiếu AI),10,0,100.0
+10,303,A. Default Duration (Thiếu AI),15,0,100.0
+10,303,A. Default Duration (Thiếu AI),20,0,100.0
+10,303,B. AI Predicted Duration (Có AI),10,0,100.0
+10,303,B. AI Predicted Duration (Có AI),15,0,100.0
+10,303,B. AI Predicted Duration (Có AI),20,0,100.0
+10,404,A. Default Duration (Thiếu AI),10,1,90.0
+10,404,A. Default Duration (Thiếu AI),15,0,100.0
+10,404,A. Default Duration (Thiếu AI),20,0,100.0
+10,404,B. AI Predicted Duration (Có AI),10,1,90.0
+10,404,B. AI Predicted Duration (Có AI),15,0,100.0
+10,404,B. AI Predicted Duration (Có AI),20,0,100.0
+25,42,A. Default Duration (Thiếu AI),10,0,100.0
+25,42,A. Default Duration (Thiếu AI),15,0,100.0
+25,42,A. Default Duration (Thiếu AI),20,0,100.0
+25,42,B. AI Predicted Duration (Có AI),10,0,100.0
+25,42,B. AI Predicted Duration (Có AI),15,0,100.0
+25,42,B. AI Predicted Duration (Có AI),20,0,100.0
+25,101,A. Default Duration (Thiếu AI),10,1,96.0
+25,101,A. Default Duration (Thiếu AI),15,1,96.0
+25,101,A. Default Duration (Thiếu AI),20,0,100.0
+25,101,B. AI Predicted Duration (Có AI),10,0,100.0
+25,101,B. AI Predicted Duration (Có AI),15,0,100.0
+25,101,B. AI Predicted Duration (Có AI),20,0,100.0
+25,202,A. Default Duration (Thiếu AI),10,1,95.65
+25,202,A. Default Duration (Thiếu AI),15,1,95.65
+25,202,A. Default Duration (Thiếu AI),20,1,95.65
+25,202,B. AI Predicted Duration (Có AI),10,0,100.0
+25,202,B. AI Predicted Duration (Có AI),15,0,100.0
+25,202,B. AI Predicted Duration (Có AI),20,0,100.0
+25,303,A. Default Duration (Thiếu AI),10,5,79.17
+25,303,A. Default Duration (Thiếu AI),15,4,83.33
+25,303,A. Default Duration (Thiếu AI),20,4,83.33
+25,303,B. AI Predicted Duration (Có AI),10,1,95.65
+25,303,B. AI Predicted Duration (Có AI),15,0,100.0
+25,303,B. AI Predicted Duration (Có AI),20,0,100.0
+25,404,A. Default Duration (Thiếu AI),10,4,82.61
+25,404,A. Default Duration (Thiếu AI),15,3,86.96
+25,404,A. Default Duration (Thiếu AI),20,2,91.3
+25,404,B. AI Predicted Duration (Có AI),10,0,100.0
+25,404,B. AI Predicted Duration (Có AI),15,0,100.0
+25,404,B. AI Predicted Duration (Có AI),20,0,100.0
+50,42,A. Default Duration (Thiếu AI),10,11,75.0
+50,42,A. Default Duration (Thiếu AI),15,5,88.64
+50,42,A. Default Duration (Thiếu AI),20,4,90.91
+50,42,B. AI Predicted Duration (Có AI),10,1,97.56
+50,42,B. AI Predicted Duration (Có AI),15,0,100.0
+50,42,B. AI Predicted Duration (Có AI),20,0,100.0
+50,101,A. Default Duration (Thiếu AI),10,13,69.05
+50,101,A. Default Duration (Thiếu AI),15,10,76.19
+50,101,A. Default Duration (Thiếu AI),20,8,80.95
+50,101,B. AI Predicted Duration (Có AI),10,1,97.37
+50,101,B. AI Predicted Duration (Có AI),15,0,100.0
+50,101,B. AI Predicted Duration (Có AI),20,0,100.0
+50,202,A. Default Duration (Thiếu AI),10,19,59.57
+50,202,A. Default Duration (Thiếu AI),15,15,68.09
+50,202,A. Default Duration (Thiếu AI),20,9,80.85
+50,202,B. AI Predicted Duration (Có AI),10,0,100.0
+50,202,B. AI Predicted Duration (Có AI),15,0,100.0
+50,202,B. AI Predicted Duration (Có AI),20,0,100.0
+50,303,A. Default Duration (Thiếu AI),10,13,70.45
+50,303,A. Default Duration (Thiếu AI),15,8,81.82
+50,303,A. Default Duration (Thiếu AI),20,6,86.36
+50,303,B. AI Predicted Duration (Có AI),10,0,100.0
+50,303,B. AI Predicted Duration (Có AI),15,0,100.0
+50,303,B. AI Predicted Duration (Có AI),20,0,100.0
+50,404,A. Default Duration (Thiếu AI),10,11,74.42
+50,404,A. Default Duration (Thiếu AI),15,9,79.07
+50,404,A. Default Duration (Thiếu AI),20,6,86.05
+50,404,B. AI Predicted Duration (Có AI),10,1,97.56
+50,404,B. AI Predicted Duration (Có AI),15,0,100.0
+50,404,B. AI Predicted Duration (Có AI),20,0,100.0
+100,42,A. Default Duration (Thiếu AI),10,29,50.85
+100,42,A. Default Duration (Thiếu AI),15,23,61.02
+100,42,A. Default Duration (Thiếu AI),20,20,66.1
+100,42,B. AI Predicted Duration (Có AI),10,1,98.08
+100,42,B. AI Predicted Duration (Có AI),15,0,100.0
+100,42,B. AI Predicted Duration (Có AI),20,0,100.0
+100,101,A. Default Duration (Thiếu AI),10,22,61.4
+100,101,A. Default Duration (Thiếu AI),15,19,66.67
+100,101,A. Default Duration (Thiếu AI),20,14,75.44
+100,101,B. AI Predicted Duration (Có AI),10,0,100.0
+100,101,B. AI Predicted Duration (Có AI),15,0,100.0
+100,101,B. AI Predicted Duration (Có AI),20,0,100.0
+100,202,A. Default Duration (Thiếu AI),10,31,50.79
+100,202,A. Default Duration (Thiếu AI),15,27,57.14
+100,202,A. Default Duration (Thiếu AI),20,21,66.67
+100,202,B. AI Predicted Duration (Có AI),10,2,96.49
+100,202,B. AI Predicted Duration (Có AI),15,0,100.0
+100,202,B. AI Predicted Duration (Có AI),20,0,100.0
+100,303,A. Default Duration (Thiếu AI),10,28,56.25
+100,303,A. Default Duration (Thiếu AI),15,21,67.19
+100,303,A. Default Duration (Thiếu AI),20,14,78.12
+100,303,B. AI Predicted Duration (Có AI),10,4,92.98
+100,303,B. AI Predicted Duration (Có AI),15,2,96.49
+100,303,B. AI Predicted Duration (Có AI),20,0,100.0
+100,404,A. Default Duration (Thiếu AI),10,23,62.3
+100,404,A. Default Duration (Thiếu AI),15,16,73.77
+100,404,A. Default Duration (Thiếu AI),20,11,81.97
+100,404,B. AI Predicted Duration (Có AI),10,1,98.04
+100,404,B. AI Predicted Duration (Có AI),15,0,100.0
+100,404,B. AI Predicted Duration (Có AI),20,0,100.0
+150,42,A. Default Duration (Thiếu AI),10,39,40.0
+150,42,A. Default Duration (Thiếu AI),15,32,50.77
+150,42,A. Default Duration (Thiếu AI),20,27,58.46
+150,42,B. AI Predicted Duration (Có AI),10,6,89.66
+150,42,B. AI Predicted Duration (Có AI),15,3,94.83
+150,42,B. AI Predicted Duration (Có AI),20,1,98.28
+150,101,A. Default Duration (Thiếu AI),10,31,51.56
+150,101,A. Default Duration (Thiếu AI),15,22,65.62
+150,101,A. Default Duration (Thiếu AI),20,16,75.0
+150,101,B. AI Predicted Duration (Có AI),10,1,98.21
+150,101,B. AI Predicted Duration (Có AI),15,0,100.0
+150,101,B. AI Predicted Duration (Có AI),20,0,100.0
+150,202,A. Default Duration (Thiếu AI),10,39,45.07
+150,202,A. Default Duration (Thiếu AI),15,37,47.89
+150,202,A. Default Duration (Thiếu AI),20,34,52.11
+150,202,B. AI Predicted Duration (Có AI),10,8,87.3
+150,202,B. AI Predicted Duration (Có AI),15,3,95.24
+150,202,B. AI Predicted Duration (Có AI),20,1,98.41
+150,303,A. Default Duration (Thiếu AI),10,37,47.14
+150,303,A. Default Duration (Thiếu AI),15,28,60.0
+150,303,A. Default Duration (Thiếu AI),20,23,67.14
+150,303,B. AI Predicted Duration (Có AI),10,6,91.04
+150,303,B. AI Predicted Duration (Có AI),15,1,98.51
+150,303,B. AI Predicted Duration (Có AI),20,0,100.0
+150,404,A. Default Duration (Thiếu AI),10,24,63.64
+150,404,A. Default Duration (Thiếu AI),15,19,71.21
+150,404,A. Default Duration (Thiếu AI),20,14,78.79
+150,404,B. AI Predicted Duration (Có AI),10,1,98.21
+150,404,B. AI Predicted Duration (Có AI),15,0,100.0
+150,404,B. AI Predicted Duration (Có AI),20,0,100.0

@@ -1,18 +1,18 @@
 {
   "counts": {
-    "osrm_cache": 1357,
+    "osrm_cache": 353448,
     "osrm_network": 0,
-    "haversine_fallback": 351762,
+    "haversine_fallback": 0,
     "same_location": 211,
     "other_fallback": 0
   },
-  "total_queries": 353330,
+  "total_queries": 353659,
   "ratios_pct": {
-    "osrm_cache_pct": 0.38,
+    "osrm_cache_pct": 99.94,
     "osrm_network_pct": 0.0,
-    "haversine_fallback_pct": 99.56,
+    "haversine_fallback_pct": 0.0,
     "same_location_pct": 0.06,
     "other_fallback_pct": 0.0
   },
-  "osrm_coverage_pct": 0.38
+  "osrm_coverage_pct": 99.94
 }

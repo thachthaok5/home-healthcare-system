@@ -374,8 +374,8 @@ def build_word_report():
     audit_table.alignment = WD_TABLE_ALIGNMENT.CENTER
     set_table_borders(audit_table, color="2B547E", sz="6", val="single")
 
-    routing_str = (f"OSRM cache + deterministic Haversine fallback: {tot_queries:,} truy vấn, trong đó OSRM cache "
-                   f"{cache_hits:,} ({vn(cov_pct)}%), Haversine {hav_cnt:,} ({vn(hav_pct)}%), trùng vị trí {same_cnt:,} ({vn(same_pct)}%)")
+    routing_str = (f"OSRM cache + deterministic Haversine fallback: {vn(tot_queries, 0)} truy vấn, trong đó OSRM cache "
+                   f"{vn(cache_hits, 0)} ({vn(cov_pct)}%), Haversine {vn(hav_cnt, 0)} ({vn(hav_pct)}%), trùng vị trí {vn(same_cnt, 0)} ({vn(same_pct)}%)")
 
     audit_meta = [
         ("Git Commit SHA Đóng băng:", f"{git_sha} (tag thesis-experiments-final)"),
@@ -561,7 +561,7 @@ def build_word_report():
         + ("Vì vậy kết quả được mô tả chính xác là mô hình \"OSRM cache + deterministic Haversine fallback\", với tỷ lệ từng nguồn như trên.\n"
            if hav_pct >= 1.0 else
            "Do phần lớn truy vấn lấy từ OSRM cache, cự ly trong benchmark phản ánh khoảng cách đường bộ OSRM (profile ô tô của máy chủ OSRM công khai), không phải đường đi xe máy thực tế.\n")
-        "3. **Tính toán cự ly theo chuỗi hành trình Tour thực tế:** Sinh viên đã thay thế toàn bộ cách tính cộng dồn khoảng cách độc lập từ trạm đến từng khách hàng bằng phương thức `calculate_daily_tour_metrics()`. Tổng cự ly di chuyển của mỗi điều dưỡng được tính theo đúng chuỗi lộ trình liên tục trong ngày:"
+        + "3. **Tính toán cự ly theo chuỗi hành trình Tour thực tế:** Sinh viên đã thay thế toàn bộ cách tính cộng dồn khoảng cách độc lập từ trạm đến từng khách hàng bằng phương thức `calculate_daily_tour_metrics()`. Tổng cự ly di chuyển của mỗi điều dưỡng được tính theo đúng chuỗi lộ trình liên tục trong ngày:"
     )
     add_callout(doc,
         "Cự ly di chuyển thực tế (Tour) của nhân viên e:\n"
@@ -680,7 +680,7 @@ def build_word_report():
         f"và trung bình {vn(mean_of(b6['assignment_change_count']))} ca đổi nhân sự. "
         f"Với 'Ưu tiên khoảng cách', tổng cự ly Tour {trend(mean_of(b0['total_travel_distance_km']), mean_of(b4['total_travel_distance_km']), ' km')}. "
         f"Với 'Ưu tiên cân bằng tải', độ lệch chuẩn tải {trend(mean_of(b0['workload_std_dev']), mean_of(b5['workload_std_dev']), ' phút')}. "
-        + (f"Các kịch bản {', '.join(same_as_base)} cho phân công trùng với kịch bản Cơ sở (0 ca thay đổi), cho thấy trong cấu hình hiện tại việc dịch chuyển 5–10% trọng số giữa Skill/Time chưa đủ để đổi nghiệm tối ưu. " if same_as_base else "")
+        + (f"Kịch bản {', '.join(s.split('. ', 1)[-1] for s in same_as_base)} cho phân công trùng với kịch bản Cơ sở (0 ca thay đổi), cho thấy trong cấu hình hiện tại việc dịch chuyển 5–10% trọng số giữa Skill/Time chưa đủ để đổi nghiệm tối ưu. " if same_as_base else "")
         + "Mức thay đổi nhỏ so với độ lệch chuẩn giữa các seed, nên kết quả chỉ cho thấy xu hướng phản ứng của DSS theo trọng số trong kịch bản mô phỏng, chưa đủ để kết luận về mức độ nhạy trong vận hành thực tế."
     )
 
@@ -791,8 +791,10 @@ def build_word_report():
         f"so với {vn_ms(n['feasible_rate'])}% của Nearest Feasible ({vn(n_assigned)} ca) và {vn_ms(w['feasible_rate'])}% của Weighted DSS ({vn(w_assigned)} ca). "
         f"Tỷ lệ khả thi thấp ở mức tải này phản ánh giới hạn năng lực của đội 10 nhân sự trong kịch bản, không phải lỗi giải thuật.\n"
         f"• Tổng cự ly Tour của OR-Tools tại N={nmax} là {vn_ms(o['total_travel_distance_km'])} km, {km_cmp} so với hai thuật toán tham lam "
-        f"({vn(n_km)} km và {vn(w_km)} km).\n"
-        f"• Thời gian chạy của OR-Tools tại N={nmax} là {vn_ms(o['runtime_ms'])} ms; giá trị lớn nhất trên toàn bộ lượt chạy là {vn(max_runtime_ms, 1)} ms. "
+        f"({vn(n_km)} km và {vn(w_km)} km)"
+        + (f", trong khi OR-Tools phục vụ nhiều hơn khoảng {vn(o_assigned - max(n_assigned, w_assigned), 1)} ca/ngày; vì vậy cần so sánh cự ly trên mỗi ca phục vụ: "
+           f"{vn(o_km / o_assigned)} km/ca so với {vn(n_km / n_assigned)} và {vn(w_km / w_assigned)} km/ca.\n" if o_assigned > max(n_assigned, w_assigned) else ".\n")
+        + f"• Thời gian chạy của OR-Tools tại N={nmax} là {vn_ms(o['runtime_ms'])} ms; giá trị lớn nhất trên toàn bộ lượt chạy là {vn(max_runtime_ms, 1)} ms. "
         "Kết quả này chỉ cho thấy bài toán xử lý được trong cấu hình thực nghiệm hiện tại (10 nhân sự, tối đa 150 yêu cầu/ngày, giới hạn thời gian tất định của CP-SAT, phần cứng của máy chạy pipeline), "
         "chưa đủ để khẳng định bảo đảm vận hành thực tế."
     )
