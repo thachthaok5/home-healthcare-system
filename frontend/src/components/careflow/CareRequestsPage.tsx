@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef } from 'react';
 import {
   Plus,
   Search,
@@ -32,6 +32,9 @@ import {
   CareFlowRoute,
   EmptyStateCard,
   KpiCard,
+  SUPPORTED_ZONES,
+  normalizeVi,
+  displayWard,
 } from './SharedUI';
 import { NewRequestDrawer } from './NewRequestDrawer';
 
@@ -87,17 +90,6 @@ interface UnifiedRequestItem {
   readinessChecks: ReadinessCheckItem[];
   isReadyForAI: boolean;
 }
-
-const SUPPORTED_ZONES = [
-  'Phường Lộc Thọ',
-  'Phường Tân Lập',
-  'Phường Phước Tiến',
-  'Phường Vĩnh Nguyên',
-  'Phường Vĩnh Hải',
-  'Phường Phước Hải',
-  'Phường Vạn Thạnh',
-  'Phường Phương Sài',
-];
 
 const formatDateVi = (isoDate: string): string => {
   if (!isoDate) return '';
@@ -165,6 +157,7 @@ export const CareRequestsPage: React.FC<CareRequestsPageProps> = ({
   const [selectedRequestId, setSelectedRequestId] = useState<string | null>(null);
   const [editingRequest, setEditingRequest] = useState<Partial<UnassignedRequest> | null>(null);
   const [showReadinessDetails, setShowReadinessDetails] = useState<boolean>(false);
+  const readinessSectionRef = useRef<HTMLDivElement | null>(null);
 
   const pageSize = 8;
 
@@ -186,9 +179,9 @@ export const CareRequestsPage: React.FC<CareRequestsPageProps> = ({
       const hasSkill = skills && skills.length > 0;
       const validWindow = sM < eM && eM - sM >= 20;
       const validDuration = durationMin > 0 && durationMin <= 480;
-      const areaSupported = SUPPORTED_ZONES.some((z) =>
-        district.toLowerCase().includes(z.toLowerCase().replace('phường ', ''))
-      );
+      const normDistrict = normalizeVi(district);
+      const areaSupported = SUPPORTED_ZONES.some((z) => normalizeVi(z) === normDistrict);
+      const wardLabel = displayWard(district);
       const hasEligibleStaff = eligibleCount > 0;
 
       return [
@@ -214,7 +207,7 @@ export const CareRequestsPage: React.FC<CareRequestsPageProps> = ({
           key: 'area',
           label: 'Khu vực nằm trong phạm vi phục vụ',
           passed: areaSupported,
-          detail: areaSupported ? district : `${district} (Ngoài vùng trạm cơ sở)`,
+          detail: areaSupported ? wardLabel : `${wardLabel} (Ngoài vùng trạm cơ sở)`,
         },
         {
           key: 'eligible_staff',
@@ -232,6 +225,7 @@ export const CareRequestsPage: React.FC<CareRequestsPageProps> = ({
       const parts = (r.requestedWindow || '09:00 - 10:30').split('-').map((s) => s.trim());
       const winStart = r.windowStart || parts[0] || '09:00';
       const winEnd = r.windowEnd || parts[1] || '10:30';
+      const formattedWard = displayWard(r.district);
       const checks = computeReadiness(
         r.requiredSkills,
         winStart,
@@ -248,9 +242,13 @@ export const CareRequestsPage: React.FC<CareRequestsPageProps> = ({
         ? 'New'
         : 'Ready for AI';
 
+      const rawCreated = (r as unknown as { createdAt?: string; created_at?: string }).createdAt ||
+        (r as unknown as { createdAt?: string; created_at?: string }).created_at ||
+        '';
+
       return {
         id: r.id,
-        createdAtText: `${selectedDate} · 07:${String(15 + (idx * 7) % 40).padStart(2, '0')}`,
+        createdAtText: rawCreated,
         patientName: r.patientName,
         patientAge: r.patientAge,
         patientPhone: r.patientPhone,
@@ -260,7 +258,7 @@ export const CareRequestsPage: React.FC<CareRequestsPageProps> = ({
         requestedTime: r.requestedWindow,
         windowStart: winStart,
         windowEnd: winEnd,
-        district: r.district,
+        district: formattedWard,
         address: r.address,
         priority: r.priority,
         operationalStatus: opStatus,
@@ -278,7 +276,8 @@ export const CareRequestsPage: React.FC<CareRequestsPageProps> = ({
       };
     });
 
-    const fromAssigned: UnifiedRequestItem[] = assignments.map((a, idx) => {
+    const fromAssigned: UnifiedRequestItem[] = assignments.map((a) => {
+      const formattedWard = displayWard(a.district);
       const checks = computeReadiness(
         [a.serviceCategory],
         a.startTime,
@@ -293,9 +292,13 @@ export const CareRequestsPage: React.FC<CareRequestsPageProps> = ({
         ? 'Completed'
         : 'Assigned';
 
+      const rawCreated = (a as unknown as { createdAt?: string; created_at?: string }).createdAt ||
+        (a as unknown as { createdAt?: string; created_at?: string }).created_at ||
+        '';
+
       return {
         id: a.id,
-        createdAtText: `${selectedDate} · 06:${String(30 + (idx * 5) % 28).padStart(2, '0')}`,
+        createdAtText: rawCreated,
         patientName: a.patientName,
         patientAge: a.patientAge,
         serviceName: a.serviceName,
@@ -304,7 +307,7 @@ export const CareRequestsPage: React.FC<CareRequestsPageProps> = ({
         requestedTime: `${a.startTime} - ${a.endTime}`,
         windowStart: a.startTime,
         windowEnd: a.endTime,
-        district: a.district,
+        district: formattedWard,
         address: a.address,
         priority: a.priority,
         operationalStatus: opStatus,
@@ -472,7 +475,7 @@ export const CareRequestsPage: React.FC<CareRequestsPageProps> = ({
           }}
         />
         <KpiCard
-          label="Chưa Phân công (Unassigned)"
+          label="Chưa phân công"
           value={unassignedCount}
           sublabel={`${
             unifiedList.filter((r) => r.operationalStatus === 'Ready for AI').length
@@ -485,7 +488,7 @@ export const CareRequestsPage: React.FC<CareRequestsPageProps> = ({
           }}
         />
         <KpiCard
-          label="Cần Rà soát (Needs Review)"
+          label="Cần rà soát"
           value={needsReviewCount}
           sublabel="Thiếu điều kiện sẵn sàng hoặc cảnh báo trùng lịch"
           tone={needsReviewCount > 0 ? 'warning' : 'default'}
@@ -523,13 +526,13 @@ export const CareRequestsPage: React.FC<CareRequestsPageProps> = ({
             }}
             className="px-2.5 py-1.5 rounded-lg border border-line bg-white text-[12px] text-ink"
           >
-            <option value="ALL">Tất cả Trạng thái</option>
-            <option value="New">Mới tiếp nhận (New)</option>
-            <option value="Ready for AI">Sẵn sàng AI (Ready for AI)</option>
-            <option value="Needs Review">Cần rà soát (Needs Review)</option>
-            <option value="Assigned">Đã phân công (Assigned)</option>
-            <option value="Completed">Hoàn thành (Completed)</option>
-            <option value="Cancelled">Đã hủy (Cancelled)</option>
+            <option value="ALL">Tất cả trạng thái</option>
+            <option value="New">Mới tiếp nhận</option>
+            <option value="Ready for AI">Sẵn sàng AI</option>
+            <option value="Needs Review">Cần rà soát</option>
+            <option value="Assigned">Đã phân công</option>
+            <option value="Completed">Hoàn thành</option>
+            <option value="Cancelled">Đã hủy</option>
           </select>
 
           {/* Priority filter */}
@@ -541,10 +544,10 @@ export const CareRequestsPage: React.FC<CareRequestsPageProps> = ({
             }}
             className="px-2.5 py-1.5 rounded-lg border border-line bg-white text-[12px] text-ink"
           >
-            <option value="ALL">Tất cả Mức ưu tiên</option>
-            <option value="Urgent">Khẩn cấp (Urgent)</option>
-            <option value="High">Ưu tiên cao (High)</option>
-            <option value="Normal">Tiêu chuẩn (Normal)</option>
+            <option value="ALL">Tất cả mức ưu tiên</option>
+            <option value="Urgent">Khẩn cấp</option>
+            <option value="High">Ưu tiên cao</option>
+            <option value="Normal">Tiêu chuẩn</option>
           </select>
 
           {/* Service type filter */}
@@ -809,9 +812,6 @@ export const CareRequestsPage: React.FC<CareRequestsPageProps> = ({
         const shortWard = selectedDetail.district
           .replace(/^Phường\s+/i, '')
           .replace(/^Xã\s+/i, '');
-        const createdTimeOnly = selectedDetail.createdAtText.includes('·')
-          ? selectedDetail.createdAtText.split('·')[1]?.trim()
-          : '07:15';
 
         const summaryStripClass =
           selectedDetail.priority === 'Khẩn cấp'
@@ -900,21 +900,28 @@ export const CareRequestsPage: React.FC<CareRequestsPageProps> = ({
 
               {/* Drawer Content */}
               <div className="flex-1 overflow-y-auto p-6 space-y-5">
-                {/* Hộp cảnh báo vàng khi chưa sẵn sàng */}
+                {/* Hộp cảnh báo vàng 1 dòng khi chưa sẵn sàng */}
                 {!selectedDetail.isReadyForAI && (
-                  <div className="p-3.5 rounded-lg bg-sun-50 border border-sun-300 text-sun-700 space-y-1.5">
-                    <div className="flex items-center gap-2 text-[13px] font-semibold">
+                  <button
+                    type="button"
+                    onClick={() =>
+                      readinessSectionRef.current?.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start',
+                      })
+                    }
+                    className="w-full px-3.5 py-2.5 rounded-lg bg-sun-50 border border-sun-300 text-sun-700 flex items-center justify-between gap-2 text-[12.5px] font-semibold hover:bg-sun-100 cursor-pointer text-left"
+                  >
+                    <span className="inline-flex items-center gap-2">
                       <AlertTriangle className="w-4 h-4 shrink-0" />
                       <span>
-                        Còn thiếu {failedChecks.length}/{totalChecks} điều kiện
+                        {failedChecks.length > 0
+                          ? `Còn thiếu ${failedChecks.length}/${totalChecks} điều kiện · xem bên dưới`
+                          : 'Chưa sẵn sàng gửi AI · xem bên dưới'}
                       </span>
-                    </div>
-                    <ul className="m-0 pl-5 space-y-0.5 text-[12px]">
-                      {failedChecks.map((fc) => (
-                        <li key={fc.key}>{fc.label}</li>
-                      ))}
-                    </ul>
-                  </div>
+                    </span>
+                    <ChevronDown className="w-4 h-4 shrink-0" />
+                  </button>
                 )}
 
                 {/* Mục 1: Bệnh nhân & dịch vụ */}
@@ -994,7 +1001,7 @@ export const CareRequestsPage: React.FC<CareRequestsPageProps> = ({
                 </div>
 
                 {/* Mục 3: Sẵn sàng điều phối */}
-                <div className="space-y-2.5">
+                <div ref={readinessSectionRef} className="space-y-2.5">
                   <div className="flex items-center justify-between gap-2">
                     <div className="flex items-center gap-2 text-[14px] font-bold text-ink">
                       <ShieldCheck className="w-4 h-4 text-brand-600 shrink-0" />
@@ -1019,7 +1026,7 @@ export const CareRequestsPage: React.FC<CareRequestsPageProps> = ({
                     >
                       <span className="inline-flex items-center gap-2">
                         <CheckCircle2 className="w-4 h-4 shrink-0" />
-                        Đã đủ 5/5 điều kiện
+                        Đã đủ {totalChecks}/{totalChecks} điều kiện
                       </span>
                       <ChevronDown className="w-4 h-4 shrink-0" />
                     </button>
@@ -1070,10 +1077,12 @@ export const CareRequestsPage: React.FC<CareRequestsPageProps> = ({
                   )}
                 </div>
 
-                {/* Thời điểm tạo ở cuối drawer */}
-                <div className="text-[11px] text-subtle pt-1">
-                  Tạo lúc {createdTimeOnly} · {formatDateVi(selectedDetail.requestedDate)}
-                </div>
+                {/* Thời điểm tạo thật từ API (ẩn nếu API chưa trả về) */}
+                {selectedDetail.createdAtText && (
+                  <div className="text-[11px] text-subtle pt-1">
+                    Tạo lúc {selectedDetail.createdAtText}
+                  </div>
+                )}
               </div>
 
               {/* Footer */}
@@ -1102,7 +1111,9 @@ export const CareRequestsPage: React.FC<CareRequestsPageProps> = ({
                       disabled={!selectedDetail.isReadyForAI}
                       title={
                         !selectedDetail.isReadyForAI
-                          ? `Còn thiếu ${failedChecks.length}/5 điều kiện để chạy đề xuất AI`
+                          ? failedChecks.length > 0
+                            ? `Còn thiếu ${failedChecks.length}/${totalChecks} điều kiện để chạy đề xuất AI`
+                            : 'Chưa sẵn sàng gửi AI'
                           : undefined
                       }
                       onClick={() => {

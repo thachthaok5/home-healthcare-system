@@ -21,6 +21,82 @@ export type CareFlowRoute =
   | '/team'
   | '/reports';
 
+export const SUPPORTED_ZONES = [
+  'Phường Lộc Thọ',
+  'Phường Tân Lập',
+  'Phường Phước Tiến',
+  'Phường Vĩnh Nguyên',
+  'Phường Vĩnh Hải',
+  'Phường Phước Hải',
+  'Phường Vạn Thạnh',
+  'Phường Phương Sài',
+];
+
+const EXTRA_NHA_TRANG_WARDS: Record<string, string> = {
+  'vinh phuoc': 'Phường Vĩnh Phước',
+  'vinh truong': 'Phường Vĩnh Trường',
+  'vinh ngoc': 'Xã Vĩnh Ngọc',
+  'phuoc hoa': 'Phường Phước Hòa',
+  'xuong huan': 'Phường Xương Huân',
+  'phuoc tan': 'Phường Phước Tân',
+  'phuoc long': 'Phường Phước Long',
+  'ngoc hiep': 'Phường Ngọc Hiệp',
+  'vinh thai': 'Xã Vĩnh Thái',
+  'vinh hiep': 'Xã Vĩnh Hiệp',
+};
+
+export const normalizeVi = (s: string): string => {
+  if (!s) return '';
+  return s
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/đ/g, 'd')
+    .replace(/Đ/g, 'D')
+    .toLowerCase()
+    .trim()
+    .replace(/^(phường|phuong|xã|xa)\s+/i, '')
+    .trim();
+};
+
+export const displayWard = (district: string): string => {
+  if (!district) return '';
+  const norm = normalizeVi(district);
+  const matchedZone = SUPPORTED_ZONES.find((z) => normalizeVi(z) === norm);
+  if (matchedZone) return matchedZone;
+  if (EXTRA_NHA_TRANG_WARDS[norm]) return EXTRA_NHA_TRANG_WARDS[norm];
+  return district;
+};
+
+const SKILL_NAME_BY_ID: Record<number, string> = {
+  1: 'Chăm sóc và rửa vết thương cơ bản',
+  2: 'Thay băng cắt chỉ & rửa vết mổ phẫu thuật',
+  3: 'Tiêm truyền tĩnh mạch & lấy mẫu máu xét nghiệm',
+  4: 'Vật lý trị liệu & phục hồi chức năng vận động',
+  5: 'Chăm sóc bệnh nhân thở máy & mở khí quản',
+  6: 'Theo dõi sinh hiệu, huyết áp & đường huyết người cao tuổi',
+  7: 'Chăm sóc loét tỳ đè & biến chứng đái tháo đường',
+  8: 'Tắm bé sơ sinh & chăm sóc rốn trẻ em',
+  9: 'Xoa bóp bấm huyệt & trị liệu đông y phục hồi',
+  10: 'Đặt ống sonde dạ dày & hỗ trợ dinh dưỡng qua ống',
+};
+
+export const formatConstraintReason = (raw: string): string => {
+  if (!raw) return '';
+  let text = raw.trim();
+  text = text.replace(/^(H[1-6]|Loại ứng viên)\s*:\s*/i, '');
+  text = text.replace(/Thiếu kỹ năng bắt buộc ID\s*(\d+)/gi, (_, idStr) => {
+    const name = SKILL_NAME_BY_ID[Number(idStr)];
+    return name ? `Thiếu kỹ năng: ${name}` : `Thiếu kỹ năng chuyên môn`;
+  });
+  text = text.replace(/Kỹ năng ID\s*(\d+)\s*chưa đạt cấp độ tối thiểu\s*(\d+)/gi, (_, idStr, lvl) => {
+    const name = SKILL_NAME_BY_ID[Number(idStr)];
+    return name
+      ? `Kỹ năng "${name}" chưa đạt cấp độ tối thiểu ${lvl}`
+      : `Kỹ năng chưa đạt cấp độ tối thiểu ${lvl}`;
+  });
+  return text;
+};
+
 export interface PageHeaderProps {
   title: string;
   subtitle?: string;
@@ -333,9 +409,9 @@ export const SuitabilityScoreBadge: React.FC<{
   score: number;
   size?: 'sm' | 'md' | 'lg';
 }> = ({ score, size = 'md' }) => {
-  const normalized = (score / 100).toFixed(2);
-  const isHigh = score >= 80;
-  const isMid = score >= 65 && score < 80;
+  const rounded = Math.round(score);
+  const isHigh = rounded >= 80;
+  const isMid = rounded >= 65 && rounded < 80;
 
   const colorClasses = isHigh
     ? 'bg-lav-100 text-lav-700 border-lav-200'
@@ -345,25 +421,23 @@ export const SuitabilityScoreBadge: React.FC<{
 
   if (size === 'lg') {
     return (
-      <div className={`inline-flex items-baseline gap-1.5 px-3 py-1.5 rounded-lg border ${colorClasses}`}>
-        <span className="text-[20px] font-semibold tabular-nums leading-none">{score}%</span>
-        <span className="text-[11px] opacity-80 font-mono-num">({normalized})</span>
+      <div className={`inline-flex items-center px-3 py-1.5 rounded-lg border ${colorClasses}`}>
+        <span className="text-[20px] font-semibold tabular-nums leading-none">{rounded}%</span>
       </div>
     );
   }
 
   if (size === 'sm') {
     return (
-      <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-semibold border tabular-nums ${colorClasses}`}>
-        {score}%
+      <span className={`inline-flex items-center px-2 py-0.5 rounded text-[11px] font-semibold border tabular-nums ${colorClasses}`}>
+        {rounded}%
       </span>
     );
   }
 
   return (
-    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[12px] font-semibold border tabular-nums ${colorClasses}`}>
-      <span>{score}%</span>
-      <span className="text-[11px] opacity-75 font-mono-num">({normalized})</span>
+    <span className={`inline-flex items-center px-2.5 py-1 rounded-lg text-[14px] font-bold border tabular-nums ${colorClasses}`}>
+      {rounded}%
     </span>
   );
 };
@@ -413,6 +487,11 @@ export const evaluateSixHardConstraints = (
     candidate.criteria.projectedAssignedMinutes <= candidate.criteria.maxDailyMinutes &&
     !hasText('vượt trần');
 
+  const rawSkillViolation =
+    candidate.constraintViolations.find((v) => /H1:|kỹ năng/i.test(v)) ||
+    violations.find((v) => v.code === 'SKILL_MISMATCH')?.detail ||
+    '';
+
   return [
     {
       key: 'skill_match',
@@ -420,7 +499,11 @@ export const evaluateSixHardConstraints = (
       passed: skillPassed,
       detail: skillPassed
         ? `Đạt (${candidate.criteria.matchedSkills.join(', ') || 'Đủ chứng chỉ'})`
-        : `Thiếu: ${candidate.criteria.missingSkills.join(', ') || 'Chứng chỉ chuyên môn'}`,
+        : candidate.criteria.missingSkills.length > 0
+        ? `Thiếu: ${candidate.criteria.missingSkills.join(', ')}`
+        : rawSkillViolation
+        ? formatConstraintReason(rawSkillViolation)
+        : 'Thiếu chứng chỉ chuyên môn',
     },
     {
       key: 'active_status',
