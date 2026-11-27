@@ -327,7 +327,7 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({
                     key={req.id}
                     className={`rounded-xl bg-white overflow-hidden border-l-[6px] ${
                       isUrgent
-                        ? 'border border-urgent border-l-urgent'
+                        ? 'border border-line border-l-urgent'
                         : isHigh
                         ? 'border border-line border-l-high'
                         : 'border border-line border-l-brand-300'
@@ -356,9 +356,7 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({
                     {/* Dòng 2: dịch vụ, bệnh nhân, khu vực */}
                     <div className="px-4 pt-1 pb-3">
                       <h3
-                        className={`text-[15px] font-semibold leading-snug m-0 ${
-                          isUrgent ? 'text-urgent-ink' : 'text-ink'
-                        }`}
+                        className="text-[15px] font-semibold leading-snug m-0 text-ink"
                       >
                         {req.serviceName}
                       </h3>
@@ -415,9 +413,7 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({
                         type="button"
                         onClick={() => onNavigate('/recommendations', req.id)}
                         className={`inline-flex items-center gap-1 px-3.5 py-2 rounded-lg text-[13px] font-bold cursor-pointer transition-colors shrink-0 ${
-                          isUrgent
-                            ? 'bg-urgent text-white hover:bg-urgent-ink'
-                            : 'bg-brand-600 text-white hover:bg-brand-700'
+                          'bg-brand-600 text-white hover:bg-brand-700'
                         }`}
                       >
                         {isUrgent ? 'Duyệt ngay' : 'Xem & duyệt'}
